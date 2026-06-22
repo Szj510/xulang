@@ -60,8 +60,8 @@ class NarrativeNavigationCoordinator {
     required bool endArmed,
   }) {
     final intent = switch (distance) {
-      <= -threshold when endArmed => ChapterNavigationIntent.next,
-      >= threshold when startArmed => ChapterNavigationIntent.previous,
+      < -threshold when endArmed => ChapterNavigationIntent.next,
+      > threshold when startArmed => ChapterNavigationIntent.previous,
       _ => ChapterNavigationIntent.none,
     };
     if (intent != ChapterNavigationIntent.none) _dispatched = true;
