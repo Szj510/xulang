@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/layout/motion_resolver.dart';
@@ -46,19 +48,25 @@ class SceneCanvas extends StatelessWidget {
           viewport: viewport,
         );
         final frame = track.resolve(cameraProgress);
+        final motion = MotionResolver.resolve(
+          motion: chapter.motion,
+          progress: progress,
+          reduceMotion: reduceMotion,
+        );
+        final displayedGeometry = transformStoryPathGeometry(
+          geometry: frame.path,
+          motion: motion,
+          viewport: viewport,
+        );
         final anchorsByPlacement = {
-          for (final anchor in frame.path.anchors) anchor.placementId: anchor,
+          for (final anchor in displayedGeometry.anchors)
+            anchor.placementId: anchor,
         };
         final nodesByPlacement = {
           for (final node in frame.nodes) node.placementId: node,
         };
         final nodes = [...frame.nodes]
           ..sort((a, b) => a.depth.compareTo(b.depth));
-        final motion = MotionResolver.resolve(
-          motion: chapter.motion,
-          progress: progress,
-          reduceMotion: reduceMotion,
-        );
         final paper = sceneTheme == GalleryTheme.paper;
         return ClipRect(
           child: ColoredBox(
@@ -69,11 +77,15 @@ class SceneCanvas extends StatelessWidget {
                 if (showStoryPath && chapter.layout == GalleryLayout.storyPath)
                   Positioned.fill(
                     child: IgnorePointer(
-                      child: CustomPaint(
-                        key: const Key('story-path-line'),
-                        painter: StoryPathPainter(
-                          sceneTheme: sceneTheme,
-                          geometry: frame.path,
+                      child: Opacity(
+                        key: const Key('story-path-opacity'),
+                        opacity: motion.opacity.clamp(0, 1),
+                        child: CustomPaint(
+                          key: const Key('story-path-line'),
+                          painter: StoryPathPainter(
+                            sceneTheme: sceneTheme,
+                            geometry: displayedGeometry,
+                          ),
                         ),
                       ),
                     ),
@@ -102,7 +114,9 @@ class SceneCanvas extends StatelessWidget {
                         placement: chapter.placements[index],
                         anchor: anchor,
                         opacity:
-                            nodesByPlacement[anchor.placementId]?.opacity ?? 0,
+                            (nodesByPlacement[anchor.placementId]?.opacity ??
+                                0) *
+                            motion.opacity,
                         sceneTheme: sceneTheme,
                         viewport: viewport,
                       ),
@@ -192,6 +206,7 @@ class _StoryNodeLabel extends StatelessWidget {
       rect: rect,
       child: IgnorePointer(
         child: Opacity(
+          key: Key('story-label-opacity-${placement.id}'),
           opacity: (opacity * .82).clamp(0, 1),
           child: Text(
             '${(index + 1).toString().padLeft(2, '0')}  '
@@ -254,20 +269,6 @@ Rect resolveStoryLabelRect({
   required Size viewport,
   Size labelSize = const Size(92, 30),
 }) {
-  var rect = Rect.fromLTWH(
-    anchor.point.dx + 8,
-    anchor.point.dy - labelSize.height / 2,
-    labelSize.width,
-    labelSize.height,
-  );
-  if (rect.overlaps(anchor.nodeRect)) {
-    rect = Rect.fromLTWH(
-      anchor.point.dx - 8 - labelSize.width,
-      rect.top,
-      labelSize.width,
-      labelSize.height,
-    );
-  }
   final maxLeft = (viewport.width - labelSize.width - 8).clamp(
     8.0,
     double.infinity,
@@ -276,17 +277,102 @@ Rect resolveStoryLabelRect({
     8.0,
     double.infinity,
   );
-  return Rect.fromLTWH(
-    rect.left.clamp(8.0, maxLeft),
-    rect.top.clamp(8.0, maxTop),
+  Rect clampCandidate(double left) => Rect.fromLTWH(
+    left.clamp(8.0, maxLeft),
+    (anchor.point.dy - labelSize.height / 2).clamp(8.0, maxTop),
     labelSize.width,
     labelSize.height,
   );
+
+  double overlapArea(Rect candidate) {
+    if (!candidate.overlaps(anchor.nodeRect)) return 0;
+    final overlap = candidate.intersect(anchor.nodeRect);
+    return overlap.width * overlap.height;
+  }
+
+  final right = clampCandidate(anchor.point.dx + 8);
+  final left = clampCandidate(anchor.point.dx - 8 - labelSize.width);
+  return overlapArea(left) < overlapArea(right) ? left : right;
 }
 
 Color storyPathDotColor(GalleryTheme sceneTheme) =>
     (sceneTheme == GalleryTheme.paper ? XulangColors.ink : XulangColors.paper)
         .withValues(alpha: .85);
+
+StoryPathGeometry transformStoryPathGeometry({
+  required StoryPathGeometry geometry,
+  required MotionFrame motion,
+  required Size viewport,
+}) {
+  Offset transformPoint(Offset point, Offset pivot) {
+    final relative = (point - pivot) * motion.scale;
+    final cosine = math.cos(motion.rotation);
+    final sine = math.sin(motion.rotation);
+    final rotated = Offset(
+      relative.dx * cosine - relative.dy * sine,
+      relative.dx * sine + relative.dy * cosine,
+    );
+    return pivot +
+        rotated +
+        Offset(
+          motion.offset.dx * viewport.width,
+          motion.offset.dy * viewport.height,
+        );
+  }
+
+  Rect transformRect(Rect rect, Offset pivot) {
+    final points = [
+      transformPoint(rect.topLeft, pivot),
+      transformPoint(rect.topRight, pivot),
+      transformPoint(rect.bottomLeft, pivot),
+      transformPoint(rect.bottomRight, pivot),
+    ];
+    return Rect.fromLTRB(
+      points.map((point) => point.dx).reduce(math.min),
+      points.map((point) => point.dy).reduce(math.min),
+      points.map((point) => point.dx).reduce(math.max),
+      points.map((point) => point.dy).reduce(math.max),
+    );
+  }
+
+  final transformedAnchors = [
+    for (final anchor in geometry.anchors)
+      StoryPathAnchor(
+        placementId: anchor.placementId,
+        point: transformPoint(anchor.point, anchor.nodeRect.center),
+        nodeRect: transformRect(anchor.nodeRect, anchor.nodeRect.center),
+      ),
+  ];
+  final fallbackPivot = Offset(viewport.width / 2, viewport.height / 2);
+  final transformedSegments = <StoryPathSegment>[];
+  for (var index = 0; index < geometry.segments.length; index++) {
+    final segment = geometry.segments[index];
+    final startAnchor = index < geometry.anchors.length
+        ? geometry.anchors[index]
+        : null;
+    final endAnchor = index + 1 < geometry.anchors.length
+        ? geometry.anchors[index + 1]
+        : null;
+    final startPivot = startAnchor?.nodeRect.center ?? fallbackPivot;
+    final endPivot = endAnchor?.nodeRect.center ?? startPivot;
+    transformedSegments.add(
+      StoryPathSegment(
+        start: index < transformedAnchors.length
+            ? transformedAnchors[index].point
+            : transformPoint(segment.start, startPivot),
+        control1: transformPoint(segment.control1, startPivot),
+        control2: transformPoint(segment.control2, endPivot),
+        end: index + 1 < transformedAnchors.length
+            ? transformedAnchors[index + 1].point
+            : transformPoint(segment.end, endPivot),
+      ),
+    );
+  }
+  return StoryPathGeometry(
+    anchors: transformedAnchors,
+    segments: transformedSegments,
+  );
+}
 
 class StoryPathPainter extends CustomPainter {
   StoryPathPainter({required this.sceneTheme, required this.geometry});
