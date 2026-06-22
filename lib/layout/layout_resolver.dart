@@ -276,11 +276,12 @@ class LayoutResolver {
       final crossStart = math
           .min(math.max(desiredCrossStart, 8), crossSize - crossNodeExtent - 8)
           .toDouble();
-      final origin = axis.shiftPrimary(
-        portrait ? Offset(crossStart, 0) : Offset(0, crossStart),
+      final rect = axis.shiftPrimary(
+        portrait
+            ? Rect.fromLTWH(crossStart, 0, width, height)
+            : Rect.fromLTWH(0, crossStart, width, height),
         cursor,
       );
-      final rect = Rect.fromLTWH(origin.dx, origin.dy, width, height);
       nodes.add(
         SceneNode(
           placementId: item.id,

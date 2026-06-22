@@ -27,8 +27,8 @@ enum NarrativeAxis {
     horizontal => size.height,
   };
 
-  Offset shiftPrimary(Offset offset, double distance) => switch (this) {
-    vertical => offset.translate(0, distance),
-    horizontal => offset.translate(distance, 0),
+  Rect shiftPrimary(Rect rect, double distance) => switch (this) {
+    vertical => rect.shift(Offset(0, distance)),
+    horizontal => rect.shift(Offset(distance, 0)),
   };
 }
