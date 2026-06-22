@@ -31,13 +31,11 @@ class NarrativeNavigationCoordinator {
   }
 
   ChapterNavigationIntent update(Offset delta, GalleryGesture gesture) {
-    _primary += _axis.primaryOffset(delta);
-    _cross += _axis.crossOffset(delta);
-
     if (!_active || _dispatched) return ChapterNavigationIntent.none;
 
     if (_axis == NarrativeAxis.horizontal &&
         gesture == GalleryGesture.vertical) {
+      _cross += _axis.crossOffset(delta);
       return _dispatchForDistance(_cross, startArmed: true, endArmed: true);
     }
 
@@ -47,6 +45,7 @@ class NarrativeNavigationCoordinator {
     };
     if (!matchesAxis) return ChapterNavigationIntent.none;
 
+    _primary += _axis.primaryOffset(delta);
     return _dispatchForDistance(
       _primary,
       startArmed: _startArmed,
