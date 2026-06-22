@@ -134,6 +134,37 @@ void main() {
     );
 
     expect(scene.primaryAxis, Axis.vertical);
+    expect(scene.nodes, hasLength(8));
+    expect(
+      scene.nodes.map((node) => node.placementId),
+      storyPlacements.map((placement) => placement.id),
+    );
+    expect(scene.nodes.map((node) => node.depth), const [
+      .42,
+      1.0,
+      .72,
+      .56,
+      .42,
+      1.0,
+      .72,
+      .56,
+    ]);
+    expect(scene.nodes.map((node) => node.rotation), const [
+      -.035,
+      .022,
+      -.018,
+      .038,
+      -.035,
+      .022,
+      -.018,
+      .038,
+    ]);
+    expect(scene.nodes[0].rect.center.dx, closeTo(390 * .35, 1e-9));
+    expect(scene.nodes[0].rect.width, closeTo(390 * .58 * .76, 1e-9));
+    expect(scene.nodes[0].rect.height, closeTo(844 * .29 * .76, 1e-9));
+    expect(scene.nodes[5].rect.center.dx, closeTo(390 * .64, 1e-9));
+    expect(scene.nodes[5].rect.width, closeTo(390 * .58, 1e-9));
+    expect(scene.nodes[5].rect.height, closeTo(844 * .29, 1e-9));
     for (var index = 1; index < scene.nodes.length; index++) {
       expect(
         scene.nodes[index].rect.top - scene.nodes[index - 1].rect.bottom,
@@ -153,6 +184,37 @@ void main() {
     );
 
     expect(scene.primaryAxis, Axis.horizontal);
+    expect(scene.nodes, hasLength(8));
+    expect(
+      scene.nodes.map((node) => node.placementId),
+      storyPlacements.map((placement) => placement.id),
+    );
+    expect(scene.nodes.map((node) => node.depth), const [
+      .42,
+      1.0,
+      .72,
+      .56,
+      .42,
+      1.0,
+      .72,
+      .56,
+    ]);
+    expect(scene.nodes.map((node) => node.rotation), const [
+      -.035,
+      .022,
+      -.018,
+      .038,
+      -.035,
+      .022,
+      -.018,
+      .038,
+    ]);
+    expect(scene.nodes[0].rect.center.dy, closeTo(390 * .37, 1e-9));
+    expect(scene.nodes[0].rect.width, closeTo(844 * .34 * .76, 1e-9));
+    expect(scene.nodes[0].rect.height, closeTo(390 * .64 * .76, 1e-9));
+    expect(scene.nodes[5].rect.center.dy, closeTo(390 * .62, 1e-9));
+    expect(scene.nodes[5].rect.width, closeTo(844 * .34, 1e-9));
+    expect(scene.nodes[5].rect.height, closeTo(390 * .64, 1e-9));
     for (var index = 1; index < scene.nodes.length; index++) {
       expect(
         scene.nodes[index].rect.left - scene.nodes[index - 1].rect.right,
