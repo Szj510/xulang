@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_track_resolver.dart';
 
 void main() {
@@ -77,7 +78,83 @@ void main() {
       landscape.keyframes.map((keyframe) => keyframe.placementId),
       portrait.keyframes.map((keyframe) => keyframe.placementId),
     );
+    expect(portrait.resolve(.5), portraitAgain.resolve(.5));
+    expect(portrait.resolve(.5).hashCode, portraitAgain.resolve(.5).hashCode);
     expect(portrait.keyframes.first.focusProgress, greaterThan(0));
     expect(portrait.keyframes.last.focusProgress, lessThan(1));
   });
+
+  test('empty zero-sized story track resolves without invalid values', () {
+    final track = NarrativeTrackResolver.resolve(
+      chapter: chapter(GalleryLayout.storyPath).copyWith(placements: const []),
+      viewport: Size.zero,
+    );
+
+    final frame = track.resolve(.5);
+
+    expect(track.axis, NarrativeAxis.vertical);
+    expect(track.viewport, Size.zero);
+    expect(track.contentExtent, 0);
+    expect(track.sharedCamera, isTrue);
+    expect(frame.nodes, isEmpty);
+    expect(frame.path.anchors, isEmpty);
+    expect(frame.path.segments, isEmpty);
+  });
+
+  for (final viewport in const [Size(390, 844), Size(844, 390)]) {
+    test('story nodes never reverse placement order in $viewport', () {
+      final track = NarrativeTrackResolver.resolve(
+        chapter: chapter(GalleryLayout.storyPath),
+        viewport: viewport,
+      );
+      final axis = NarrativeAxis.fromViewport(viewport);
+
+      for (final progress in const [0.0, .2, .5, .8, 1.0]) {
+        final frame = track.resolve(progress);
+        final primaryCenters = frame.nodes
+            .map((node) => axis.primaryOffset(node.rect.center))
+            .toList();
+
+        for (var index = 1; index < primaryCenters.length; index++) {
+          expect(
+            primaryCenters[index],
+            greaterThan(primaryCenters[index - 1]),
+            reason: 'progress=$progress, nodes=${frame.nodes}',
+          );
+        }
+      }
+    });
+
+    test(
+      'story frame exposes its axis and ordered visible path in $viewport',
+      () {
+        final track = NarrativeTrackResolver.resolve(
+          chapter: chapter(GalleryLayout.storyPath),
+          viewport: viewport,
+        );
+
+        for (final progress in const [0.0, .2, .5, .8, 1.0]) {
+          final frame = track.resolve(progress);
+          final visibleIds = frame.nodes
+              .where(
+                (node) =>
+                    node.opacity > .05 &&
+                    node.rect.overlaps((Offset.zero & viewport).inflate(96)),
+              )
+              .map((node) => node.placementId)
+              .toList();
+
+          expect(frame.axis, NarrativeAxis.fromViewport(viewport));
+          expect(
+            frame.path.anchors.map((anchor) => anchor.placementId),
+            visibleIds,
+          );
+          expect(
+            frame.path.segments.length,
+            lessThanOrEqualTo(frame.nodes.length - 1),
+          );
+        }
+      },
+    );
+  }
 }
