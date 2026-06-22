@@ -242,6 +242,11 @@ void main() {
     );
   });
 
+  test('story path anchor dots use opaque themed foreground color', () {
+    expect(storyPathDotColor(GalleryTheme.ink).toARGB32(), 0xD9E8E0D3);
+    expect(storyPathDotColor(GalleryTheme.paper).toARGB32(), 0xD9090A0B);
+  });
+
   test('story label defaults to the right of its anchor', () {
     const anchor = StoryPathAnchor(
       placementId: 'p0',
