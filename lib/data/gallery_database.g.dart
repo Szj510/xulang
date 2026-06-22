@@ -1,0 +1,3835 @@
+// GENERATED CODE - DO NOT MODIFY BY HAND
+
+part of 'gallery_database.dart';
+
+// ignore_for_file: type=lint
+class $ExhibitionsTable extends Exhibitions
+    with TableInfo<$ExhibitionsTable, Exhibition> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExhibitionsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _coverMediaIdMeta = const VerificationMeta(
+    'coverMediaId',
+  );
+  @override
+  late final GeneratedColumn<String> coverMediaId = GeneratedColumn<String>(
+    'cover_media_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _themeMeta = const VerificationMeta('theme');
+  @override
+  late final GeneratedColumn<String> theme = GeneratedColumn<String>(
+    'theme',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    coverMediaId,
+    theme,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'exhibitions';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Exhibition> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('cover_media_id')) {
+      context.handle(
+        _coverMediaIdMeta,
+        coverMediaId.isAcceptableOrUnknown(
+          data['cover_media_id']!,
+          _coverMediaIdMeta,
+        ),
+      );
+    }
+    if (data.containsKey('theme')) {
+      context.handle(
+        _themeMeta,
+        theme.isAcceptableOrUnknown(data['theme']!, _themeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_themeMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Exhibition map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Exhibition(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      coverMediaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}cover_media_id'],
+      ),
+      theme: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}theme'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExhibitionsTable createAlias(String alias) {
+    return $ExhibitionsTable(attachedDatabase, alias);
+  }
+}
+
+class Exhibition extends DataClass implements Insertable<Exhibition> {
+  final String id;
+  final String title;
+  final String? coverMediaId;
+  final String theme;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const Exhibition({
+    required this.id,
+    required this.title,
+    this.coverMediaId,
+    required this.theme,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    if (!nullToAbsent || coverMediaId != null) {
+      map['cover_media_id'] = Variable<String>(coverMediaId);
+    }
+    map['theme'] = Variable<String>(theme);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ExhibitionsCompanion toCompanion(bool nullToAbsent) {
+    return ExhibitionsCompanion(
+      id: Value(id),
+      title: Value(title),
+      coverMediaId: coverMediaId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(coverMediaId),
+      theme: Value(theme),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory Exhibition.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Exhibition(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      coverMediaId: serializer.fromJson<String?>(json['coverMediaId']),
+      theme: serializer.fromJson<String>(json['theme']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'coverMediaId': serializer.toJson<String?>(coverMediaId),
+      'theme': serializer.toJson<String>(theme),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  Exhibition copyWith({
+    String? id,
+    String? title,
+    Value<String?> coverMediaId = const Value.absent(),
+    String? theme,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => Exhibition(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    coverMediaId: coverMediaId.present ? coverMediaId.value : this.coverMediaId,
+    theme: theme ?? this.theme,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  Exhibition copyWithCompanion(ExhibitionsCompanion data) {
+    return Exhibition(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      coverMediaId: data.coverMediaId.present
+          ? data.coverMediaId.value
+          : this.coverMediaId,
+      theme: data.theme.present ? data.theme.value : this.theme,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Exhibition(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('coverMediaId: $coverMediaId, ')
+          ..write('theme: $theme, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, title, coverMediaId, theme, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Exhibition &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.coverMediaId == this.coverMediaId &&
+          other.theme == this.theme &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<String?> coverMediaId;
+  final Value<String> theme;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ExhibitionsCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.coverMediaId = const Value.absent(),
+    this.theme = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExhibitionsCompanion.insert({
+    required String id,
+    required String title,
+    this.coverMediaId = const Value.absent(),
+    required String theme,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       theme = Value(theme),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<Exhibition> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<String>? coverMediaId,
+    Expression<String>? theme,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (coverMediaId != null) 'cover_media_id': coverMediaId,
+      if (theme != null) 'theme': theme,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExhibitionsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<String?>? coverMediaId,
+    Value<String>? theme,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ExhibitionsCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      coverMediaId: coverMediaId ?? this.coverMediaId,
+      theme: theme ?? this.theme,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (coverMediaId.present) {
+      map['cover_media_id'] = Variable<String>(coverMediaId.value);
+    }
+    if (theme.present) {
+      map['theme'] = Variable<String>(theme.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExhibitionsCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('coverMediaId: $coverMediaId, ')
+          ..write('theme: $theme, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ChaptersTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _exhibitionIdMeta = const VerificationMeta(
+    'exhibitionId',
+  );
+  @override
+  late final GeneratedColumn<String> exhibitionId = GeneratedColumn<String>(
+    'exhibition_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES exhibitions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _captionMeta = const VerificationMeta(
+    'caption',
+  );
+  @override
+  late final GeneratedColumn<String> caption = GeneratedColumn<String>(
+    'caption',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _layoutMeta = const VerificationMeta('layout');
+  @override
+  late final GeneratedColumn<String> layout = GeneratedColumn<String>(
+    'layout',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _motionMeta = const VerificationMeta('motion');
+  @override
+  late final GeneratedColumn<String> motion = GeneratedColumn<String>(
+    'motion',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    exhibitionId,
+    title,
+    caption,
+    sortOrder,
+    layout,
+    motion,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'chapters';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Chapter> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('exhibition_id')) {
+      context.handle(
+        _exhibitionIdMeta,
+        exhibitionId.isAcceptableOrUnknown(
+          data['exhibition_id']!,
+          _exhibitionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_exhibitionIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('caption')) {
+      context.handle(
+        _captionMeta,
+        caption.isAcceptableOrUnknown(data['caption']!, _captionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_captionMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sortOrderMeta);
+    }
+    if (data.containsKey('layout')) {
+      context.handle(
+        _layoutMeta,
+        layout.isAcceptableOrUnknown(data['layout']!, _layoutMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_layoutMeta);
+    }
+    if (data.containsKey('motion')) {
+      context.handle(
+        _motionMeta,
+        motion.isAcceptableOrUnknown(data['motion']!, _motionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_motionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Chapter map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Chapter(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      exhibitionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exhibition_id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      caption: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}caption'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      layout: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}layout'],
+      )!,
+      motion: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}motion'],
+      )!,
+    );
+  }
+
+  @override
+  $ChaptersTable createAlias(String alias) {
+    return $ChaptersTable(attachedDatabase, alias);
+  }
+}
+
+class Chapter extends DataClass implements Insertable<Chapter> {
+  final String id;
+  final String exhibitionId;
+  final String title;
+  final String caption;
+  final int sortOrder;
+  final String layout;
+  final String motion;
+  const Chapter({
+    required this.id,
+    required this.exhibitionId,
+    required this.title,
+    required this.caption,
+    required this.sortOrder,
+    required this.layout,
+    required this.motion,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['exhibition_id'] = Variable<String>(exhibitionId);
+    map['title'] = Variable<String>(title);
+    map['caption'] = Variable<String>(caption);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['layout'] = Variable<String>(layout);
+    map['motion'] = Variable<String>(motion);
+    return map;
+  }
+
+  ChaptersCompanion toCompanion(bool nullToAbsent) {
+    return ChaptersCompanion(
+      id: Value(id),
+      exhibitionId: Value(exhibitionId),
+      title: Value(title),
+      caption: Value(caption),
+      sortOrder: Value(sortOrder),
+      layout: Value(layout),
+      motion: Value(motion),
+    );
+  }
+
+  factory Chapter.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Chapter(
+      id: serializer.fromJson<String>(json['id']),
+      exhibitionId: serializer.fromJson<String>(json['exhibitionId']),
+      title: serializer.fromJson<String>(json['title']),
+      caption: serializer.fromJson<String>(json['caption']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      layout: serializer.fromJson<String>(json['layout']),
+      motion: serializer.fromJson<String>(json['motion']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'exhibitionId': serializer.toJson<String>(exhibitionId),
+      'title': serializer.toJson<String>(title),
+      'caption': serializer.toJson<String>(caption),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'layout': serializer.toJson<String>(layout),
+      'motion': serializer.toJson<String>(motion),
+    };
+  }
+
+  Chapter copyWith({
+    String? id,
+    String? exhibitionId,
+    String? title,
+    String? caption,
+    int? sortOrder,
+    String? layout,
+    String? motion,
+  }) => Chapter(
+    id: id ?? this.id,
+    exhibitionId: exhibitionId ?? this.exhibitionId,
+    title: title ?? this.title,
+    caption: caption ?? this.caption,
+    sortOrder: sortOrder ?? this.sortOrder,
+    layout: layout ?? this.layout,
+    motion: motion ?? this.motion,
+  );
+  Chapter copyWithCompanion(ChaptersCompanion data) {
+    return Chapter(
+      id: data.id.present ? data.id.value : this.id,
+      exhibitionId: data.exhibitionId.present
+          ? data.exhibitionId.value
+          : this.exhibitionId,
+      title: data.title.present ? data.title.value : this.title,
+      caption: data.caption.present ? data.caption.value : this.caption,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      layout: data.layout.present ? data.layout.value : this.layout,
+      motion: data.motion.present ? data.motion.value : this.motion,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Chapter(')
+          ..write('id: $id, ')
+          ..write('exhibitionId: $exhibitionId, ')
+          ..write('title: $title, ')
+          ..write('caption: $caption, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('layout: $layout, ')
+          ..write('motion: $motion')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, exhibitionId, title, caption, sortOrder, layout, motion);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Chapter &&
+          other.id == this.id &&
+          other.exhibitionId == this.exhibitionId &&
+          other.title == this.title &&
+          other.caption == this.caption &&
+          other.sortOrder == this.sortOrder &&
+          other.layout == this.layout &&
+          other.motion == this.motion);
+}
+
+class ChaptersCompanion extends UpdateCompanion<Chapter> {
+  final Value<String> id;
+  final Value<String> exhibitionId;
+  final Value<String> title;
+  final Value<String> caption;
+  final Value<int> sortOrder;
+  final Value<String> layout;
+  final Value<String> motion;
+  final Value<int> rowid;
+  const ChaptersCompanion({
+    this.id = const Value.absent(),
+    this.exhibitionId = const Value.absent(),
+    this.title = const Value.absent(),
+    this.caption = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.layout = const Value.absent(),
+    this.motion = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ChaptersCompanion.insert({
+    required String id,
+    required String exhibitionId,
+    required String title,
+    required String caption,
+    required int sortOrder,
+    required String layout,
+    required String motion,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       exhibitionId = Value(exhibitionId),
+       title = Value(title),
+       caption = Value(caption),
+       sortOrder = Value(sortOrder),
+       layout = Value(layout),
+       motion = Value(motion);
+  static Insertable<Chapter> custom({
+    Expression<String>? id,
+    Expression<String>? exhibitionId,
+    Expression<String>? title,
+    Expression<String>? caption,
+    Expression<int>? sortOrder,
+    Expression<String>? layout,
+    Expression<String>? motion,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (exhibitionId != null) 'exhibition_id': exhibitionId,
+      if (title != null) 'title': title,
+      if (caption != null) 'caption': caption,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (layout != null) 'layout': layout,
+      if (motion != null) 'motion': motion,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ChaptersCompanion copyWith({
+    Value<String>? id,
+    Value<String>? exhibitionId,
+    Value<String>? title,
+    Value<String>? caption,
+    Value<int>? sortOrder,
+    Value<String>? layout,
+    Value<String>? motion,
+    Value<int>? rowid,
+  }) {
+    return ChaptersCompanion(
+      id: id ?? this.id,
+      exhibitionId: exhibitionId ?? this.exhibitionId,
+      title: title ?? this.title,
+      caption: caption ?? this.caption,
+      sortOrder: sortOrder ?? this.sortOrder,
+      layout: layout ?? this.layout,
+      motion: motion ?? this.motion,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (exhibitionId.present) {
+      map['exhibition_id'] = Variable<String>(exhibitionId.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (caption.present) {
+      map['caption'] = Variable<String>(caption.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (layout.present) {
+      map['layout'] = Variable<String>(layout.value);
+    }
+    if (motion.present) {
+      map['motion'] = Variable<String>(motion.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ChaptersCompanion(')
+          ..write('id: $id, ')
+          ..write('exhibitionId: $exhibitionId, ')
+          ..write('title: $title, ')
+          ..write('caption: $caption, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('layout: $layout, ')
+          ..write('motion: $motion, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $MediaAssetsTable extends MediaAssets
+    with TableInfo<$MediaAssetsTable, MediaAsset> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $MediaAssetsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _exhibitionIdMeta = const VerificationMeta(
+    'exhibitionId',
+  );
+  @override
+  late final GeneratedColumn<String> exhibitionId = GeneratedColumn<String>(
+    'exhibition_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES exhibitions (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _originalPathMeta = const VerificationMeta(
+    'originalPath',
+  );
+  @override
+  late final GeneratedColumn<String> originalPath = GeneratedColumn<String>(
+    'original_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _thumbnailPathMeta = const VerificationMeta(
+    'thumbnailPath',
+  );
+  @override
+  late final GeneratedColumn<String> thumbnailPath = GeneratedColumn<String>(
+    'thumbnail_path',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _widthMeta = const VerificationMeta('width');
+  @override
+  late final GeneratedColumn<int> width = GeneratedColumn<int>(
+    'width',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _heightMeta = const VerificationMeta('height');
+  @override
+  late final GeneratedColumn<int> height = GeneratedColumn<int>(
+    'height',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _contentHashMeta = const VerificationMeta(
+    'contentHash',
+  );
+  @override
+  late final GeneratedColumn<String> contentHash = GeneratedColumn<String>(
+    'content_hash',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    exhibitionId,
+    originalPath,
+    thumbnailPath,
+    width,
+    height,
+    contentHash,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'media_assets';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<MediaAsset> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('exhibition_id')) {
+      context.handle(
+        _exhibitionIdMeta,
+        exhibitionId.isAcceptableOrUnknown(
+          data['exhibition_id']!,
+          _exhibitionIdMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_exhibitionIdMeta);
+    }
+    if (data.containsKey('original_path')) {
+      context.handle(
+        _originalPathMeta,
+        originalPath.isAcceptableOrUnknown(
+          data['original_path']!,
+          _originalPathMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_originalPathMeta);
+    }
+    if (data.containsKey('thumbnail_path')) {
+      context.handle(
+        _thumbnailPathMeta,
+        thumbnailPath.isAcceptableOrUnknown(
+          data['thumbnail_path']!,
+          _thumbnailPathMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_thumbnailPathMeta);
+    }
+    if (data.containsKey('width')) {
+      context.handle(
+        _widthMeta,
+        width.isAcceptableOrUnknown(data['width']!, _widthMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_widthMeta);
+    }
+    if (data.containsKey('height')) {
+      context.handle(
+        _heightMeta,
+        height.isAcceptableOrUnknown(data['height']!, _heightMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_heightMeta);
+    }
+    if (data.containsKey('content_hash')) {
+      context.handle(
+        _contentHashMeta,
+        contentHash.isAcceptableOrUnknown(
+          data['content_hash']!,
+          _contentHashMeta,
+        ),
+      );
+    } else if (isInserting) {
+      context.missing(_contentHashMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  MediaAsset map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return MediaAsset(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      exhibitionId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}exhibition_id'],
+      )!,
+      originalPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}original_path'],
+      )!,
+      thumbnailPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}thumbnail_path'],
+      )!,
+      width: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}width'],
+      )!,
+      height: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}height'],
+      )!,
+      contentHash: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}content_hash'],
+      )!,
+    );
+  }
+
+  @override
+  $MediaAssetsTable createAlias(String alias) {
+    return $MediaAssetsTable(attachedDatabase, alias);
+  }
+}
+
+class MediaAsset extends DataClass implements Insertable<MediaAsset> {
+  final String id;
+  final String exhibitionId;
+  final String originalPath;
+  final String thumbnailPath;
+  final int width;
+  final int height;
+  final String contentHash;
+  const MediaAsset({
+    required this.id,
+    required this.exhibitionId,
+    required this.originalPath,
+    required this.thumbnailPath,
+    required this.width,
+    required this.height,
+    required this.contentHash,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['exhibition_id'] = Variable<String>(exhibitionId);
+    map['original_path'] = Variable<String>(originalPath);
+    map['thumbnail_path'] = Variable<String>(thumbnailPath);
+    map['width'] = Variable<int>(width);
+    map['height'] = Variable<int>(height);
+    map['content_hash'] = Variable<String>(contentHash);
+    return map;
+  }
+
+  MediaAssetsCompanion toCompanion(bool nullToAbsent) {
+    return MediaAssetsCompanion(
+      id: Value(id),
+      exhibitionId: Value(exhibitionId),
+      originalPath: Value(originalPath),
+      thumbnailPath: Value(thumbnailPath),
+      width: Value(width),
+      height: Value(height),
+      contentHash: Value(contentHash),
+    );
+  }
+
+  factory MediaAsset.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return MediaAsset(
+      id: serializer.fromJson<String>(json['id']),
+      exhibitionId: serializer.fromJson<String>(json['exhibitionId']),
+      originalPath: serializer.fromJson<String>(json['originalPath']),
+      thumbnailPath: serializer.fromJson<String>(json['thumbnailPath']),
+      width: serializer.fromJson<int>(json['width']),
+      height: serializer.fromJson<int>(json['height']),
+      contentHash: serializer.fromJson<String>(json['contentHash']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'exhibitionId': serializer.toJson<String>(exhibitionId),
+      'originalPath': serializer.toJson<String>(originalPath),
+      'thumbnailPath': serializer.toJson<String>(thumbnailPath),
+      'width': serializer.toJson<int>(width),
+      'height': serializer.toJson<int>(height),
+      'contentHash': serializer.toJson<String>(contentHash),
+    };
+  }
+
+  MediaAsset copyWith({
+    String? id,
+    String? exhibitionId,
+    String? originalPath,
+    String? thumbnailPath,
+    int? width,
+    int? height,
+    String? contentHash,
+  }) => MediaAsset(
+    id: id ?? this.id,
+    exhibitionId: exhibitionId ?? this.exhibitionId,
+    originalPath: originalPath ?? this.originalPath,
+    thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+    width: width ?? this.width,
+    height: height ?? this.height,
+    contentHash: contentHash ?? this.contentHash,
+  );
+  MediaAsset copyWithCompanion(MediaAssetsCompanion data) {
+    return MediaAsset(
+      id: data.id.present ? data.id.value : this.id,
+      exhibitionId: data.exhibitionId.present
+          ? data.exhibitionId.value
+          : this.exhibitionId,
+      originalPath: data.originalPath.present
+          ? data.originalPath.value
+          : this.originalPath,
+      thumbnailPath: data.thumbnailPath.present
+          ? data.thumbnailPath.value
+          : this.thumbnailPath,
+      width: data.width.present ? data.width.value : this.width,
+      height: data.height.present ? data.height.value : this.height,
+      contentHash: data.contentHash.present
+          ? data.contentHash.value
+          : this.contentHash,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaAsset(')
+          ..write('id: $id, ')
+          ..write('exhibitionId: $exhibitionId, ')
+          ..write('originalPath: $originalPath, ')
+          ..write('thumbnailPath: $thumbnailPath, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('contentHash: $contentHash')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    exhibitionId,
+    originalPath,
+    thumbnailPath,
+    width,
+    height,
+    contentHash,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is MediaAsset &&
+          other.id == this.id &&
+          other.exhibitionId == this.exhibitionId &&
+          other.originalPath == this.originalPath &&
+          other.thumbnailPath == this.thumbnailPath &&
+          other.width == this.width &&
+          other.height == this.height &&
+          other.contentHash == this.contentHash);
+}
+
+class MediaAssetsCompanion extends UpdateCompanion<MediaAsset> {
+  final Value<String> id;
+  final Value<String> exhibitionId;
+  final Value<String> originalPath;
+  final Value<String> thumbnailPath;
+  final Value<int> width;
+  final Value<int> height;
+  final Value<String> contentHash;
+  final Value<int> rowid;
+  const MediaAssetsCompanion({
+    this.id = const Value.absent(),
+    this.exhibitionId = const Value.absent(),
+    this.originalPath = const Value.absent(),
+    this.thumbnailPath = const Value.absent(),
+    this.width = const Value.absent(),
+    this.height = const Value.absent(),
+    this.contentHash = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  MediaAssetsCompanion.insert({
+    required String id,
+    required String exhibitionId,
+    required String originalPath,
+    required String thumbnailPath,
+    required int width,
+    required int height,
+    required String contentHash,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       exhibitionId = Value(exhibitionId),
+       originalPath = Value(originalPath),
+       thumbnailPath = Value(thumbnailPath),
+       width = Value(width),
+       height = Value(height),
+       contentHash = Value(contentHash);
+  static Insertable<MediaAsset> custom({
+    Expression<String>? id,
+    Expression<String>? exhibitionId,
+    Expression<String>? originalPath,
+    Expression<String>? thumbnailPath,
+    Expression<int>? width,
+    Expression<int>? height,
+    Expression<String>? contentHash,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (exhibitionId != null) 'exhibition_id': exhibitionId,
+      if (originalPath != null) 'original_path': originalPath,
+      if (thumbnailPath != null) 'thumbnail_path': thumbnailPath,
+      if (width != null) 'width': width,
+      if (height != null) 'height': height,
+      if (contentHash != null) 'content_hash': contentHash,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  MediaAssetsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? exhibitionId,
+    Value<String>? originalPath,
+    Value<String>? thumbnailPath,
+    Value<int>? width,
+    Value<int>? height,
+    Value<String>? contentHash,
+    Value<int>? rowid,
+  }) {
+    return MediaAssetsCompanion(
+      id: id ?? this.id,
+      exhibitionId: exhibitionId ?? this.exhibitionId,
+      originalPath: originalPath ?? this.originalPath,
+      thumbnailPath: thumbnailPath ?? this.thumbnailPath,
+      width: width ?? this.width,
+      height: height ?? this.height,
+      contentHash: contentHash ?? this.contentHash,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (exhibitionId.present) {
+      map['exhibition_id'] = Variable<String>(exhibitionId.value);
+    }
+    if (originalPath.present) {
+      map['original_path'] = Variable<String>(originalPath.value);
+    }
+    if (thumbnailPath.present) {
+      map['thumbnail_path'] = Variable<String>(thumbnailPath.value);
+    }
+    if (width.present) {
+      map['width'] = Variable<int>(width.value);
+    }
+    if (height.present) {
+      map['height'] = Variable<int>(height.value);
+    }
+    if (contentHash.present) {
+      map['content_hash'] = Variable<String>(contentHash.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('MediaAssetsCompanion(')
+          ..write('id: $id, ')
+          ..write('exhibitionId: $exhibitionId, ')
+          ..write('originalPath: $originalPath, ')
+          ..write('thumbnailPath: $thumbnailPath, ')
+          ..write('width: $width, ')
+          ..write('height: $height, ')
+          ..write('contentHash: $contentHash, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $PlacementsTable extends Placements
+    with TableInfo<$PlacementsTable, Placement> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $PlacementsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _chapterIdMeta = const VerificationMeta(
+    'chapterId',
+  );
+  @override
+  late final GeneratedColumn<String> chapterId = GeneratedColumn<String>(
+    'chapter_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES chapters (id) ON DELETE CASCADE',
+    ),
+  );
+  static const VerificationMeta _mediaIdMeta = const VerificationMeta(
+    'mediaId',
+  );
+  @override
+  late final GeneratedColumn<String> mediaId = GeneratedColumn<String>(
+    'media_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES media_assets (id)',
+    ),
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sizeMeta = const VerificationMeta('size');
+  @override
+  late final GeneratedColumn<String> size = GeneratedColumn<String>(
+    'size',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _frameMeta = const VerificationMeta('frame');
+  @override
+  late final GeneratedColumn<String> frame = GeneratedColumn<String>(
+    'frame',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _focalXMeta = const VerificationMeta('focalX');
+  @override
+  late final GeneratedColumn<double> focalX = GeneratedColumn<double>(
+    'focal_x',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _focalYMeta = const VerificationMeta('focalY');
+  @override
+  late final GeneratedColumn<double> focalY = GeneratedColumn<double>(
+    'focal_y',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _zoomMeta = const VerificationMeta('zoom');
+  @override
+  late final GeneratedColumn<double> zoom = GeneratedColumn<double>(
+    'zoom',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _captionMeta = const VerificationMeta(
+    'caption',
+  );
+  @override
+  late final GeneratedColumn<String> caption = GeneratedColumn<String>(
+    'caption',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    chapterId,
+    mediaId,
+    sortOrder,
+    size,
+    frame,
+    focalX,
+    focalY,
+    zoom,
+    caption,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'placements';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<Placement> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('chapter_id')) {
+      context.handle(
+        _chapterIdMeta,
+        chapterId.isAcceptableOrUnknown(data['chapter_id']!, _chapterIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_chapterIdMeta);
+    }
+    if (data.containsKey('media_id')) {
+      context.handle(
+        _mediaIdMeta,
+        mediaId.isAcceptableOrUnknown(data['media_id']!, _mediaIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_mediaIdMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sortOrderMeta);
+    }
+    if (data.containsKey('size')) {
+      context.handle(
+        _sizeMeta,
+        size.isAcceptableOrUnknown(data['size']!, _sizeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sizeMeta);
+    }
+    if (data.containsKey('frame')) {
+      context.handle(
+        _frameMeta,
+        frame.isAcceptableOrUnknown(data['frame']!, _frameMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_frameMeta);
+    }
+    if (data.containsKey('focal_x')) {
+      context.handle(
+        _focalXMeta,
+        focalX.isAcceptableOrUnknown(data['focal_x']!, _focalXMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_focalXMeta);
+    }
+    if (data.containsKey('focal_y')) {
+      context.handle(
+        _focalYMeta,
+        focalY.isAcceptableOrUnknown(data['focal_y']!, _focalYMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_focalYMeta);
+    }
+    if (data.containsKey('zoom')) {
+      context.handle(
+        _zoomMeta,
+        zoom.isAcceptableOrUnknown(data['zoom']!, _zoomMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_zoomMeta);
+    }
+    if (data.containsKey('caption')) {
+      context.handle(
+        _captionMeta,
+        caption.isAcceptableOrUnknown(data['caption']!, _captionMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_captionMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Placement map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Placement(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      chapterId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}chapter_id'],
+      )!,
+      mediaId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}media_id'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      size: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}size'],
+      )!,
+      frame: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}frame'],
+      )!,
+      focalX: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}focal_x'],
+      )!,
+      focalY: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}focal_y'],
+      )!,
+      zoom: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}zoom'],
+      )!,
+      caption: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}caption'],
+      )!,
+    );
+  }
+
+  @override
+  $PlacementsTable createAlias(String alias) {
+    return $PlacementsTable(attachedDatabase, alias);
+  }
+}
+
+class Placement extends DataClass implements Insertable<Placement> {
+  final String id;
+  final String chapterId;
+  final String mediaId;
+  final int sortOrder;
+  final String size;
+  final String frame;
+  final double focalX;
+  final double focalY;
+  final double zoom;
+  final String caption;
+  const Placement({
+    required this.id,
+    required this.chapterId,
+    required this.mediaId,
+    required this.sortOrder,
+    required this.size,
+    required this.frame,
+    required this.focalX,
+    required this.focalY,
+    required this.zoom,
+    required this.caption,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['chapter_id'] = Variable<String>(chapterId);
+    map['media_id'] = Variable<String>(mediaId);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['size'] = Variable<String>(size);
+    map['frame'] = Variable<String>(frame);
+    map['focal_x'] = Variable<double>(focalX);
+    map['focal_y'] = Variable<double>(focalY);
+    map['zoom'] = Variable<double>(zoom);
+    map['caption'] = Variable<String>(caption);
+    return map;
+  }
+
+  PlacementsCompanion toCompanion(bool nullToAbsent) {
+    return PlacementsCompanion(
+      id: Value(id),
+      chapterId: Value(chapterId),
+      mediaId: Value(mediaId),
+      sortOrder: Value(sortOrder),
+      size: Value(size),
+      frame: Value(frame),
+      focalX: Value(focalX),
+      focalY: Value(focalY),
+      zoom: Value(zoom),
+      caption: Value(caption),
+    );
+  }
+
+  factory Placement.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Placement(
+      id: serializer.fromJson<String>(json['id']),
+      chapterId: serializer.fromJson<String>(json['chapterId']),
+      mediaId: serializer.fromJson<String>(json['mediaId']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      size: serializer.fromJson<String>(json['size']),
+      frame: serializer.fromJson<String>(json['frame']),
+      focalX: serializer.fromJson<double>(json['focalX']),
+      focalY: serializer.fromJson<double>(json['focalY']),
+      zoom: serializer.fromJson<double>(json['zoom']),
+      caption: serializer.fromJson<String>(json['caption']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'chapterId': serializer.toJson<String>(chapterId),
+      'mediaId': serializer.toJson<String>(mediaId),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'size': serializer.toJson<String>(size),
+      'frame': serializer.toJson<String>(frame),
+      'focalX': serializer.toJson<double>(focalX),
+      'focalY': serializer.toJson<double>(focalY),
+      'zoom': serializer.toJson<double>(zoom),
+      'caption': serializer.toJson<String>(caption),
+    };
+  }
+
+  Placement copyWith({
+    String? id,
+    String? chapterId,
+    String? mediaId,
+    int? sortOrder,
+    String? size,
+    String? frame,
+    double? focalX,
+    double? focalY,
+    double? zoom,
+    String? caption,
+  }) => Placement(
+    id: id ?? this.id,
+    chapterId: chapterId ?? this.chapterId,
+    mediaId: mediaId ?? this.mediaId,
+    sortOrder: sortOrder ?? this.sortOrder,
+    size: size ?? this.size,
+    frame: frame ?? this.frame,
+    focalX: focalX ?? this.focalX,
+    focalY: focalY ?? this.focalY,
+    zoom: zoom ?? this.zoom,
+    caption: caption ?? this.caption,
+  );
+  Placement copyWithCompanion(PlacementsCompanion data) {
+    return Placement(
+      id: data.id.present ? data.id.value : this.id,
+      chapterId: data.chapterId.present ? data.chapterId.value : this.chapterId,
+      mediaId: data.mediaId.present ? data.mediaId.value : this.mediaId,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      size: data.size.present ? data.size.value : this.size,
+      frame: data.frame.present ? data.frame.value : this.frame,
+      focalX: data.focalX.present ? data.focalX.value : this.focalX,
+      focalY: data.focalY.present ? data.focalY.value : this.focalY,
+      zoom: data.zoom.present ? data.zoom.value : this.zoom,
+      caption: data.caption.present ? data.caption.value : this.caption,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Placement(')
+          ..write('id: $id, ')
+          ..write('chapterId: $chapterId, ')
+          ..write('mediaId: $mediaId, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('size: $size, ')
+          ..write('frame: $frame, ')
+          ..write('focalX: $focalX, ')
+          ..write('focalY: $focalY, ')
+          ..write('zoom: $zoom, ')
+          ..write('caption: $caption')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    chapterId,
+    mediaId,
+    sortOrder,
+    size,
+    frame,
+    focalX,
+    focalY,
+    zoom,
+    caption,
+  );
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Placement &&
+          other.id == this.id &&
+          other.chapterId == this.chapterId &&
+          other.mediaId == this.mediaId &&
+          other.sortOrder == this.sortOrder &&
+          other.size == this.size &&
+          other.frame == this.frame &&
+          other.focalX == this.focalX &&
+          other.focalY == this.focalY &&
+          other.zoom == this.zoom &&
+          other.caption == this.caption);
+}
+
+class PlacementsCompanion extends UpdateCompanion<Placement> {
+  final Value<String> id;
+  final Value<String> chapterId;
+  final Value<String> mediaId;
+  final Value<int> sortOrder;
+  final Value<String> size;
+  final Value<String> frame;
+  final Value<double> focalX;
+  final Value<double> focalY;
+  final Value<double> zoom;
+  final Value<String> caption;
+  final Value<int> rowid;
+  const PlacementsCompanion({
+    this.id = const Value.absent(),
+    this.chapterId = const Value.absent(),
+    this.mediaId = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.size = const Value.absent(),
+    this.frame = const Value.absent(),
+    this.focalX = const Value.absent(),
+    this.focalY = const Value.absent(),
+    this.zoom = const Value.absent(),
+    this.caption = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  PlacementsCompanion.insert({
+    required String id,
+    required String chapterId,
+    required String mediaId,
+    required int sortOrder,
+    required String size,
+    required String frame,
+    required double focalX,
+    required double focalY,
+    required double zoom,
+    required String caption,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       chapterId = Value(chapterId),
+       mediaId = Value(mediaId),
+       sortOrder = Value(sortOrder),
+       size = Value(size),
+       frame = Value(frame),
+       focalX = Value(focalX),
+       focalY = Value(focalY),
+       zoom = Value(zoom),
+       caption = Value(caption);
+  static Insertable<Placement> custom({
+    Expression<String>? id,
+    Expression<String>? chapterId,
+    Expression<String>? mediaId,
+    Expression<int>? sortOrder,
+    Expression<String>? size,
+    Expression<String>? frame,
+    Expression<double>? focalX,
+    Expression<double>? focalY,
+    Expression<double>? zoom,
+    Expression<String>? caption,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (chapterId != null) 'chapter_id': chapterId,
+      if (mediaId != null) 'media_id': mediaId,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (size != null) 'size': size,
+      if (frame != null) 'frame': frame,
+      if (focalX != null) 'focal_x': focalX,
+      if (focalY != null) 'focal_y': focalY,
+      if (zoom != null) 'zoom': zoom,
+      if (caption != null) 'caption': caption,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  PlacementsCompanion copyWith({
+    Value<String>? id,
+    Value<String>? chapterId,
+    Value<String>? mediaId,
+    Value<int>? sortOrder,
+    Value<String>? size,
+    Value<String>? frame,
+    Value<double>? focalX,
+    Value<double>? focalY,
+    Value<double>? zoom,
+    Value<String>? caption,
+    Value<int>? rowid,
+  }) {
+    return PlacementsCompanion(
+      id: id ?? this.id,
+      chapterId: chapterId ?? this.chapterId,
+      mediaId: mediaId ?? this.mediaId,
+      sortOrder: sortOrder ?? this.sortOrder,
+      size: size ?? this.size,
+      frame: frame ?? this.frame,
+      focalX: focalX ?? this.focalX,
+      focalY: focalY ?? this.focalY,
+      zoom: zoom ?? this.zoom,
+      caption: caption ?? this.caption,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (chapterId.present) {
+      map['chapter_id'] = Variable<String>(chapterId.value);
+    }
+    if (mediaId.present) {
+      map['media_id'] = Variable<String>(mediaId.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (size.present) {
+      map['size'] = Variable<String>(size.value);
+    }
+    if (frame.present) {
+      map['frame'] = Variable<String>(frame.value);
+    }
+    if (focalX.present) {
+      map['focal_x'] = Variable<double>(focalX.value);
+    }
+    if (focalY.present) {
+      map['focal_y'] = Variable<double>(focalY.value);
+    }
+    if (zoom.present) {
+      map['zoom'] = Variable<double>(zoom.value);
+    }
+    if (caption.present) {
+      map['caption'] = Variable<String>(caption.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('PlacementsCompanion(')
+          ..write('id: $id, ')
+          ..write('chapterId: $chapterId, ')
+          ..write('mediaId: $mediaId, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('size: $size, ')
+          ..write('frame: $frame, ')
+          ..write('focalX: $focalX, ')
+          ..write('focalY: $focalY, ')
+          ..write('zoom: $zoom, ')
+          ..write('caption: $caption, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+abstract class _$GalleryDatabase extends GeneratedDatabase {
+  _$GalleryDatabase(QueryExecutor e) : super(e);
+  $GalleryDatabaseManager get managers => $GalleryDatabaseManager(this);
+  late final $ExhibitionsTable exhibitions = $ExhibitionsTable(this);
+  late final $ChaptersTable chapters = $ChaptersTable(this);
+  late final $MediaAssetsTable mediaAssets = $MediaAssetsTable(this);
+  late final $PlacementsTable placements = $PlacementsTable(this);
+  @override
+  Iterable<TableInfo<Table, Object?>> get allTables =>
+      allSchemaEntities.whereType<TableInfo<Table, Object?>>();
+  @override
+  List<DatabaseSchemaEntity> get allSchemaEntities => [
+    exhibitions,
+    chapters,
+    mediaAssets,
+    placements,
+  ];
+  @override
+  StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'exhibitions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('chapters', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'exhibitions',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('media_assets', kind: UpdateKind.delete)],
+    ),
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'chapters',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('placements', kind: UpdateKind.delete)],
+    ),
+  ]);
+}
+
+typedef $$ExhibitionsTableCreateCompanionBuilder =
+    ExhibitionsCompanion Function({
+      required String id,
+      required String title,
+      Value<String?> coverMediaId,
+      required String theme,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ExhibitionsTableUpdateCompanionBuilder =
+    ExhibitionsCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<String?> coverMediaId,
+      Value<String> theme,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$ExhibitionsTableReferences
+    extends BaseReferences<_$GalleryDatabase, $ExhibitionsTable, Exhibition> {
+  $$ExhibitionsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static MultiTypedResultKey<$ChaptersTable, List<Chapter>> _chaptersRefsTable(
+    _$GalleryDatabase db,
+  ) => MultiTypedResultKey.fromTable(
+    db.chapters,
+    aliasName: 'exhibitions__id__chapters__exhibition_id',
+  );
+
+  $$ChaptersTableProcessedTableManager get chaptersRefs {
+    final manager = $$ChaptersTableTableManager(
+      $_db,
+      $_db.chapters,
+    ).filter((f) => f.exhibitionId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_chaptersRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+
+  static MultiTypedResultKey<$MediaAssetsTable, List<MediaAsset>>
+  _mediaAssetsRefsTable(_$GalleryDatabase db) => MultiTypedResultKey.fromTable(
+    db.mediaAssets,
+    aliasName: 'exhibitions__id__media_assets__exhibition_id',
+  );
+
+  $$MediaAssetsTableProcessedTableManager get mediaAssetsRefs {
+    final manager = $$MediaAssetsTableTableManager(
+      $_db,
+      $_db.mediaAssets,
+    ).filter((f) => f.exhibitionId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_mediaAssetsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$ExhibitionsTableFilterComposer
+    extends Composer<_$GalleryDatabase, $ExhibitionsTable> {
+  $$ExhibitionsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get coverMediaId => $composableBuilder(
+    column: $table.coverMediaId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get theme => $composableBuilder(
+    column: $table.theme,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> chaptersRefs(
+    Expression<bool> Function($$ChaptersTableFilterComposer f) f,
+  ) {
+    final $$ChaptersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.chapters,
+      getReferencedColumn: (t) => t.exhibitionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChaptersTableFilterComposer(
+            $db: $db,
+            $table: $db.chapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<bool> mediaAssetsRefs(
+    Expression<bool> Function($$MediaAssetsTableFilterComposer f) f,
+  ) {
+    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.exhibitionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ExhibitionsTableOrderingComposer
+    extends Composer<_$GalleryDatabase, $ExhibitionsTable> {
+  $$ExhibitionsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get coverMediaId => $composableBuilder(
+    column: $table.coverMediaId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get theme => $composableBuilder(
+    column: $table.theme,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ExhibitionsTableAnnotationComposer
+    extends Composer<_$GalleryDatabase, $ExhibitionsTable> {
+  $$ExhibitionsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get coverMediaId => $composableBuilder(
+    column: $table.coverMediaId,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get theme =>
+      $composableBuilder(column: $table.theme, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> chaptersRefs<T extends Object>(
+    Expression<T> Function($$ChaptersTableAnnotationComposer a) f,
+  ) {
+    final $$ChaptersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.chapters,
+      getReferencedColumn: (t) => t.exhibitionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChaptersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.chapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+
+  Expression<T> mediaAssetsRefs<T extends Object>(
+    Expression<T> Function($$MediaAssetsTableAnnotationComposer a) f,
+  ) {
+    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.exhibitionId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ExhibitionsTableTableManager
+    extends
+        RootTableManager<
+          _$GalleryDatabase,
+          $ExhibitionsTable,
+          Exhibition,
+          $$ExhibitionsTableFilterComposer,
+          $$ExhibitionsTableOrderingComposer,
+          $$ExhibitionsTableAnnotationComposer,
+          $$ExhibitionsTableCreateCompanionBuilder,
+          $$ExhibitionsTableUpdateCompanionBuilder,
+          (Exhibition, $$ExhibitionsTableReferences),
+          Exhibition,
+          PrefetchHooks Function({bool chaptersRefs, bool mediaAssetsRefs})
+        > {
+  $$ExhibitionsTableTableManager(_$GalleryDatabase db, $ExhibitionsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExhibitionsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExhibitionsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ExhibitionsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String?> coverMediaId = const Value.absent(),
+                Value<String> theme = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExhibitionsCompanion(
+                id: id,
+                title: title,
+                coverMediaId: coverMediaId,
+                theme: theme,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String title,
+                Value<String?> coverMediaId = const Value.absent(),
+                required String theme,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ExhibitionsCompanion.insert(
+                id: id,
+                title: title,
+                coverMediaId: coverMediaId,
+                theme: theme,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ExhibitionsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({chaptersRefs = false, mediaAssetsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [
+                    if (chaptersRefs) db.chapters,
+                    if (mediaAssetsRefs) db.mediaAssets,
+                  ],
+                  addJoins: null,
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (chaptersRefs)
+                        await $_getPrefetchedData<
+                          Exhibition,
+                          $ExhibitionsTable,
+                          Chapter
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ExhibitionsTableReferences
+                              ._chaptersRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ExhibitionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).chaptersRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.exhibitionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                      if (mediaAssetsRefs)
+                        await $_getPrefetchedData<
+                          Exhibition,
+                          $ExhibitionsTable,
+                          MediaAsset
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ExhibitionsTableReferences
+                              ._mediaAssetsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ExhibitionsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).mediaAssetsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.exhibitionId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$ExhibitionsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GalleryDatabase,
+      $ExhibitionsTable,
+      Exhibition,
+      $$ExhibitionsTableFilterComposer,
+      $$ExhibitionsTableOrderingComposer,
+      $$ExhibitionsTableAnnotationComposer,
+      $$ExhibitionsTableCreateCompanionBuilder,
+      $$ExhibitionsTableUpdateCompanionBuilder,
+      (Exhibition, $$ExhibitionsTableReferences),
+      Exhibition,
+      PrefetchHooks Function({bool chaptersRefs, bool mediaAssetsRefs})
+    >;
+typedef $$ChaptersTableCreateCompanionBuilder =
+    ChaptersCompanion Function({
+      required String id,
+      required String exhibitionId,
+      required String title,
+      required String caption,
+      required int sortOrder,
+      required String layout,
+      required String motion,
+      Value<int> rowid,
+    });
+typedef $$ChaptersTableUpdateCompanionBuilder =
+    ChaptersCompanion Function({
+      Value<String> id,
+      Value<String> exhibitionId,
+      Value<String> title,
+      Value<String> caption,
+      Value<int> sortOrder,
+      Value<String> layout,
+      Value<String> motion,
+      Value<int> rowid,
+    });
+
+final class $$ChaptersTableReferences
+    extends BaseReferences<_$GalleryDatabase, $ChaptersTable, Chapter> {
+  $$ChaptersTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ExhibitionsTable _exhibitionIdTable(_$GalleryDatabase db) =>
+      db.exhibitions.createAlias('chapters__exhibition_id__exhibitions__id');
+
+  $$ExhibitionsTableProcessedTableManager get exhibitionId {
+    final $_column = $_itemColumn<String>('exhibition_id')!;
+
+    final manager = $$ExhibitionsTableTableManager(
+      $_db,
+      $_db.exhibitions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_exhibitionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$PlacementsTable, List<Placement>>
+  _placementsRefsTable(_$GalleryDatabase db) => MultiTypedResultKey.fromTable(
+    db.placements,
+    aliasName: 'chapters__id__placements__chapter_id',
+  );
+
+  $$PlacementsTableProcessedTableManager get placementsRefs {
+    final manager = $$PlacementsTableTableManager(
+      $_db,
+      $_db.placements,
+    ).filter((f) => f.chapterId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_placementsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$ChaptersTableFilterComposer
+    extends Composer<_$GalleryDatabase, $ChaptersTable> {
+  $$ChaptersTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get caption => $composableBuilder(
+    column: $table.caption,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get layout => $composableBuilder(
+    column: $table.layout,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get motion => $composableBuilder(
+    column: $table.motion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ExhibitionsTableFilterComposer get exhibitionId {
+    final $$ExhibitionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.exhibitionId,
+      referencedTable: $db.exhibitions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExhibitionsTableFilterComposer(
+            $db: $db,
+            $table: $db.exhibitions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> placementsRefs(
+    Expression<bool> Function($$PlacementsTableFilterComposer f) f,
+  ) {
+    final $$PlacementsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.placements,
+      getReferencedColumn: (t) => t.chapterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlacementsTableFilterComposer(
+            $db: $db,
+            $table: $db.placements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ChaptersTableOrderingComposer
+    extends Composer<_$GalleryDatabase, $ChaptersTable> {
+  $$ChaptersTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get caption => $composableBuilder(
+    column: $table.caption,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get layout => $composableBuilder(
+    column: $table.layout,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get motion => $composableBuilder(
+    column: $table.motion,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ExhibitionsTableOrderingComposer get exhibitionId {
+    final $$ExhibitionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.exhibitionId,
+      referencedTable: $db.exhibitions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExhibitionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.exhibitions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$ChaptersTableAnnotationComposer
+    extends Composer<_$GalleryDatabase, $ChaptersTable> {
+  $$ChaptersTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get caption =>
+      $composableBuilder(column: $table.caption, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get layout =>
+      $composableBuilder(column: $table.layout, builder: (column) => column);
+
+  GeneratedColumn<String> get motion =>
+      $composableBuilder(column: $table.motion, builder: (column) => column);
+
+  $$ExhibitionsTableAnnotationComposer get exhibitionId {
+    final $$ExhibitionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.exhibitionId,
+      referencedTable: $db.exhibitions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExhibitionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.exhibitions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> placementsRefs<T extends Object>(
+    Expression<T> Function($$PlacementsTableAnnotationComposer a) f,
+  ) {
+    final $$PlacementsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.placements,
+      getReferencedColumn: (t) => t.chapterId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlacementsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.placements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ChaptersTableTableManager
+    extends
+        RootTableManager<
+          _$GalleryDatabase,
+          $ChaptersTable,
+          Chapter,
+          $$ChaptersTableFilterComposer,
+          $$ChaptersTableOrderingComposer,
+          $$ChaptersTableAnnotationComposer,
+          $$ChaptersTableCreateCompanionBuilder,
+          $$ChaptersTableUpdateCompanionBuilder,
+          (Chapter, $$ChaptersTableReferences),
+          Chapter,
+          PrefetchHooks Function({bool exhibitionId, bool placementsRefs})
+        > {
+  $$ChaptersTableTableManager(_$GalleryDatabase db, $ChaptersTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ChaptersTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ChaptersTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$ChaptersTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> exhibitionId = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> caption = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<String> layout = const Value.absent(),
+                Value<String> motion = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ChaptersCompanion(
+                id: id,
+                exhibitionId: exhibitionId,
+                title: title,
+                caption: caption,
+                sortOrder: sortOrder,
+                layout: layout,
+                motion: motion,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String exhibitionId,
+                required String title,
+                required String caption,
+                required int sortOrder,
+                required String layout,
+                required String motion,
+                Value<int> rowid = const Value.absent(),
+              }) => ChaptersCompanion.insert(
+                id: id,
+                exhibitionId: exhibitionId,
+                title: title,
+                caption: caption,
+                sortOrder: sortOrder,
+                layout: layout,
+                motion: motion,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ChaptersTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({exhibitionId = false, placementsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (placementsRefs) db.placements],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (exhibitionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.exhibitionId,
+                                    referencedTable: $$ChaptersTableReferences
+                                        ._exhibitionIdTable(db),
+                                    referencedColumn: $$ChaptersTableReferences
+                                        ._exhibitionIdTable(db)
+                                        .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (placementsRefs)
+                        await $_getPrefetchedData<
+                          Chapter,
+                          $ChaptersTable,
+                          Placement
+                        >(
+                          currentTable: table,
+                          referencedTable: $$ChaptersTableReferences
+                              ._placementsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$ChaptersTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).placementsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.chapterId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$ChaptersTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GalleryDatabase,
+      $ChaptersTable,
+      Chapter,
+      $$ChaptersTableFilterComposer,
+      $$ChaptersTableOrderingComposer,
+      $$ChaptersTableAnnotationComposer,
+      $$ChaptersTableCreateCompanionBuilder,
+      $$ChaptersTableUpdateCompanionBuilder,
+      (Chapter, $$ChaptersTableReferences),
+      Chapter,
+      PrefetchHooks Function({bool exhibitionId, bool placementsRefs})
+    >;
+typedef $$MediaAssetsTableCreateCompanionBuilder =
+    MediaAssetsCompanion Function({
+      required String id,
+      required String exhibitionId,
+      required String originalPath,
+      required String thumbnailPath,
+      required int width,
+      required int height,
+      required String contentHash,
+      Value<int> rowid,
+    });
+typedef $$MediaAssetsTableUpdateCompanionBuilder =
+    MediaAssetsCompanion Function({
+      Value<String> id,
+      Value<String> exhibitionId,
+      Value<String> originalPath,
+      Value<String> thumbnailPath,
+      Value<int> width,
+      Value<int> height,
+      Value<String> contentHash,
+      Value<int> rowid,
+    });
+
+final class $$MediaAssetsTableReferences
+    extends BaseReferences<_$GalleryDatabase, $MediaAssetsTable, MediaAsset> {
+  $$MediaAssetsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ExhibitionsTable _exhibitionIdTable(_$GalleryDatabase db) => db
+      .exhibitions
+      .createAlias('media_assets__exhibition_id__exhibitions__id');
+
+  $$ExhibitionsTableProcessedTableManager get exhibitionId {
+    final $_column = $_itemColumn<String>('exhibition_id')!;
+
+    final manager = $$ExhibitionsTableTableManager(
+      $_db,
+      $_db.exhibitions,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_exhibitionIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static MultiTypedResultKey<$PlacementsTable, List<Placement>>
+  _placementsRefsTable(_$GalleryDatabase db) => MultiTypedResultKey.fromTable(
+    db.placements,
+    aliasName: 'media_assets__id__placements__media_id',
+  );
+
+  $$PlacementsTableProcessedTableManager get placementsRefs {
+    final manager = $$PlacementsTableTableManager(
+      $_db,
+      $_db.placements,
+    ).filter((f) => f.mediaId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_placementsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$MediaAssetsTableFilterComposer
+    extends Composer<_$GalleryDatabase, $MediaAssetsTable> {
+  $$MediaAssetsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get originalPath => $composableBuilder(
+    column: $table.originalPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get thumbnailPath => $composableBuilder(
+    column: $table.thumbnailPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ExhibitionsTableFilterComposer get exhibitionId {
+    final $$ExhibitionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.exhibitionId,
+      referencedTable: $db.exhibitions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExhibitionsTableFilterComposer(
+            $db: $db,
+            $table: $db.exhibitions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<bool> placementsRefs(
+    Expression<bool> Function($$PlacementsTableFilterComposer f) f,
+  ) {
+    final $$PlacementsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.placements,
+      getReferencedColumn: (t) => t.mediaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlacementsTableFilterComposer(
+            $db: $db,
+            $table: $db.placements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$MediaAssetsTableOrderingComposer
+    extends Composer<_$GalleryDatabase, $MediaAssetsTable> {
+  $$MediaAssetsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get originalPath => $composableBuilder(
+    column: $table.originalPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get thumbnailPath => $composableBuilder(
+    column: $table.thumbnailPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get width => $composableBuilder(
+    column: $table.width,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get height => $composableBuilder(
+    column: $table.height,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ExhibitionsTableOrderingComposer get exhibitionId {
+    final $$ExhibitionsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.exhibitionId,
+      referencedTable: $db.exhibitions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExhibitionsTableOrderingComposer(
+            $db: $db,
+            $table: $db.exhibitions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$MediaAssetsTableAnnotationComposer
+    extends Composer<_$GalleryDatabase, $MediaAssetsTable> {
+  $$MediaAssetsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get originalPath => $composableBuilder(
+    column: $table.originalPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get thumbnailPath => $composableBuilder(
+    column: $table.thumbnailPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get width =>
+      $composableBuilder(column: $table.width, builder: (column) => column);
+
+  GeneratedColumn<int> get height =>
+      $composableBuilder(column: $table.height, builder: (column) => column);
+
+  GeneratedColumn<String> get contentHash => $composableBuilder(
+    column: $table.contentHash,
+    builder: (column) => column,
+  );
+
+  $$ExhibitionsTableAnnotationComposer get exhibitionId {
+    final $$ExhibitionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.exhibitionId,
+      referencedTable: $db.exhibitions,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExhibitionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.exhibitions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  Expression<T> placementsRefs<T extends Object>(
+    Expression<T> Function($$PlacementsTableAnnotationComposer a) f,
+  ) {
+    final $$PlacementsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.placements,
+      getReferencedColumn: (t) => t.mediaId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$PlacementsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.placements,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$MediaAssetsTableTableManager
+    extends
+        RootTableManager<
+          _$GalleryDatabase,
+          $MediaAssetsTable,
+          MediaAsset,
+          $$MediaAssetsTableFilterComposer,
+          $$MediaAssetsTableOrderingComposer,
+          $$MediaAssetsTableAnnotationComposer,
+          $$MediaAssetsTableCreateCompanionBuilder,
+          $$MediaAssetsTableUpdateCompanionBuilder,
+          (MediaAsset, $$MediaAssetsTableReferences),
+          MediaAsset,
+          PrefetchHooks Function({bool exhibitionId, bool placementsRefs})
+        > {
+  $$MediaAssetsTableTableManager(_$GalleryDatabase db, $MediaAssetsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$MediaAssetsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$MediaAssetsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$MediaAssetsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> exhibitionId = const Value.absent(),
+                Value<String> originalPath = const Value.absent(),
+                Value<String> thumbnailPath = const Value.absent(),
+                Value<int> width = const Value.absent(),
+                Value<int> height = const Value.absent(),
+                Value<String> contentHash = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => MediaAssetsCompanion(
+                id: id,
+                exhibitionId: exhibitionId,
+                originalPath: originalPath,
+                thumbnailPath: thumbnailPath,
+                width: width,
+                height: height,
+                contentHash: contentHash,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String exhibitionId,
+                required String originalPath,
+                required String thumbnailPath,
+                required int width,
+                required int height,
+                required String contentHash,
+                Value<int> rowid = const Value.absent(),
+              }) => MediaAssetsCompanion.insert(
+                id: id,
+                exhibitionId: exhibitionId,
+                originalPath: originalPath,
+                thumbnailPath: thumbnailPath,
+                width: width,
+                height: height,
+                contentHash: contentHash,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$MediaAssetsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback:
+              ({exhibitionId = false, placementsRefs = false}) {
+                return PrefetchHooks(
+                  db: db,
+                  explicitlyWatchedTables: [if (placementsRefs) db.placements],
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (exhibitionId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.exhibitionId,
+                                    referencedTable:
+                                        $$MediaAssetsTableReferences
+                                            ._exhibitionIdTable(db),
+                                    referencedColumn:
+                                        $$MediaAssetsTableReferences
+                                            ._exhibitionIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
+                  getPrefetchedDataCallback: (items) async {
+                    return [
+                      if (placementsRefs)
+                        await $_getPrefetchedData<
+                          MediaAsset,
+                          $MediaAssetsTable,
+                          Placement
+                        >(
+                          currentTable: table,
+                          referencedTable: $$MediaAssetsTableReferences
+                              ._placementsRefsTable(db),
+                          managerFromTypedResult: (p0) =>
+                              $$MediaAssetsTableReferences(
+                                db,
+                                table,
+                                p0,
+                              ).placementsRefs,
+                          referencedItemsForCurrentItem:
+                              (item, referencedItems) => referencedItems.where(
+                                (e) => e.mediaId == item.id,
+                              ),
+                          typedResults: items,
+                        ),
+                    ];
+                  },
+                );
+              },
+        ),
+      );
+}
+
+typedef $$MediaAssetsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GalleryDatabase,
+      $MediaAssetsTable,
+      MediaAsset,
+      $$MediaAssetsTableFilterComposer,
+      $$MediaAssetsTableOrderingComposer,
+      $$MediaAssetsTableAnnotationComposer,
+      $$MediaAssetsTableCreateCompanionBuilder,
+      $$MediaAssetsTableUpdateCompanionBuilder,
+      (MediaAsset, $$MediaAssetsTableReferences),
+      MediaAsset,
+      PrefetchHooks Function({bool exhibitionId, bool placementsRefs})
+    >;
+typedef $$PlacementsTableCreateCompanionBuilder =
+    PlacementsCompanion Function({
+      required String id,
+      required String chapterId,
+      required String mediaId,
+      required int sortOrder,
+      required String size,
+      required String frame,
+      required double focalX,
+      required double focalY,
+      required double zoom,
+      required String caption,
+      Value<int> rowid,
+    });
+typedef $$PlacementsTableUpdateCompanionBuilder =
+    PlacementsCompanion Function({
+      Value<String> id,
+      Value<String> chapterId,
+      Value<String> mediaId,
+      Value<int> sortOrder,
+      Value<String> size,
+      Value<String> frame,
+      Value<double> focalX,
+      Value<double> focalY,
+      Value<double> zoom,
+      Value<String> caption,
+      Value<int> rowid,
+    });
+
+final class $$PlacementsTableReferences
+    extends BaseReferences<_$GalleryDatabase, $PlacementsTable, Placement> {
+  $$PlacementsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ChaptersTable _chapterIdTable(_$GalleryDatabase db) =>
+      db.chapters.createAlias('placements__chapter_id__chapters__id');
+
+  $$ChaptersTableProcessedTableManager get chapterId {
+    final $_column = $_itemColumn<String>('chapter_id')!;
+
+    final manager = $$ChaptersTableTableManager(
+      $_db,
+      $_db.chapters,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_chapterIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+
+  static $MediaAssetsTable _mediaIdTable(_$GalleryDatabase db) =>
+      db.mediaAssets.createAlias('placements__media_id__media_assets__id');
+
+  $$MediaAssetsTableProcessedTableManager get mediaId {
+    final $_column = $_itemColumn<String>('media_id')!;
+
+    final manager = $$MediaAssetsTableTableManager(
+      $_db,
+      $_db.mediaAssets,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_mediaIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
+}
+
+class $$PlacementsTableFilterComposer
+    extends Composer<_$GalleryDatabase, $PlacementsTable> {
+  $$PlacementsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get size => $composableBuilder(
+    column: $table.size,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get frame => $composableBuilder(
+    column: $table.frame,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get focalX => $composableBuilder(
+    column: $table.focalX,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get focalY => $composableBuilder(
+    column: $table.focalY,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get zoom => $composableBuilder(
+    column: $table.zoom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get caption => $composableBuilder(
+    column: $table.caption,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  $$ChaptersTableFilterComposer get chapterId {
+    final $$ChaptersTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.chapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChaptersTableFilterComposer(
+            $db: $db,
+            $table: $db.chapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$MediaAssetsTableFilterComposer get mediaId {
+    final $$MediaAssetsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mediaId,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaAssetsTableFilterComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PlacementsTableOrderingComposer
+    extends Composer<_$GalleryDatabase, $PlacementsTable> {
+  $$PlacementsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get size => $composableBuilder(
+    column: $table.size,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get frame => $composableBuilder(
+    column: $table.frame,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get focalX => $composableBuilder(
+    column: $table.focalX,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get focalY => $composableBuilder(
+    column: $table.focalY,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get zoom => $composableBuilder(
+    column: $table.zoom,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get caption => $composableBuilder(
+    column: $table.caption,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  $$ChaptersTableOrderingComposer get chapterId {
+    final $$ChaptersTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.chapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChaptersTableOrderingComposer(
+            $db: $db,
+            $table: $db.chapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$MediaAssetsTableOrderingComposer get mediaId {
+    final $$MediaAssetsTableOrderingComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mediaId,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaAssetsTableOrderingComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PlacementsTableAnnotationComposer
+    extends Composer<_$GalleryDatabase, $PlacementsTable> {
+  $$PlacementsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<String> get size =>
+      $composableBuilder(column: $table.size, builder: (column) => column);
+
+  GeneratedColumn<String> get frame =>
+      $composableBuilder(column: $table.frame, builder: (column) => column);
+
+  GeneratedColumn<double> get focalX =>
+      $composableBuilder(column: $table.focalX, builder: (column) => column);
+
+  GeneratedColumn<double> get focalY =>
+      $composableBuilder(column: $table.focalY, builder: (column) => column);
+
+  GeneratedColumn<double> get zoom =>
+      $composableBuilder(column: $table.zoom, builder: (column) => column);
+
+  GeneratedColumn<String> get caption =>
+      $composableBuilder(column: $table.caption, builder: (column) => column);
+
+  $$ChaptersTableAnnotationComposer get chapterId {
+    final $$ChaptersTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.chapterId,
+      referencedTable: $db.chapters,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ChaptersTableAnnotationComposer(
+            $db: $db,
+            $table: $db.chapters,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+
+  $$MediaAssetsTableAnnotationComposer get mediaId {
+    final $$MediaAssetsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.mediaId,
+      referencedTable: $db.mediaAssets,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$MediaAssetsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.mediaAssets,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
+}
+
+class $$PlacementsTableTableManager
+    extends
+        RootTableManager<
+          _$GalleryDatabase,
+          $PlacementsTable,
+          Placement,
+          $$PlacementsTableFilterComposer,
+          $$PlacementsTableOrderingComposer,
+          $$PlacementsTableAnnotationComposer,
+          $$PlacementsTableCreateCompanionBuilder,
+          $$PlacementsTableUpdateCompanionBuilder,
+          (Placement, $$PlacementsTableReferences),
+          Placement,
+          PrefetchHooks Function({bool chapterId, bool mediaId})
+        > {
+  $$PlacementsTableTableManager(_$GalleryDatabase db, $PlacementsTable table)
+    : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$PlacementsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$PlacementsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$PlacementsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> chapterId = const Value.absent(),
+                Value<String> mediaId = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<String> size = const Value.absent(),
+                Value<String> frame = const Value.absent(),
+                Value<double> focalX = const Value.absent(),
+                Value<double> focalY = const Value.absent(),
+                Value<double> zoom = const Value.absent(),
+                Value<String> caption = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => PlacementsCompanion(
+                id: id,
+                chapterId: chapterId,
+                mediaId: mediaId,
+                sortOrder: sortOrder,
+                size: size,
+                frame: frame,
+                focalX: focalX,
+                focalY: focalY,
+                zoom: zoom,
+                caption: caption,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String chapterId,
+                required String mediaId,
+                required int sortOrder,
+                required String size,
+                required String frame,
+                required double focalX,
+                required double focalY,
+                required double zoom,
+                required String caption,
+                Value<int> rowid = const Value.absent(),
+              }) => PlacementsCompanion.insert(
+                id: id,
+                chapterId: chapterId,
+                mediaId: mediaId,
+                sortOrder: sortOrder,
+                size: size,
+                frame: frame,
+                focalX: focalX,
+                focalY: focalY,
+                zoom: zoom,
+                caption: caption,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$PlacementsTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({chapterId = false, mediaId = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [],
+              addJoins:
+                  <
+                    T extends TableManagerState<
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic,
+                      dynamic
+                    >
+                  >(state) {
+                    if (chapterId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.chapterId,
+                                referencedTable: $$PlacementsTableReferences
+                                    ._chapterIdTable(db),
+                                referencedColumn: $$PlacementsTableReferences
+                                    ._chapterIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+                    if (mediaId) {
+                      state =
+                          state.withJoin(
+                                currentTable: table,
+                                currentColumn: table.mediaId,
+                                referencedTable: $$PlacementsTableReferences
+                                    ._mediaIdTable(db),
+                                referencedColumn: $$PlacementsTableReferences
+                                    ._mediaIdTable(db)
+                                    .id,
+                              )
+                              as T;
+                    }
+
+                    return state;
+                  },
+              getPrefetchedDataCallback: (items) async {
+                return [];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$PlacementsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GalleryDatabase,
+      $PlacementsTable,
+      Placement,
+      $$PlacementsTableFilterComposer,
+      $$PlacementsTableOrderingComposer,
+      $$PlacementsTableAnnotationComposer,
+      $$PlacementsTableCreateCompanionBuilder,
+      $$PlacementsTableUpdateCompanionBuilder,
+      (Placement, $$PlacementsTableReferences),
+      Placement,
+      PrefetchHooks Function({bool chapterId, bool mediaId})
+    >;
+
+class $GalleryDatabaseManager {
+  final _$GalleryDatabase _db;
+  $GalleryDatabaseManager(this._db);
+  $$ExhibitionsTableTableManager get exhibitions =>
+      $$ExhibitionsTableTableManager(_db, _db.exhibitions);
+  $$ChaptersTableTableManager get chapters =>
+      $$ChaptersTableTableManager(_db, _db.chapters);
+  $$MediaAssetsTableTableManager get mediaAssets =>
+      $$MediaAssetsTableTableManager(_db, _db.mediaAssets);
+  $$PlacementsTableTableManager get placements =>
+      $$PlacementsTableTableManager(_db, _db.placements);
+}

@@ -1,0 +1,43 @@
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:xulang/data/gallery_database.dart';
+import 'package:xulang/data/gallery_repository.dart';
+import 'package:xulang/data/image_selection_service.dart';
+import 'package:xulang/data/media_import_service.dart';
+import 'package:xulang/editor/editor_session.dart';
+
+final galleryRepositoryProvider = Provider<GalleryRepository>((ref) {
+  throw StateError(
+    'GalleryRepository must be provided at application startup.',
+  );
+});
+
+final mediaImportServiceProvider = Provider<MediaImportService>((ref) {
+  final repository = ref.watch(galleryRepositoryProvider);
+  return MediaImportService(
+    rootDirectory: repository.mediaRoot,
+    createId: repository.createId,
+  );
+});
+
+final imageSelectionServiceProvider = Provider<ImageSelectionService>((ref) {
+  return SystemImageSelectionService(ImagePicker());
+});
+
+final exhibitionSummariesProvider = StreamProvider<List<ExhibitionSummary>>((
+  ref,
+) {
+  return ref.watch(galleryRepositoryProvider).watchExhibitions();
+});
+
+final editorSessionProvider = Provider.autoDispose
+    .family<EditorSession, String>((ref, exhibitionId) {
+      final session = EditorSession(
+        exhibitionId: exhibitionId,
+        repository: ref.watch(galleryRepositoryProvider),
+        importer: ref.watch(mediaImportServiceProvider),
+        imageSelection: ref.watch(imageSelectionServiceProvider),
+      );
+      ref.onDispose(session.dispose);
+      return session;
+    });
