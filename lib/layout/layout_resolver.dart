@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/widgets.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/layout/narrative_axis.dart';
 
 class LayoutResolver {
   const LayoutResolver._();
@@ -233,69 +236,70 @@ class LayoutResolver {
   }
 
   static ResolvedScene _storyPath(List<GalleryPlacement> items, Size size) {
-    final portrait = size.height >= size.width;
-    final rects = portrait
-        ? <Rect>[
-            Rect.fromLTWH(
-              size.width * -.03,
-              size.height * .09,
-              size.width * .43,
-              size.height * .24,
-            ),
-            Rect.fromLTWH(
-              size.width * .46,
-              size.height * .15,
-              size.width * .49,
-              size.height * .34,
-            ),
-            Rect.fromLTWH(
-              size.width * .09,
-              size.height * .40,
-              size.width * .52,
-              size.height * .33,
-            ),
-            Rect.fromLTWH(
-              size.width * .53,
-              size.height * .63,
-              size.width * .39,
-              size.height * .24,
-            ),
-          ]
-        : <Rect>[
-            Rect.fromLTWH(
-              size.width * .02,
-              size.height * .12,
-              size.width * .29,
-              size.height * .55,
-            ),
-            Rect.fromLTWH(
-              size.width * .29,
-              size.height * .08,
-              size.width * .34,
-              size.height * .72,
-            ),
-            Rect.fromLTWH(
-              size.width * .58,
-              size.height * .24,
-              size.width * .29,
-              size.height * .58,
-            ),
-            Rect.fromLTWH(
-              size.width * .78,
-              size.height * .08,
-              size.width * .24,
-              size.height * .43,
-            ),
-          ];
+    final axis = NarrativeAxis.fromViewport(size);
+    final primaryAxis = switch (axis) {
+      NarrativeAxis.vertical => Axis.vertical,
+      NarrativeAxis.horizontal => Axis.horizontal,
+    };
+    if (!size.width.isFinite ||
+        !size.height.isFinite ||
+        size.width <= 0 ||
+        size.height <= 0) {
+      return ResolvedScene(
+        nodes: const [],
+        primaryAxis: primaryAxis,
+        contentExtent: 0,
+      );
+    }
+
+    final portrait = axis == NarrativeAxis.vertical;
+    final primarySize = axis.primaryExtent(size);
+    final crossSize = axis.crossExtent(size);
+    final crossFractions = portrait
+        ? const [.35, .64, .40, .68]
+        : const [.37, .62, .43, .66];
+    const depths = [.42, 1.0, .72, .56];
+    const rotations = [-.035, .022, -.018, .038];
+    final nodes = <SceneNode>[];
+    var cursor = primarySize * .10;
+
+    for (var index = 0; index < items.length; index++) {
+      final item = items[index];
+      final scale = _sizeScale(item.size);
+      final width = size.width * (portrait ? .58 : .34) * scale;
+      final height = size.height * (portrait ? .29 : .64) * scale;
+      final nodeSize = Size(width, height);
+      final crossNodeExtent = axis.crossExtent(nodeSize);
+      final desiredCrossStart =
+          crossSize * crossFractions[index % crossFractions.length] -
+          crossNodeExtent / 2;
+      final crossStart = math
+          .min(math.max(desiredCrossStart, 8), crossSize - crossNodeExtent - 8)
+          .toDouble();
+      final origin = axis.shiftPrimary(
+        portrait ? Offset(crossStart, 0) : Offset(0, crossStart),
+        cursor,
+      );
+      final rect = Rect.fromLTWH(origin.dx, origin.dy, width, height);
+      nodes.add(
+        SceneNode(
+          placementId: item.id,
+          rect: rect,
+          depth: depths[index % depths.length],
+          rotation: rotations[index % rotations.length],
+        ),
+      );
+      final primaryEnd = axis.primaryOffset(rect.bottomRight);
+      cursor = primaryEnd + 24;
+      if (cursor - primaryEnd < 24) {
+        cursor += 1e-9;
+      }
+    }
+
     return ResolvedScene(
-      nodes: _nodesFromPattern(
-        items,
-        rects,
-        depths: const [.28, 1, .72, .48],
-        rotations: const [-.055, .028, -.025, .065],
-      ),
-      primaryAxis: Axis.horizontal,
-      contentExtent: size.width,
+      nodes: nodes,
+      primaryAxis: primaryAxis,
+      contentExtent: math.max(primarySize, cursor + primarySize * .10),
     );
   }
 
