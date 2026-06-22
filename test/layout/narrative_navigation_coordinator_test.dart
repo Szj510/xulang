@@ -115,23 +115,82 @@ void main() {
     );
   });
 
-  test('wrong-axis and unowned gestures do not navigate past threshold', () {
-    for (final gesture in [
-      GalleryGesture.horizontal,
-      GalleryGesture.undecided,
-      GalleryGesture.pan,
-    ]) {
-      coordinator.begin(
-        progress: 1,
-        axis: NarrativeAxis.vertical,
-        itemCount: 3,
-      );
-      expect(
-        coordinator.update(const Offset(90, -90), gesture),
-        ChapterNavigationIntent.none,
-        reason: '$gesture must not own portrait chapter navigation',
-      );
-    }
+  test('pan movement does not pollute a later owned update', () {
+    coordinator.begin(progress: 1, axis: NarrativeAxis.vertical, itemCount: 3);
+
+    expect(
+      coordinator.update(const Offset(0, -57), GalleryGesture.pan),
+      ChapterNavigationIntent.none,
+    );
+    expect(
+      coordinator.update(Offset.zero, GalleryGesture.vertical),
+      ChapterNavigationIntent.none,
+    );
+  });
+
+  test('wrong-axis movement does not pollute a later owned update', () {
+    coordinator.begin(progress: 1, axis: NarrativeAxis.vertical, itemCount: 3);
+
+    expect(
+      coordinator.update(const Offset(0, -57), GalleryGesture.horizontal),
+      ChapterNavigationIntent.none,
+    );
+    expect(
+      coordinator.update(Offset.zero, GalleryGesture.vertical),
+      ChapterNavigationIntent.none,
+    );
+  });
+
+  test('undecided movement does not pollute a later owned update', () {
+    coordinator.begin(progress: 1, axis: NarrativeAxis.vertical, itemCount: 3);
+
+    expect(
+      coordinator.update(const Offset(0, -57), GalleryGesture.undecided),
+      ChapterNavigationIntent.none,
+    );
+    expect(
+      coordinator.update(Offset.zero, GalleryGesture.vertical),
+      ChapterNavigationIntent.none,
+    );
+  });
+
+  test('updates before begin never dispatch or pollute the next gesture', () {
+    expect(
+      coordinator.update(const Offset(0, -90), GalleryGesture.vertical),
+      ChapterNavigationIntent.none,
+    );
+
+    coordinator.begin(progress: 1, axis: NarrativeAxis.vertical, itemCount: 3);
+    expect(
+      coordinator.update(Offset.zero, GalleryGesture.vertical),
+      ChapterNavigationIntent.none,
+    );
+  });
+
+  test('horizontal primary movement accumulates across owned updates', () {
+    coordinator.begin(
+      progress: 1,
+      axis: NarrativeAxis.horizontal,
+      itemCount: 3,
+    );
+
+    expect(
+      coordinator.update(const Offset(-40, 0), GalleryGesture.horizontal),
+      ChapterNavigationIntent.none,
+    );
+    expect(
+      coordinator.update(const Offset(-17, 0), GalleryGesture.horizontal),
+      ChapterNavigationIntent.next,
+    );
+  });
+
+  test('owned movement in the opposite direction does not navigate', () {
+    coordinator.begin(progress: 1, axis: NarrativeAxis.vertical, itemCount: 3);
+
+    expect(
+      coordinator.update(const Offset(0, 90), GalleryGesture.vertical),
+      ChapterNavigationIntent.none,
+    );
   });
 
   test('end prevents an undispatched gesture until begin rearms it', () {
