@@ -195,7 +195,7 @@ class _ViewerChapterState extends State<_ViewerChapter>
       viewport: viewport,
       itemCount: widget.chapter.placements.length,
       scale: scale,
-      axis: NarrativeAxis.fromViewport(viewport),
+      axis: NarrativeAxis.horizontal,
     );
   }
 
@@ -208,7 +208,7 @@ class _ViewerChapterState extends State<_ViewerChapter>
       pixelsPerSecond: velocity,
       viewport: viewport,
       itemCount: widget.chapter.placements.length,
-      axis: NarrativeAxis.fromViewport(viewport),
+      axis: NarrativeAxis.horizontal,
     );
     _inertia.animateWith(simulation);
   }
