@@ -71,15 +71,19 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     await pumpViewer(tester);
 
-    await tester.drag(
-      find.byKey(const Key('narrative-gesture-surface')),
-      const Offset(-110, 0),
+    final gesture = await tester.startGesture(
+      tester.getCenter(find.byKey(const Key('narrative-gesture-surface'))),
     );
+    for (var step = 0; step < 5; step += 1) {
+      await gesture.moveBy(const Offset(-22, 0));
+      await tester.pump(const Duration(milliseconds: 16));
+    }
     await tester.pump(const Duration(milliseconds: 16));
     final progressBefore = tester
         .widget<Text>(find.byKey(const Key('viewer-track-progress')))
         .data;
     expect(progressBefore, isNot('进度 0%'));
+    await gesture.up();
 
     await tester.binding.setSurfaceSize(const Size(844, 390));
     await tester.pumpAndSettle();
