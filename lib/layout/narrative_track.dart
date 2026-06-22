@@ -108,12 +108,12 @@ class NarrativeNodeFrame {
 }
 
 class ResolvedNarrativeFrame {
-  const ResolvedNarrativeFrame({
+  ResolvedNarrativeFrame({
     required this.progress,
-    required this.nodes,
+    required List<NarrativeNodeFrame> nodes,
     required this.axis,
     required this.path,
-  });
+  }) : nodes = List.unmodifiable(nodes);
 
   final double progress;
   final List<NarrativeNodeFrame> nodes;
