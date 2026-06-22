@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/layout/story_path_geometry.dart';
 import 'package:xulang/widgets/gallery_image.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
 
@@ -118,5 +119,171 @@ void main() {
         .transform;
 
     expect(after, isNot(before));
+  });
+
+  testWidgets('story path painter receives resolved scene geometry', (
+    tester,
+  ) async {
+    const placements = [
+      GalleryPlacement(id: 'p0', mediaId: 'media', order: 0),
+      GalleryPlacement(id: 'p1', mediaId: 'media', order: 1),
+      GalleryPlacement(id: 'p2', mediaId: 'media', order: 2),
+      GalleryPlacement(id: 'p3', mediaId: 'media', order: 3),
+    ];
+    const storyChapter = GalleryChapter(
+      id: 'story',
+      title: 'Story',
+      order: 0,
+      layout: GalleryLayout.storyPath,
+      motion: GalleryMotion.push,
+      placements: placements,
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(
+            chapter: storyChapter,
+            media: [media],
+            cameraProgress: .35,
+          ),
+        ),
+      ),
+    );
+
+    final paint = tester.widget<CustomPaint>(
+      find.byKey(const Key('story-path-line')),
+    );
+    final painter = paint.painter! as StoryPathPainter;
+    expect(painter.geometry.segments, isNotEmpty);
+
+    final placementIndices = painter.geometry.anchors
+        .map(
+          (anchor) => placements.indexWhere((p) => p.id == anchor.placementId),
+        )
+        .toList();
+    expect(placementIndices, isNotEmpty);
+    expect(placementIndices, orderedEquals([...placementIndices]..sort()));
+
+    final sceneStack = tester.widget<Stack>(
+      find
+          .descendant(
+            of: find.byKey(const Key('scene-background')),
+            matching: find.byType(Stack),
+          )
+          .first,
+    );
+    final pathLayer = sceneStack.children.first as Positioned;
+    final pathIgnorePointer = pathLayer.child as IgnorePointer;
+    expect(
+      (pathIgnorePointer.child! as CustomPaint).key,
+      const Key('story-path-line'),
+    );
+  });
+
+  test('story path painter repaints for geometry or theme changes', () {
+    final geometry = StoryPathGeometry(
+      anchors: const [
+        StoryPathAnchor(
+          placementId: 'p0',
+          point: Offset(20, 30),
+          nodeRect: Rect.fromLTWH(0, 0, 10, 10),
+        ),
+      ],
+      segments: const [],
+    );
+    final equalGeometry = StoryPathGeometry(
+      anchors: const [
+        StoryPathAnchor(
+          placementId: 'p0',
+          point: Offset(20, 30),
+          nodeRect: Rect.fromLTWH(0, 0, 10, 10),
+        ),
+      ],
+      segments: const [],
+    );
+    final changedGeometry = StoryPathGeometry(
+      anchors: const [
+        StoryPathAnchor(
+          placementId: 'p0',
+          point: Offset(21, 30),
+          nodeRect: Rect.fromLTWH(0, 0, 10, 10),
+        ),
+      ],
+      segments: const [],
+    );
+
+    final painter = StoryPathPainter(
+      sceneTheme: GalleryTheme.ink,
+      geometry: geometry,
+    );
+    expect(
+      painter.shouldRepaint(
+        StoryPathPainter(sceneTheme: GalleryTheme.ink, geometry: equalGeometry),
+      ),
+      isFalse,
+    );
+    expect(
+      painter.shouldRepaint(
+        StoryPathPainter(
+          sceneTheme: GalleryTheme.ink,
+          geometry: changedGeometry,
+        ),
+      ),
+      isTrue,
+    );
+    expect(
+      painter.shouldRepaint(
+        StoryPathPainter(sceneTheme: GalleryTheme.paper, geometry: geometry),
+      ),
+      isTrue,
+    );
+  });
+
+  test('story label defaults to the right of its anchor', () {
+    const anchor = StoryPathAnchor(
+      placementId: 'p0',
+      point: Offset(100, 100),
+      nodeRect: Rect.fromLTWH(0, 0, 50, 50),
+    );
+
+    final rect = resolveStoryLabelRect(
+      anchor: anchor,
+      viewport: const Size(390, 844),
+    );
+
+    expect(rect, const Rect.fromLTWH(108, 85, 92, 30));
+  });
+
+  test('story label flips left when its right position overlaps the node', () {
+    const anchor = StoryPathAnchor(
+      placementId: 'p0',
+      point: Offset(100, 100),
+      nodeRect: Rect.fromLTWH(105, 70, 120, 80),
+    );
+
+    final rect = resolveStoryLabelRect(
+      anchor: anchor,
+      viewport: const Size(390, 844),
+    );
+
+    expect(rect, const Rect.fromLTWH(8, 85, 92, 30));
+  });
+
+  test('story label stays inside the viewport margin', () {
+    const anchor = StoryPathAnchor(
+      placementId: 'p0',
+      point: Offset(388, 840),
+      nodeRect: Rect.fromLTWH(0, 0, 20, 20),
+    );
+
+    final rect = resolveStoryLabelRect(
+      anchor: anchor,
+      viewport: const Size(390, 844),
+    );
+
+    expect(rect, const Rect.fromLTWH(290, 806, 92, 30));
   });
 }
