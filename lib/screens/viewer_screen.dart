@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/theme/xulang_theme.dart';
@@ -188,11 +189,13 @@ class _ViewerChapterState extends State<_ViewerChapter>
   }
 
   void _updateTrackDrag(DragUpdateDetails details) {
+    final viewport = MediaQuery.sizeOf(context);
     _camera.update(
       delta: details.delta,
-      viewport: MediaQuery.sizeOf(context),
+      viewport: viewport,
       itemCount: widget.chapter.placements.length,
       scale: scale,
+      axis: NarrativeAxis.fromViewport(viewport),
     );
   }
 
@@ -200,10 +203,12 @@ class _ViewerChapterState extends State<_ViewerChapter>
     final velocity = details.primaryVelocity ?? 0;
     _camera.end();
     if (velocity.abs() < 60 || widget.reduceMotion) return;
+    final viewport = MediaQuery.sizeOf(context);
     final simulation = _camera.simulationForVelocity(
       pixelsPerSecond: velocity,
-      viewportWidth: MediaQuery.sizeOf(context).width,
+      viewport: viewport,
       itemCount: widget.chapter.placements.length,
+      axis: NarrativeAxis.fromViewport(viewport),
     );
     _inertia.animateWith(simulation);
   }
