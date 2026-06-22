@@ -43,6 +43,20 @@ void main() {
     );
   });
 
+  test('exactly reaching the threshold does not navigate', () {
+    coordinator.begin(progress: 1, axis: NarrativeAxis.vertical, itemCount: 3);
+    expect(
+      coordinator.update(const Offset(0, -56), GalleryGesture.vertical),
+      ChapterNavigationIntent.none,
+    );
+
+    coordinator.begin(progress: 0, axis: NarrativeAxis.vertical, itemCount: 3);
+    expect(
+      coordinator.update(const Offset(0, 56), GalleryGesture.vertical),
+      ChapterNavigationIntent.none,
+    );
+  });
+
   test('landscape vertical swipes navigate at any progress', () {
     coordinator.begin(
       progress: .4,
@@ -87,44 +101,56 @@ void main() {
     );
   });
 
-  test('wrong direction and unowned gestures do not navigate', () {
-    coordinator.begin(progress: 1, axis: NarrativeAxis.vertical, itemCount: 3);
+  test('empty narratives arm both directions', () {
+    coordinator.begin(progress: .5, axis: NarrativeAxis.vertical, itemCount: 0);
+    expect(
+      coordinator.update(const Offset(0, -57), GalleryGesture.vertical),
+      ChapterNavigationIntent.next,
+    );
 
+    coordinator.begin(progress: .5, axis: NarrativeAxis.vertical, itemCount: 0);
     expect(
-      coordinator.update(const Offset(0, 60), GalleryGesture.vertical),
-      ChapterNavigationIntent.none,
-    );
-    expect(
-      coordinator.update(const Offset(60, 0), GalleryGesture.horizontal),
-      ChapterNavigationIntent.none,
-    );
-    expect(
-      coordinator.update(const Offset(0, -60), GalleryGesture.undecided),
-      ChapterNavigationIntent.none,
-    );
-    expect(
-      coordinator.update(const Offset(0, -60), GalleryGesture.pan),
-      ChapterNavigationIntent.none,
+      coordinator.update(const Offset(0, 57), GalleryGesture.vertical),
+      ChapterNavigationIntent.previous,
     );
   });
 
-  test('end clears movement but only begin rearms dispatch', () {
+  test('wrong-axis and unowned gestures do not navigate past threshold', () {
+    for (final gesture in [
+      GalleryGesture.horizontal,
+      GalleryGesture.undecided,
+      GalleryGesture.pan,
+    ]) {
+      coordinator.begin(
+        progress: 1,
+        axis: NarrativeAxis.vertical,
+        itemCount: 3,
+      );
+      expect(
+        coordinator.update(const Offset(90, -90), gesture),
+        ChapterNavigationIntent.none,
+        reason: '$gesture must not own portrait chapter navigation',
+      );
+    }
+  });
+
+  test('end prevents an undispatched gesture until begin rearms it', () {
     coordinator.begin(progress: 1, axis: NarrativeAxis.vertical, itemCount: 3);
     expect(
-      coordinator.update(const Offset(0, -60), GalleryGesture.vertical),
-      ChapterNavigationIntent.next,
+      coordinator.update(const Offset(0, -40), GalleryGesture.vertical),
+      ChapterNavigationIntent.none,
     );
 
     coordinator.end();
     expect(
-      coordinator.update(const Offset(0, -60), GalleryGesture.vertical),
+      coordinator.update(const Offset(0, -90), GalleryGesture.vertical),
       ChapterNavigationIntent.none,
     );
 
-    coordinator.begin(progress: 0, axis: NarrativeAxis.vertical, itemCount: 3);
+    coordinator.begin(progress: 1, axis: NarrativeAxis.vertical, itemCount: 3);
     expect(
-      coordinator.update(const Offset(0, 60), GalleryGesture.vertical),
-      ChapterNavigationIntent.previous,
+      coordinator.update(const Offset(0, -57), GalleryGesture.vertical),
+      ChapterNavigationIntent.next,
     );
   });
 }
