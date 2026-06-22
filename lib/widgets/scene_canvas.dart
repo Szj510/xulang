@@ -284,6 +284,10 @@ Rect resolveStoryLabelRect({
   );
 }
 
+Color storyPathDotColor(GalleryTheme sceneTheme) =>
+    (sceneTheme == GalleryTheme.paper ? XulangColors.ink : XulangColors.paper)
+        .withValues(alpha: .85);
+
 class StoryPathPainter extends CustomPainter {
   StoryPathPainter({required this.sceneTheme, required this.geometry});
 
@@ -315,7 +319,7 @@ class StoryPathPainter extends CustomPainter {
       canvas.drawPath(path, stroke);
     }
     final dot = Paint()
-      ..color = color.withValues(alpha: .17)
+      ..color = storyPathDotColor(sceneTheme)
       ..style = PaintingStyle.fill;
     for (final anchor in geometry.anchors) {
       canvas.drawCircle(anchor.point, 3.2, dot);
