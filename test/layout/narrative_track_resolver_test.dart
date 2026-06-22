@@ -2,7 +2,9 @@ import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/layout/narrative_axis.dart';
+import 'package:xulang/layout/narrative_track.dart';
 import 'package:xulang/layout/narrative_track_resolver.dart';
+import 'package:xulang/layout/story_path_geometry.dart';
 
 void main() {
   const placements = [
@@ -99,6 +101,32 @@ void main() {
     expect(frame.nodes, isEmpty);
     expect(frame.path.anchors, isEmpty);
     expect(frame.path.segments, isEmpty);
+  });
+
+  test('resolved frame freezes source and exposed node lists', () {
+    final sourceNodes = <NarrativeNodeFrame>[
+      const NarrativeNodeFrame(
+        placementId: 'p1',
+        rect: Rect.fromLTWH(0, 0, 10, 20),
+        depth: 1,
+        opacity: 1,
+        rotation: 0,
+        rotateY: 0,
+      ),
+    ];
+    final frame = ResolvedNarrativeFrame(
+      progress: .5,
+      nodes: sourceNodes,
+      axis: NarrativeAxis.vertical,
+      path: const StoryPathGeometry.empty(),
+    );
+    final originalHash = frame.hashCode;
+
+    sourceNodes.clear();
+
+    expect(frame.nodes, hasLength(1));
+    expect(frame.hashCode, originalHash);
+    expect(() => frame.nodes.clear(), throwsUnsupportedError);
   });
 
   for (final viewport in const [Size(390, 844), Size(844, 390)]) {

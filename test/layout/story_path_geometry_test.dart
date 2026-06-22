@@ -130,15 +130,15 @@ void main() {
     );
 
     test('geometry values compare by element and produce matching hashes', () {
-      const first = StoryPathGeometry(
-        anchors: [
+      final first = StoryPathGeometry(
+        anchors: const [
           StoryPathAnchor(
             placementId: 'p1',
             point: Offset(10, 20),
             nodeRect: Rect.fromLTWH(0, 0, 10, 20),
           ),
         ],
-        segments: [
+        segments: const [
           StoryPathSegment(
             start: Offset(1, 2),
             control1: Offset(3, 4),
@@ -147,15 +147,15 @@ void main() {
           ),
         ],
       );
-      const second = StoryPathGeometry(
-        anchors: [
+      final second = StoryPathGeometry(
+        anchors: const [
           StoryPathAnchor(
             placementId: 'p1',
             point: Offset(10, 20),
             nodeRect: Rect.fromLTWH(0, 0, 10, 20),
           ),
         ],
-        segments: [
+        segments: const [
           StoryPathSegment(
             start: Offset(1, 2),
             control1: Offset(3, 4),
@@ -168,6 +168,47 @@ void main() {
       expect(first, second);
       expect(first.hashCode, second.hashCode);
       expect(const StoryPathGeometry.empty(), const StoryPathGeometry.empty());
+    });
+
+    test('geometry freezes source and exposed lists to keep hash stable', () {
+      final sourceAnchors = <StoryPathAnchor>[
+        const StoryPathAnchor(
+          placementId: 'p1',
+          point: Offset(10, 20),
+          nodeRect: Rect.fromLTWH(0, 0, 10, 20),
+        ),
+      ];
+      final sourceSegments = <StoryPathSegment>[
+        const StoryPathSegment(
+          start: Offset(1, 2),
+          control1: Offset(3, 4),
+          control2: Offset(5, 6),
+          end: Offset(7, 8),
+        ),
+      ];
+      final geometry = StoryPathGeometry(
+        anchors: sourceAnchors,
+        segments: sourceSegments,
+      );
+      final originalHash = geometry.hashCode;
+
+      sourceAnchors.add(
+        const StoryPathAnchor(
+          placementId: 'p2',
+          point: Offset.zero,
+          nodeRect: Rect.zero,
+        ),
+      );
+      sourceSegments.clear();
+
+      expect(geometry.anchors, hasLength(1));
+      expect(geometry.segments, hasLength(1));
+      expect(geometry.hashCode, originalHash);
+      expect(
+        () => geometry.anchors.add(sourceAnchors.last),
+        throwsUnsupportedError,
+      );
+      expect(() => geometry.segments.removeLast(), throwsUnsupportedError);
     });
   });
 }

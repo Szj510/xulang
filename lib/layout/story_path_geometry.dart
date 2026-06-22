@@ -61,9 +61,15 @@ class StoryPathSegment {
 }
 
 class StoryPathGeometry {
-  const StoryPathGeometry({required this.anchors, required this.segments});
+  StoryPathGeometry({
+    required List<StoryPathAnchor> anchors,
+    required List<StoryPathSegment> segments,
+  }) : anchors = List.unmodifiable(anchors),
+       segments = List.unmodifiable(segments);
 
-  const StoryPathGeometry.empty() : anchors = const [], segments = const [];
+  const StoryPathGeometry.empty()
+    : anchors = const <StoryPathAnchor>[],
+      segments = const <StoryPathSegment>[];
 
   final List<StoryPathAnchor> anchors;
   final List<StoryPathSegment> segments;
