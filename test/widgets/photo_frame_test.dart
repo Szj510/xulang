@@ -42,6 +42,21 @@ void main() {
       if (frame == GalleryFrame.stamp) {
         expect(find.byKey(const Key('stamp-edge-painter')), findsOneWidget);
       }
+      if (frame == GalleryFrame.wood) {
+        expect(find.byKey(const Key('wood-grain-painter')), findsOneWidget);
+      }
+      if (frame == GalleryFrame.darkWood) {
+        expect(
+          find.byKey(const Key('dark-wood-grain-painter')),
+          findsOneWidget,
+        );
+      }
+      if (frame == GalleryFrame.metal) {
+        expect(find.byKey(const Key('metal-texture-painter')), findsOneWidget);
+      }
+      if (frame == GalleryFrame.vintage) {
+        expect(find.byKey(const Key('vintage-paper-painter')), findsOneWidget);
+      }
     });
   }
 }
