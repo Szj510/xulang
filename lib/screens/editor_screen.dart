@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -315,7 +316,10 @@ class _EditorBodyState extends State<_EditorBody> {
       final service = await _exportFileService();
       switch (action) {
         case _EditorExportAction.gif:
-          final file = await service.writeGif(bundle);
+          final file = await service.writeGif(
+            bundle,
+            chapterIndex: session.selectedChapterIndex,
+          );
           await service.shareFile(file, title: '${bundle.document.title} GIF');
           if (context.mounted) {
             _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
@@ -465,8 +469,10 @@ class _Preview extends StatefulWidget {
 
 class _PreviewState extends State<_Preview> {
   final Map<String, double> _cameraProgressByChapter = {};
+  final Map<String, GalleryPlacement> _placementDrafts = {};
   final NarrativeCameraController _cameraController =
       NarrativeCameraController();
+  GalleryPlacement? _gestureStartPlacement;
 
   EditorSession get session => widget.session;
   String get _chapterId => session.selectedChapter!.id;
@@ -484,6 +490,60 @@ class _PreviewState extends State<_Preview> {
     setState(() => _cameraProgressByChapter[_chapterId] = next);
   }
 
+  GalleryChapter _chapterWithDrafts(GalleryChapter chapter) {
+    if (_placementDrafts.isEmpty) return chapter;
+    return chapter.copyWith(
+      placements: [
+        for (final placement in chapter.placements)
+          _placementDrafts[placement.id] ?? placement,
+      ],
+    );
+  }
+
+  void _startPlacementTransform(String placementId) {
+    final chapter = session.selectedChapter;
+    if (chapter == null) return;
+    GalleryPlacement? placement = _placementDrafts[placementId];
+    if (placement == null) {
+      for (final item in chapter.placements) {
+        if (item.id == placementId) {
+          placement = item;
+          break;
+        }
+      }
+    }
+    _gestureStartPlacement = placement;
+  }
+
+  void _updatePlacementTransform(
+    String placementId,
+    double scaleDelta,
+    Offset delta,
+    Size viewport,
+  ) {
+    final start = _gestureStartPlacement;
+    if (start == null || start.id != placementId) return;
+    final current = _placementDrafts[placementId] ?? start;
+    final next = start.copyWith(
+      scale: (start.scale * scaleDelta).clamp(.45, 1.9),
+      offsetX: (current.offsetX + delta.dx / viewport.width).clamp(-.45, .45),
+      offsetY: (current.offsetY + delta.dy / viewport.height).clamp(-.45, .45),
+    );
+    setState(() => _placementDrafts[placementId] = next);
+  }
+
+  Future<void> _endPlacementTransform(String placementId) async {
+    final draft = _placementDrafts.remove(placementId);
+    _gestureStartPlacement = null;
+    if (draft == null) return;
+    await session.updatePlacement(
+      placementId,
+      scale: draft.scale,
+      offsetX: draft.offsetX,
+      offsetY: draft.offsetY,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -491,7 +551,7 @@ class _PreviewState extends State<_Preview> {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
         final landscape =
             NarrativeAxis.fromViewport(viewport) == NarrativeAxis.horizontal;
-        final chapter = session.selectedChapter!;
+        final chapter = _chapterWithDrafts(session.selectedChapter!);
         final progress = _cameraProgress;
         return Stack(
           children: [
@@ -524,6 +584,18 @@ class _PreviewState extends State<_Preview> {
                   media: session.bundle!.media,
                   cameraProgress: progress,
                   sceneTheme: session.bundle!.document.theme,
+                  onPlacementTransformStart: _startPlacementTransform,
+                  onPlacementTransformUpdate:
+                      (placementId, scaleDelta, delta) =>
+                          _updatePlacementTransform(
+                            placementId,
+                            scaleDelta,
+                            delta,
+                            viewport,
+                          ),
+                  onPlacementTransformEnd: (placementId) {
+                    unawaited(_endPlacementTransform(placementId));
+                  },
                 ),
               ),
             ),
@@ -725,6 +797,18 @@ class _InspectorState extends State<_Inspector> {
                       PopupMenuItem(
                         value: GalleryTheme.paper,
                         child: Text('纸张画布'),
+                      ),
+                      PopupMenuItem(
+                        value: GalleryTheme.graphite,
+                        child: Text('石墨画布'),
+                      ),
+                      PopupMenuItem(
+                        value: GalleryTheme.mist,
+                        child: Text('雾蓝画布'),
+                      ),
+                      PopupMenuItem(
+                        value: GalleryTheme.warm,
+                        child: Text('暖沙画布'),
                       ),
                     ],
                   ),

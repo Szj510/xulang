@@ -87,10 +87,17 @@ void main() {
       ),
     );
 
-    final background = tester.widget<ColoredBox>(
+    final background = tester.widget<CustomPaint>(
       find.byKey(const Key('scene-background')),
     );
-    expect(background.color, const Color(0xFFE8E0D3));
+    expect(
+      background.painter,
+      isA<SceneBackgroundPainter>().having(
+        (painter) => painter.sceneTheme,
+        'theme',
+        GalleryTheme.paper,
+      ),
+    );
   });
 
   testWidgets('camera progress changes node transforms continuously', (
@@ -123,6 +130,40 @@ void main() {
         .transform;
 
     expect(after, isNot(before));
+  });
+
+  testWidgets('scene node gestures emit placement transform updates', (
+    tester,
+  ) async {
+    final updates = <String>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(
+            chapter: chapter,
+            media: [media],
+            onPlacementTransformStart: (id) => updates.add('start:$id'),
+            onPlacementTransformUpdate: (id, scale, delta) =>
+                updates.add('update:$id'),
+            onPlacementTransformEnd: (id) => updates.add('end:$id'),
+          ),
+        ),
+      ),
+    );
+
+    final center = tester.getCenter(
+      find.byKey(const Key('scene-node-placement')),
+    );
+    final gesture = await tester.startGesture(center);
+    await gesture.moveBy(const Offset(12, 8));
+    await gesture.up();
+    await tester.pump();
+
+    expect(updates.first, 'start:placement');
+    expect(updates, contains('update:placement'));
+    expect(updates.last, 'end:placement');
   });
 
   testWidgets('story path painter receives resolved scene geometry', (

@@ -181,6 +181,9 @@ class EditorSession extends ChangeNotifier {
     double? focalX,
     double? focalY,
     double? zoom,
+    double? scale,
+    double? offsetX,
+    double? offsetY,
     String? caption,
   }) async {
     final current = bundle;
@@ -197,6 +200,9 @@ class EditorSession extends ChangeNotifier {
               focalX: focalX?.clamp(0, 1),
               focalY: focalY?.clamp(0, 1),
               zoom: zoom?.clamp(1, 3),
+              scale: scale?.clamp(.45, 1.9),
+              offsetX: offsetX?.clamp(-.45, .45),
+              offsetY: offsetY?.clamp(-.45, .45),
               caption: caption,
             )
           else

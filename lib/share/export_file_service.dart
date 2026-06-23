@@ -20,12 +20,15 @@ class ExportFileService {
     );
   }
 
-  Future<File> writeGif(GalleryBundle bundle) async {
+  Future<File> writeGif(GalleryBundle bundle, {int chapterIndex = 0}) async {
     await outputDirectory.create(recursive: true);
     final name = _safeName(bundle.document.title);
     final file = File(p.join(outputDirectory.path, '$name.gif'));
     return file.writeAsBytes(
-      await const ExhibitionGifExporter().buildGif(bundle),
+      await const ExhibitionGifExporter().buildGif(
+        bundle,
+        chapterIndex: chapterIndex,
+      ),
     );
   }
 

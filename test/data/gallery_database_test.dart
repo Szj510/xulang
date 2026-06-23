@@ -41,6 +41,9 @@ void main() {
               focalX: 0.4,
               focalY: 0.7,
               zoom: 1.2,
+              scale: 1.35,
+              offsetX: 0.12,
+              offsetY: -0.08,
               caption: '抵达海边',
             ),
           ],
@@ -69,6 +72,9 @@ void main() {
       GalleryFrame.stamp,
     );
     expect(restored.chapters.single.placements.single.focalY, 0.7);
+    expect(restored.chapters.single.placements.single.scale, 1.35);
+    expect(restored.chapters.single.placements.single.offsetX, 0.12);
+    expect(restored.chapters.single.placements.single.offsetY, -0.08);
     expect(restoredMedia.single.contentHash, 'abc123');
   });
 

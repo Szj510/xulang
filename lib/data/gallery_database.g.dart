@@ -1455,6 +1455,40 @@ class $PlacementsTable extends Placements
     type: DriftSqlType.double,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _scaleMeta = const VerificationMeta('scale');
+  @override
+  late final GeneratedColumn<double> scale = GeneratedColumn<double>(
+    'scale',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(1.0),
+  );
+  static const VerificationMeta _offsetXMeta = const VerificationMeta(
+    'offsetX',
+  );
+  @override
+  late final GeneratedColumn<double> offsetX = GeneratedColumn<double>(
+    'offset_x',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
+  static const VerificationMeta _offsetYMeta = const VerificationMeta(
+    'offsetY',
+  );
+  @override
+  late final GeneratedColumn<double> offsetY = GeneratedColumn<double>(
+    'offset_y',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
   static const VerificationMeta _captionMeta = const VerificationMeta(
     'caption',
   );
@@ -1477,6 +1511,9 @@ class $PlacementsTable extends Placements
     focalX,
     focalY,
     zoom,
+    scale,
+    offsetX,
+    offsetY,
     caption,
   ];
   @override
@@ -1560,6 +1597,24 @@ class $PlacementsTable extends Placements
     } else if (isInserting) {
       context.missing(_zoomMeta);
     }
+    if (data.containsKey('scale')) {
+      context.handle(
+        _scaleMeta,
+        scale.isAcceptableOrUnknown(data['scale']!, _scaleMeta),
+      );
+    }
+    if (data.containsKey('offset_x')) {
+      context.handle(
+        _offsetXMeta,
+        offsetX.isAcceptableOrUnknown(data['offset_x']!, _offsetXMeta),
+      );
+    }
+    if (data.containsKey('offset_y')) {
+      context.handle(
+        _offsetYMeta,
+        offsetY.isAcceptableOrUnknown(data['offset_y']!, _offsetYMeta),
+      );
+    }
     if (data.containsKey('caption')) {
       context.handle(
         _captionMeta,
@@ -1613,6 +1668,18 @@ class $PlacementsTable extends Placements
         DriftSqlType.double,
         data['${effectivePrefix}zoom'],
       )!,
+      scale: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}scale'],
+      )!,
+      offsetX: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}offset_x'],
+      )!,
+      offsetY: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}offset_y'],
+      )!,
       caption: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}caption'],
@@ -1636,6 +1703,9 @@ class Placement extends DataClass implements Insertable<Placement> {
   final double focalX;
   final double focalY;
   final double zoom;
+  final double scale;
+  final double offsetX;
+  final double offsetY;
   final String caption;
   const Placement({
     required this.id,
@@ -1647,6 +1717,9 @@ class Placement extends DataClass implements Insertable<Placement> {
     required this.focalX,
     required this.focalY,
     required this.zoom,
+    required this.scale,
+    required this.offsetX,
+    required this.offsetY,
     required this.caption,
   });
   @override
@@ -1661,6 +1734,9 @@ class Placement extends DataClass implements Insertable<Placement> {
     map['focal_x'] = Variable<double>(focalX);
     map['focal_y'] = Variable<double>(focalY);
     map['zoom'] = Variable<double>(zoom);
+    map['scale'] = Variable<double>(scale);
+    map['offset_x'] = Variable<double>(offsetX);
+    map['offset_y'] = Variable<double>(offsetY);
     map['caption'] = Variable<String>(caption);
     return map;
   }
@@ -1676,6 +1752,9 @@ class Placement extends DataClass implements Insertable<Placement> {
       focalX: Value(focalX),
       focalY: Value(focalY),
       zoom: Value(zoom),
+      scale: Value(scale),
+      offsetX: Value(offsetX),
+      offsetY: Value(offsetY),
       caption: Value(caption),
     );
   }
@@ -1695,6 +1774,9 @@ class Placement extends DataClass implements Insertable<Placement> {
       focalX: serializer.fromJson<double>(json['focalX']),
       focalY: serializer.fromJson<double>(json['focalY']),
       zoom: serializer.fromJson<double>(json['zoom']),
+      scale: serializer.fromJson<double>(json['scale']),
+      offsetX: serializer.fromJson<double>(json['offsetX']),
+      offsetY: serializer.fromJson<double>(json['offsetY']),
       caption: serializer.fromJson<String>(json['caption']),
     );
   }
@@ -1711,6 +1793,9 @@ class Placement extends DataClass implements Insertable<Placement> {
       'focalX': serializer.toJson<double>(focalX),
       'focalY': serializer.toJson<double>(focalY),
       'zoom': serializer.toJson<double>(zoom),
+      'scale': serializer.toJson<double>(scale),
+      'offsetX': serializer.toJson<double>(offsetX),
+      'offsetY': serializer.toJson<double>(offsetY),
       'caption': serializer.toJson<String>(caption),
     };
   }
@@ -1725,6 +1810,9 @@ class Placement extends DataClass implements Insertable<Placement> {
     double? focalX,
     double? focalY,
     double? zoom,
+    double? scale,
+    double? offsetX,
+    double? offsetY,
     String? caption,
   }) => Placement(
     id: id ?? this.id,
@@ -1736,6 +1824,9 @@ class Placement extends DataClass implements Insertable<Placement> {
     focalX: focalX ?? this.focalX,
     focalY: focalY ?? this.focalY,
     zoom: zoom ?? this.zoom,
+    scale: scale ?? this.scale,
+    offsetX: offsetX ?? this.offsetX,
+    offsetY: offsetY ?? this.offsetY,
     caption: caption ?? this.caption,
   );
   Placement copyWithCompanion(PlacementsCompanion data) {
@@ -1749,6 +1840,9 @@ class Placement extends DataClass implements Insertable<Placement> {
       focalX: data.focalX.present ? data.focalX.value : this.focalX,
       focalY: data.focalY.present ? data.focalY.value : this.focalY,
       zoom: data.zoom.present ? data.zoom.value : this.zoom,
+      scale: data.scale.present ? data.scale.value : this.scale,
+      offsetX: data.offsetX.present ? data.offsetX.value : this.offsetX,
+      offsetY: data.offsetY.present ? data.offsetY.value : this.offsetY,
       caption: data.caption.present ? data.caption.value : this.caption,
     );
   }
@@ -1765,6 +1859,9 @@ class Placement extends DataClass implements Insertable<Placement> {
           ..write('focalX: $focalX, ')
           ..write('focalY: $focalY, ')
           ..write('zoom: $zoom, ')
+          ..write('scale: $scale, ')
+          ..write('offsetX: $offsetX, ')
+          ..write('offsetY: $offsetY, ')
           ..write('caption: $caption')
           ..write(')'))
         .toString();
@@ -1781,6 +1878,9 @@ class Placement extends DataClass implements Insertable<Placement> {
     focalX,
     focalY,
     zoom,
+    scale,
+    offsetX,
+    offsetY,
     caption,
   );
   @override
@@ -1796,6 +1896,9 @@ class Placement extends DataClass implements Insertable<Placement> {
           other.focalX == this.focalX &&
           other.focalY == this.focalY &&
           other.zoom == this.zoom &&
+          other.scale == this.scale &&
+          other.offsetX == this.offsetX &&
+          other.offsetY == this.offsetY &&
           other.caption == this.caption);
 }
 
@@ -1809,6 +1912,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
   final Value<double> focalX;
   final Value<double> focalY;
   final Value<double> zoom;
+  final Value<double> scale;
+  final Value<double> offsetX;
+  final Value<double> offsetY;
   final Value<String> caption;
   final Value<int> rowid;
   const PlacementsCompanion({
@@ -1821,6 +1927,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     this.focalX = const Value.absent(),
     this.focalY = const Value.absent(),
     this.zoom = const Value.absent(),
+    this.scale = const Value.absent(),
+    this.offsetX = const Value.absent(),
+    this.offsetY = const Value.absent(),
     this.caption = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -1834,6 +1943,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     required double focalX,
     required double focalY,
     required double zoom,
+    this.scale = const Value.absent(),
+    this.offsetX = const Value.absent(),
+    this.offsetY = const Value.absent(),
     required String caption,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -1856,6 +1968,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     Expression<double>? focalX,
     Expression<double>? focalY,
     Expression<double>? zoom,
+    Expression<double>? scale,
+    Expression<double>? offsetX,
+    Expression<double>? offsetY,
     Expression<String>? caption,
     Expression<int>? rowid,
   }) {
@@ -1869,6 +1984,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
       if (focalX != null) 'focal_x': focalX,
       if (focalY != null) 'focal_y': focalY,
       if (zoom != null) 'zoom': zoom,
+      if (scale != null) 'scale': scale,
+      if (offsetX != null) 'offset_x': offsetX,
+      if (offsetY != null) 'offset_y': offsetY,
       if (caption != null) 'caption': caption,
       if (rowid != null) 'rowid': rowid,
     });
@@ -1884,6 +2002,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     Value<double>? focalX,
     Value<double>? focalY,
     Value<double>? zoom,
+    Value<double>? scale,
+    Value<double>? offsetX,
+    Value<double>? offsetY,
     Value<String>? caption,
     Value<int>? rowid,
   }) {
@@ -1897,6 +2018,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
       focalX: focalX ?? this.focalX,
       focalY: focalY ?? this.focalY,
       zoom: zoom ?? this.zoom,
+      scale: scale ?? this.scale,
+      offsetX: offsetX ?? this.offsetX,
+      offsetY: offsetY ?? this.offsetY,
       caption: caption ?? this.caption,
       rowid: rowid ?? this.rowid,
     );
@@ -1932,6 +2056,15 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     if (zoom.present) {
       map['zoom'] = Variable<double>(zoom.value);
     }
+    if (scale.present) {
+      map['scale'] = Variable<double>(scale.value);
+    }
+    if (offsetX.present) {
+      map['offset_x'] = Variable<double>(offsetX.value);
+    }
+    if (offsetY.present) {
+      map['offset_y'] = Variable<double>(offsetY.value);
+    }
     if (caption.present) {
       map['caption'] = Variable<String>(caption.value);
     }
@@ -1953,6 +2086,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
           ..write('focalX: $focalX, ')
           ..write('focalY: $focalY, ')
           ..write('zoom: $zoom, ')
+          ..write('scale: $scale, ')
+          ..write('offsetX: $offsetX, ')
+          ..write('offsetY: $offsetY, ')
           ..write('caption: $caption, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3333,6 +3469,9 @@ typedef $$PlacementsTableCreateCompanionBuilder =
       required double focalX,
       required double focalY,
       required double zoom,
+      Value<double> scale,
+      Value<double> offsetX,
+      Value<double> offsetY,
       required String caption,
       Value<int> rowid,
     });
@@ -3347,6 +3486,9 @@ typedef $$PlacementsTableUpdateCompanionBuilder =
       Value<double> focalX,
       Value<double> focalY,
       Value<double> zoom,
+      Value<double> scale,
+      Value<double> offsetX,
+      Value<double> offsetY,
       Value<String> caption,
       Value<int> rowid,
     });
@@ -3431,6 +3573,21 @@ class $$PlacementsTableFilterComposer
 
   ColumnFilters<double> get zoom => $composableBuilder(
     column: $table.zoom,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get scale => $composableBuilder(
+    column: $table.scale,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get offsetX => $composableBuilder(
+    column: $table.offsetX,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get offsetY => $composableBuilder(
+    column: $table.offsetY,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3530,6 +3687,21 @@ class $$PlacementsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get scale => $composableBuilder(
+    column: $table.scale,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get offsetX => $composableBuilder(
+    column: $table.offsetX,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get offsetY => $composableBuilder(
+    column: $table.offsetY,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get caption => $composableBuilder(
     column: $table.caption,
     builder: (column) => ColumnOrderings(column),
@@ -3611,6 +3783,15 @@ class $$PlacementsTableAnnotationComposer
 
   GeneratedColumn<double> get zoom =>
       $composableBuilder(column: $table.zoom, builder: (column) => column);
+
+  GeneratedColumn<double> get scale =>
+      $composableBuilder(column: $table.scale, builder: (column) => column);
+
+  GeneratedColumn<double> get offsetX =>
+      $composableBuilder(column: $table.offsetX, builder: (column) => column);
+
+  GeneratedColumn<double> get offsetY =>
+      $composableBuilder(column: $table.offsetY, builder: (column) => column);
 
   GeneratedColumn<String> get caption =>
       $composableBuilder(column: $table.caption, builder: (column) => column);
@@ -3699,6 +3880,9 @@ class $$PlacementsTableTableManager
                 Value<double> focalX = const Value.absent(),
                 Value<double> focalY = const Value.absent(),
                 Value<double> zoom = const Value.absent(),
+                Value<double> scale = const Value.absent(),
+                Value<double> offsetX = const Value.absent(),
+                Value<double> offsetY = const Value.absent(),
                 Value<String> caption = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlacementsCompanion(
@@ -3711,6 +3895,9 @@ class $$PlacementsTableTableManager
                 focalX: focalX,
                 focalY: focalY,
                 zoom: zoom,
+                scale: scale,
+                offsetX: offsetX,
+                offsetY: offsetY,
                 caption: caption,
                 rowid: rowid,
               ),
@@ -3725,6 +3912,9 @@ class $$PlacementsTableTableManager
                 required double focalX,
                 required double focalY,
                 required double zoom,
+                Value<double> scale = const Value.absent(),
+                Value<double> offsetX = const Value.absent(),
+                Value<double> offsetY = const Value.absent(),
                 required String caption,
                 Value<int> rowid = const Value.absent(),
               }) => PlacementsCompanion.insert(
@@ -3737,6 +3927,9 @@ class $$PlacementsTableTableManager
                 focalX: focalX,
                 focalY: focalY,
                 zoom: zoom,
+                scale: scale,
+                offsetX: offsetX,
+                offsetY: offsetY,
                 caption: caption,
                 rowid: rowid,
               ),

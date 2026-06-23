@@ -77,7 +77,12 @@ class LayoutResolver {
             ),
           ];
     return ResolvedScene(
-      nodes: _nodesFromPattern(items, rects, depths: const [1, .45, .2, .6]),
+      nodes: _nodesFromPattern(
+        items,
+        rects,
+        viewport: size,
+        depths: const [1, .45, .2, .6],
+      ),
       primaryAxis: Axis.vertical,
       contentExtent: size.height,
     );
@@ -92,10 +97,14 @@ class LayoutResolver {
       final height =
           size.height * (size.height >= size.width ? .58 : .72) * scale;
       nodes.add(
-        SceneNode(
-          placementId: item.id,
-          rect: Rect.fromLTWH(x, (size.height - height) / 2, width, height),
-          depth: item.size == GallerySize.large ? 1 : .65,
+        _applyManualTransform(
+          item: item,
+          viewport: size,
+          node: SceneNode(
+            placementId: item.id,
+            rect: Rect.fromLTWH(x, (size.height - height) / 2, width, height),
+            depth: item.size == GallerySize.large ? 1 : .65,
+          ),
         ),
       );
       x += width + size.width * .07;
@@ -163,7 +172,12 @@ class LayoutResolver {
             ),
           ];
     return ResolvedScene(
-      nodes: _nodesFromPattern(items, rects, depths: const [.9, .8, .4, .35]),
+      nodes: _nodesFromPattern(
+        items,
+        rects,
+        viewport: size,
+        depths: const [.9, .8, .4, .35],
+      ),
       primaryAxis: Axis.vertical,
       contentExtent: size.height,
     );
@@ -228,6 +242,7 @@ class LayoutResolver {
       nodes: _nodesFromPattern(
         items,
         rects,
+        viewport: size,
         depths: const [.95, .35, .62, .78],
         rotations: const [.018, -.052, -.018, .045],
       ),
@@ -284,15 +299,19 @@ class LayoutResolver {
         cursor,
       );
       nodes.add(
-        SceneNode(
-          placementId: item.id,
-          rect: rect,
-          depth: depths[index % depths.length],
-          rotation: rotations[index % rotations.length],
+        _applyManualTransform(
+          item: item,
+          viewport: size,
+          node: SceneNode(
+            placementId: item.id,
+            rect: rect,
+            depth: depths[index % depths.length],
+            rotation: rotations[index % rotations.length],
+          ),
         ),
       );
       final primaryEnd = axis.primaryOffset(rect.bottomRight);
-      cursor = primaryEnd + 24;
+      cursor = primaryEnd + 24.000001;
       if (cursor - primaryEnd < 24) {
         cursor += 1e-9;
       }
@@ -325,39 +344,64 @@ class LayoutResolver {
     final primarySize = axis.primaryExtent(size);
     final crossSize = axis.crossExtent(size);
     final nodes = <SceneNode>[];
-    const depthCycle = [.28, .52, .82, 1.08, .70, .42];
-    const rotationCycle = [-.055, .035, -.018, .044, -.032, .022];
-    var cursor = primarySize * .12;
+    var cursor = primarySize * .18;
 
     for (var index = 0; index < items.length; index++) {
       final item = items[index];
-      final depth = depthCycle[index % depthCycle.length];
-      final scale = _sizeScale(item.size) * (.84 + depth * .18);
-      final width = size.width * (portrait ? .60 : .38) * scale;
-      final height = size.height * (portrait ? .34 : .64) * scale;
-      final crossCenterFraction =
-          .5 + (index.isEven ? -.18 : .18) * (1 - depth * .25);
-      final crossNodeExtent = axis.crossExtent(Size(width, height));
-      final desiredCrossStart =
-          crossSize * crossCenterFraction - crossNodeExtent / 2;
-      final crossStart = desiredCrossStart
-          .clamp(12.0, math.max(12.0, crossSize - crossNodeExtent - 12.0))
-          .toDouble();
+      final slot = index % 3;
+      final group = index ~/ 3;
+      final depthBase = switch (slot) {
+        0 => .62,
+        1 => 1.12,
+        _ => .68,
+      };
+      final depth = (depthBase - group * .08).clamp(.35, 1.15);
+      final scale = _sizeScale(item.size);
+      final nodeWidth =
+          size.width * (portrait ? (slot == 1 ? .46 : .45) : .30) * scale;
+      final nodeHeight =
+          size.height * (portrait ? (slot == 1 ? .38 : .48) : .62) * scale;
+      final crossStart = portrait
+          ? switch (slot) {
+              0 => -nodeWidth * .22,
+              1 => (crossSize - nodeWidth) / 2,
+              _ => crossSize - nodeWidth * .78,
+            }
+          : switch (slot) {
+              0 => 22.0,
+              1 => (crossSize - nodeHeight) / 2,
+              _ => crossSize - nodeHeight - 22,
+            };
+      final primaryShift = switch (slot) {
+        0 => primarySize * .08,
+        1 => primarySize * .16,
+        _ => primarySize * .08,
+      };
       final rect = axis.shiftPrimary(
         portrait
-            ? Rect.fromLTWH(crossStart, 0, width, height)
-            : Rect.fromLTWH(0, crossStart, width, height),
-        cursor,
+            ? Rect.fromLTWH(crossStart, 0, nodeWidth, nodeHeight)
+            : Rect.fromLTWH(0, crossStart, nodeWidth, nodeHeight),
+        cursor + primaryShift,
       );
       nodes.add(
-        SceneNode(
-          placementId: item.id,
-          rect: rect,
-          depth: depth.clamp(0.0, 1.15),
-          rotation: rotationCycle[index % rotationCycle.length],
+        _applyManualTransform(
+          item: item,
+          viewport: size,
+          node: SceneNode(
+            placementId: item.id,
+            rect: rect,
+            depth: depth.clamp(0.0, 1.15),
+            rotation: switch (slot) {
+              0 => -.035,
+              1 => 0,
+              _ => .035,
+            },
+          ),
         ),
       );
-      cursor = axis.primaryOffset(rect.bottomRight) + primarySize * .10;
+      if (slot == 2) {
+        cursor = axis.primaryOffset(rect.bottomRight) + primarySize * .18;
+      }
     }
 
     return ResolvedScene(
@@ -370,24 +414,29 @@ class LayoutResolver {
   static List<SceneNode> _nodesFromPattern(
     List<GalleryPlacement> items,
     List<Rect> pattern, {
+    required Size viewport,
     required List<double> depths,
     List<double>? rotations,
   }) {
     return [
       for (var index = 0; index < items.length; index++)
-        SceneNode(
-          placementId: items[index].id,
-          rect: _scaleAroundCenter(
-            pattern[index % pattern.length].shift(
-              Offset(
-                0,
-                index < pattern.length ? 0 : 18.0 * (index ~/ pattern.length),
+        _applyManualTransform(
+          item: items[index],
+          viewport: viewport,
+          node: SceneNode(
+            placementId: items[index].id,
+            rect: _scaleAroundCenter(
+              pattern[index % pattern.length].shift(
+                Offset(
+                  0,
+                  index < pattern.length ? 0 : 18.0 * (index ~/ pattern.length),
+                ),
               ),
+              items[index].size,
             ),
-            items[index].size,
+            depth: depths[index % depths.length],
+            rotation: rotations?[index % rotations.length] ?? 0,
           ),
-          depth: depths[index % depths.length],
-          rotation: rotations?[index % rotations.length] ?? 0,
         ),
     ];
   }
@@ -404,6 +453,26 @@ class LayoutResolver {
       center: rect.center,
       width: rect.width * scale,
       height: rect.height * scale,
+    );
+  }
+
+  static SceneNode _applyManualTransform({
+    required GalleryPlacement item,
+    required Size viewport,
+    required SceneNode node,
+  }) {
+    final scaled = Rect.fromCenter(
+      center: node.rect.center,
+      width: node.rect.width * item.scale.clamp(.45, 1.9),
+      height: node.rect.height * item.scale.clamp(.45, 1.9),
+    );
+    return SceneNode(
+      placementId: node.placementId,
+      rect: scaled.shift(
+        Offset(item.offsetX * viewport.width, item.offsetY * viewport.height),
+      ),
+      depth: node.depth,
+      rotation: node.rotation,
     );
   }
 }

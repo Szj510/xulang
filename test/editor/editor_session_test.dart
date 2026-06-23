@@ -76,18 +76,24 @@ void main() {
     if (await mediaRoot.exists()) await mediaRoot.delete(recursive: true);
   });
 
-  test('updates and clamps crop focus and zoom', () async {
+  test('updates and clamps crop focus zoom and canvas transform', () async {
     await session.updatePlacement(
       'placement',
       focalX: 1.4,
       focalY: -0.2,
       zoom: 9,
+      scale: 4,
+      offsetX: .8,
+      offsetY: -.8,
     );
 
     final placement = session.selectedChapter!.placements.single;
     expect(placement.focalX, 1);
     expect(placement.focalY, 0);
     expect(placement.zoom, 3);
+    expect(placement.scale, 1.9);
+    expect(placement.offsetX, .45);
+    expect(placement.offsetY, -.45);
   });
 
   test('clears a recoverable editor error', () {

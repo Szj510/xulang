@@ -59,6 +59,9 @@ class Placements extends Table {
   RealColumn get focalX => real()();
   RealColumn get focalY => real()();
   RealColumn get zoom => real()();
+  RealColumn get scale => real().withDefault(const Constant(1.0))();
+  RealColumn get offsetX => real().withDefault(const Constant(0.0))();
+  RealColumn get offsetY => real().withDefault(const Constant(0.0))();
   TextColumn get caption => text()();
 
   @override
@@ -72,7 +75,18 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+    onUpgrade: (m, from, to) async {
+      if (from < 2) {
+        await m.addColumn(placements, placements.scale);
+        await m.addColumn(placements, placements.offsetX);
+        await m.addColumn(placements, placements.offsetY);
+      }
+    },
+  );
 
   Future<void> saveDocument(
     GalleryDocument document,
@@ -146,6 +160,9 @@ class GalleryDatabase extends _$GalleryDatabase {
                 focalX: item.focalX,
                 focalY: item.focalY,
                 zoom: item.zoom,
+                scale: Value(item.scale),
+                offsetX: Value(item.offsetX),
+                offsetY: Value(item.offsetY),
                 caption: item.caption,
               ),
         ]);
@@ -207,6 +224,9 @@ class GalleryDatabase extends _$GalleryDatabase {
                 focalX: item.focalX,
                 focalY: item.focalY,
                 zoom: item.zoom,
+                scale: item.scale,
+                offsetX: item.offsetX,
+                offsetY: item.offsetY,
                 caption: item.caption,
               ),
           ],
