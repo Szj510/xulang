@@ -1713,6 +1713,18 @@ class $PlacementsTable extends Placements
     requiredDuringInsert: false,
     defaultValue: const Constant(0.0),
   );
+  static const VerificationMeta _rotationMeta = const VerificationMeta(
+    'rotation',
+  );
+  @override
+  late final GeneratedColumn<double> rotation = GeneratedColumn<double>(
+    'rotation',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0.0),
+  );
   static const VerificationMeta _captionMeta = const VerificationMeta(
     'caption',
   );
@@ -1738,6 +1750,7 @@ class $PlacementsTable extends Placements
     scale,
     offsetX,
     offsetY,
+    rotation,
     caption,
   ];
   @override
@@ -1839,6 +1852,12 @@ class $PlacementsTable extends Placements
         offsetY.isAcceptableOrUnknown(data['offset_y']!, _offsetYMeta),
       );
     }
+    if (data.containsKey('rotation')) {
+      context.handle(
+        _rotationMeta,
+        rotation.isAcceptableOrUnknown(data['rotation']!, _rotationMeta),
+      );
+    }
     if (data.containsKey('caption')) {
       context.handle(
         _captionMeta,
@@ -1904,6 +1923,10 @@ class $PlacementsTable extends Placements
         DriftSqlType.double,
         data['${effectivePrefix}offset_y'],
       )!,
+      rotation: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}rotation'],
+      )!,
       caption: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}caption'],
@@ -1930,6 +1953,7 @@ class Placement extends DataClass implements Insertable<Placement> {
   final double scale;
   final double offsetX;
   final double offsetY;
+  final double rotation;
   final String caption;
   const Placement({
     required this.id,
@@ -1944,6 +1968,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     required this.scale,
     required this.offsetX,
     required this.offsetY,
+    required this.rotation,
     required this.caption,
   });
   @override
@@ -1961,6 +1986,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     map['scale'] = Variable<double>(scale);
     map['offset_x'] = Variable<double>(offsetX);
     map['offset_y'] = Variable<double>(offsetY);
+    map['rotation'] = Variable<double>(rotation);
     map['caption'] = Variable<String>(caption);
     return map;
   }
@@ -1979,6 +2005,7 @@ class Placement extends DataClass implements Insertable<Placement> {
       scale: Value(scale),
       offsetX: Value(offsetX),
       offsetY: Value(offsetY),
+      rotation: Value(rotation),
       caption: Value(caption),
     );
   }
@@ -2001,6 +2028,7 @@ class Placement extends DataClass implements Insertable<Placement> {
       scale: serializer.fromJson<double>(json['scale']),
       offsetX: serializer.fromJson<double>(json['offsetX']),
       offsetY: serializer.fromJson<double>(json['offsetY']),
+      rotation: serializer.fromJson<double>(json['rotation']),
       caption: serializer.fromJson<String>(json['caption']),
     );
   }
@@ -2020,6 +2048,7 @@ class Placement extends DataClass implements Insertable<Placement> {
       'scale': serializer.toJson<double>(scale),
       'offsetX': serializer.toJson<double>(offsetX),
       'offsetY': serializer.toJson<double>(offsetY),
+      'rotation': serializer.toJson<double>(rotation),
       'caption': serializer.toJson<String>(caption),
     };
   }
@@ -2037,6 +2066,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     double? scale,
     double? offsetX,
     double? offsetY,
+    double? rotation,
     String? caption,
   }) => Placement(
     id: id ?? this.id,
@@ -2051,6 +2081,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     scale: scale ?? this.scale,
     offsetX: offsetX ?? this.offsetX,
     offsetY: offsetY ?? this.offsetY,
+    rotation: rotation ?? this.rotation,
     caption: caption ?? this.caption,
   );
   Placement copyWithCompanion(PlacementsCompanion data) {
@@ -2067,6 +2098,7 @@ class Placement extends DataClass implements Insertable<Placement> {
       scale: data.scale.present ? data.scale.value : this.scale,
       offsetX: data.offsetX.present ? data.offsetX.value : this.offsetX,
       offsetY: data.offsetY.present ? data.offsetY.value : this.offsetY,
+      rotation: data.rotation.present ? data.rotation.value : this.rotation,
       caption: data.caption.present ? data.caption.value : this.caption,
     );
   }
@@ -2086,6 +2118,7 @@ class Placement extends DataClass implements Insertable<Placement> {
           ..write('scale: $scale, ')
           ..write('offsetX: $offsetX, ')
           ..write('offsetY: $offsetY, ')
+          ..write('rotation: $rotation, ')
           ..write('caption: $caption')
           ..write(')'))
         .toString();
@@ -2105,6 +2138,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     scale,
     offsetX,
     offsetY,
+    rotation,
     caption,
   );
   @override
@@ -2123,6 +2157,7 @@ class Placement extends DataClass implements Insertable<Placement> {
           other.scale == this.scale &&
           other.offsetX == this.offsetX &&
           other.offsetY == this.offsetY &&
+          other.rotation == this.rotation &&
           other.caption == this.caption);
 }
 
@@ -2139,6 +2174,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
   final Value<double> scale;
   final Value<double> offsetX;
   final Value<double> offsetY;
+  final Value<double> rotation;
   final Value<String> caption;
   final Value<int> rowid;
   const PlacementsCompanion({
@@ -2154,6 +2190,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     this.scale = const Value.absent(),
     this.offsetX = const Value.absent(),
     this.offsetY = const Value.absent(),
+    this.rotation = const Value.absent(),
     this.caption = const Value.absent(),
     this.rowid = const Value.absent(),
   });
@@ -2170,6 +2207,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     this.scale = const Value.absent(),
     this.offsetX = const Value.absent(),
     this.offsetY = const Value.absent(),
+    this.rotation = const Value.absent(),
     required String caption,
     this.rowid = const Value.absent(),
   }) : id = Value(id),
@@ -2195,6 +2233,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     Expression<double>? scale,
     Expression<double>? offsetX,
     Expression<double>? offsetY,
+    Expression<double>? rotation,
     Expression<String>? caption,
     Expression<int>? rowid,
   }) {
@@ -2211,6 +2250,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
       if (scale != null) 'scale': scale,
       if (offsetX != null) 'offset_x': offsetX,
       if (offsetY != null) 'offset_y': offsetY,
+      if (rotation != null) 'rotation': rotation,
       if (caption != null) 'caption': caption,
       if (rowid != null) 'rowid': rowid,
     });
@@ -2229,6 +2269,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     Value<double>? scale,
     Value<double>? offsetX,
     Value<double>? offsetY,
+    Value<double>? rotation,
     Value<String>? caption,
     Value<int>? rowid,
   }) {
@@ -2245,6 +2286,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
       scale: scale ?? this.scale,
       offsetX: offsetX ?? this.offsetX,
       offsetY: offsetY ?? this.offsetY,
+      rotation: rotation ?? this.rotation,
       caption: caption ?? this.caption,
       rowid: rowid ?? this.rowid,
     );
@@ -2289,6 +2331,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     if (offsetY.present) {
       map['offset_y'] = Variable<double>(offsetY.value);
     }
+    if (rotation.present) {
+      map['rotation'] = Variable<double>(rotation.value);
+    }
     if (caption.present) {
       map['caption'] = Variable<String>(caption.value);
     }
@@ -2313,6 +2358,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
           ..write('scale: $scale, ')
           ..write('offsetX: $offsetX, ')
           ..write('offsetY: $offsetY, ')
+          ..write('rotation: $rotation, ')
           ..write('caption: $caption, ')
           ..write('rowid: $rowid')
           ..write(')'))
@@ -3776,6 +3822,7 @@ typedef $$PlacementsTableCreateCompanionBuilder =
       Value<double> scale,
       Value<double> offsetX,
       Value<double> offsetY,
+      Value<double> rotation,
       required String caption,
       Value<int> rowid,
     });
@@ -3793,6 +3840,7 @@ typedef $$PlacementsTableUpdateCompanionBuilder =
       Value<double> scale,
       Value<double> offsetX,
       Value<double> offsetY,
+      Value<double> rotation,
       Value<String> caption,
       Value<int> rowid,
     });
@@ -3892,6 +3940,11 @@ class $$PlacementsTableFilterComposer
 
   ColumnFilters<double> get offsetY => $composableBuilder(
     column: $table.offsetY,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get rotation => $composableBuilder(
+    column: $table.rotation,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4006,6 +4059,11 @@ class $$PlacementsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get rotation => $composableBuilder(
+    column: $table.rotation,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get caption => $composableBuilder(
     column: $table.caption,
     builder: (column) => ColumnOrderings(column),
@@ -4097,6 +4155,9 @@ class $$PlacementsTableAnnotationComposer
   GeneratedColumn<double> get offsetY =>
       $composableBuilder(column: $table.offsetY, builder: (column) => column);
 
+  GeneratedColumn<double> get rotation =>
+      $composableBuilder(column: $table.rotation, builder: (column) => column);
+
   GeneratedColumn<String> get caption =>
       $composableBuilder(column: $table.caption, builder: (column) => column);
 
@@ -4187,6 +4248,7 @@ class $$PlacementsTableTableManager
                 Value<double> scale = const Value.absent(),
                 Value<double> offsetX = const Value.absent(),
                 Value<double> offsetY = const Value.absent(),
+                Value<double> rotation = const Value.absent(),
                 Value<String> caption = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlacementsCompanion(
@@ -4202,6 +4264,7 @@ class $$PlacementsTableTableManager
                 scale: scale,
                 offsetX: offsetX,
                 offsetY: offsetY,
+                rotation: rotation,
                 caption: caption,
                 rowid: rowid,
               ),
@@ -4219,6 +4282,7 @@ class $$PlacementsTableTableManager
                 Value<double> scale = const Value.absent(),
                 Value<double> offsetX = const Value.absent(),
                 Value<double> offsetY = const Value.absent(),
+                Value<double> rotation = const Value.absent(),
                 required String caption,
                 Value<int> rowid = const Value.absent(),
               }) => PlacementsCompanion.insert(
@@ -4234,6 +4298,7 @@ class $$PlacementsTableTableManager
                 scale: scale,
                 offsetX: offsetX,
                 offsetY: offsetY,
+                rotation: rotation,
                 caption: caption,
                 rowid: rowid,
               ),

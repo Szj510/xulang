@@ -20,6 +20,7 @@ class SceneCanvas extends StatelessWidget {
     this.showStoryPath = true,
     this.useOriginals = false,
     this.sceneTheme = GalleryTheme.ink,
+    this.onPlacementTap,
     this.onPlacementTransformStart,
     this.onPlacementTransformUpdate,
     this.onPlacementTransformEnd,
@@ -33,6 +34,7 @@ class SceneCanvas extends StatelessWidget {
   final bool showStoryPath;
   final bool useOriginals;
   final GalleryTheme sceneTheme;
+  final void Function(String placementId)? onPlacementTap;
   final void Function(String placementId)? onPlacementTransformStart;
   final void Function(String placementId, double scaleDelta, Offset delta)?
   onPlacementTransformUpdate;
@@ -113,6 +115,7 @@ class SceneCanvas extends StatelessWidget {
                       useOriginals: useOriginals,
                       sceneTheme: sceneTheme,
                       depthWall: chapter.layout == GalleryLayout.depthWall,
+                      onTap: onPlacementTap,
                       onTransformStart: onPlacementTransformStart,
                       onTransformUpdate: onPlacementTransformUpdate,
                       onTransformEnd: onPlacementTransformEnd,
@@ -155,6 +158,7 @@ class _SceneNodeWidget extends StatelessWidget {
     required this.useOriginals,
     required this.sceneTheme,
     required this.depthWall,
+    this.onTap,
     this.onTransformStart,
     this.onTransformUpdate,
     this.onTransformEnd,
@@ -168,6 +172,7 @@ class _SceneNodeWidget extends StatelessWidget {
   final bool useOriginals;
   final GalleryTheme sceneTheme;
   final bool depthWall;
+  final void Function(String placementId)? onTap;
   final void Function(String placementId)? onTransformStart;
   final void Function(String placementId, double scaleDelta, Offset delta)?
   onTransformUpdate;
@@ -197,6 +202,7 @@ class _SceneNodeWidget extends StatelessWidget {
           child: GestureDetector(
             key: Key('scene-node-gesture-${placement.id}'),
             behavior: HitTestBehavior.opaque,
+            onTap: onTap == null ? null : () => onTap!.call(placement.id),
             onScaleStart: onTransformUpdate == null
                 ? null
                 : (_) => onTransformStart?.call(placement.id),

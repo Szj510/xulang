@@ -255,7 +255,6 @@ class GalleryDatabase extends _$GalleryDatabase {
                 offsetY: item.offsetY,
                 caption: item.caption,
                 rotation: item.rotation,
-                rotation: Value(item.rotation),
               ),
           ],
         ),
