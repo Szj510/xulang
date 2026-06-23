@@ -126,6 +126,10 @@ class _EditorBodyState extends State<_EditorBody> {
                           _handleExportAction(context, action),
                       itemBuilder: (context) => const [
                         PopupMenuItem(
+                          value: _EditorExportAction.gif,
+                          child: Text('分享 GIF'),
+                        ),
+                        PopupMenuItem(
                           value: _EditorExportAction.html,
                           child: Text('导出 HTML'),
                         ),
@@ -227,6 +231,10 @@ class _EditorBodyState extends State<_EditorBody> {
                                     _handleExportAction(context, action),
                                 itemBuilder: (context) => const [
                                   PopupMenuItem(
+                                    value: _EditorExportAction.gif,
+                                    child: Text('分享 GIF'),
+                                  ),
+                                  PopupMenuItem(
                                     value: _EditorExportAction.html,
                                     child: Text('导出 HTML'),
                                   ),
@@ -306,6 +314,12 @@ class _EditorBodyState extends State<_EditorBody> {
     try {
       final service = await _exportFileService();
       switch (action) {
+        case _EditorExportAction.gif:
+          final file = await service.writeGif(bundle);
+          await service.shareFile(file, title: '${bundle.document.title} GIF');
+          if (context.mounted) {
+            _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
+          }
         case _EditorExportAction.html:
           final file = await service.writeHtml(bundle);
           await service.shareFile(file, title: '${bundle.document.title} HTML');
@@ -375,7 +389,7 @@ class _EditorBodyState extends State<_EditorBody> {
   }
 }
 
-enum _EditorExportAction { html, template, importTemplate }
+enum _EditorExportAction { gif, html, template, importTemplate }
 
 class _ChapterRail extends StatelessWidget {
   const _ChapterRail({
