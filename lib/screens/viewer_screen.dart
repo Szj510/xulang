@@ -3,7 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/layout/gesture_direction_lock.dart';
+import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
+import 'package:xulang/layout/narrative_navigation_coordinator.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
@@ -19,9 +22,10 @@ class ViewerScreen extends ConsumerStatefulWidget {
 
 class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   late Future<GalleryBundle?> _bundle;
-  final PageController _chapters = PageController();
+  final Map<String, double> _chapterProgress = {};
   int _chapterIndex = 0;
   bool _showChrome = true;
+  bool _changingChapter = false;
 
   @override
   void initState() {
@@ -33,7 +37,6 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   @override
   void dispose() {
     WakelockPlus.disable();
-    _chapters.dispose();
     super.dispose();
   }
 
@@ -54,34 +57,39 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               text: '找不到这个展览',
             );
           }
-          final chapters = bundle.document.chapters
-              .where((chapter) => chapter.placements.isNotEmpty)
-              .toList(growable: false);
-          if (chapters.isEmpty) {
+          final chapters = bundle.document.chapters;
+          if (chapters.every((chapter) => chapter.placements.isEmpty)) {
             return _ViewerMessage(
               onBack: () => Navigator.pop(context),
               text: '先导入图片，再开始观看',
             );
           }
+          final chapterIndex = _chapterIndex.clamp(0, chapters.length - 1);
+          final chapter = chapters[chapterIndex];
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: () => setState(() => _showChrome = !_showChrome),
             child: Stack(
               children: [
                 Positioned.fill(
-                  child: PageView.builder(
-                    controller: _chapters,
-                    scrollDirection: Axis.vertical,
-                    itemCount: chapters.length,
-                    onPageChanged: (value) =>
-                        setState(() => _chapterIndex = value),
-                    itemBuilder: (context, index) => _ViewerChapter(
-                      key: ValueKey(chapters[index].id),
-                      chapter: chapters[index],
+                  child: AnimatedSwitcher(
+                    duration: MediaQuery.disableAnimationsOf(context)
+                        ? const Duration(milliseconds: 120)
+                        : const Duration(milliseconds: 240),
+                    child: _ViewerChapter(
+                      key: ValueKey(chapter.id),
+                      chapter: chapter,
                       media: bundle.media,
                       sceneTheme: bundle.document.theme,
                       reduceMotion: MediaQuery.disableAnimationsOf(context),
                       showControls: _showChrome,
+                      initialProgress: _chapterProgress[chapter.id] ?? 0,
+                      hasPreviousChapter: chapterIndex > 0,
+                      hasNextChapter: chapterIndex < chapters.length - 1,
+                      onProgressChanged: (progress) =>
+                          _chapterProgress[chapter.id] = progress,
+                      onChapterIntent: (intent) =>
+                          _changeChapter(chapters, intent),
                     ),
                   ),
                 ),
@@ -92,22 +100,21 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     duration: const Duration(milliseconds: 180),
                     child: _ViewerChrome(
                       document: bundle.document,
-                      chapter:
-                          chapters[_chapterIndex.clamp(0, chapters.length - 1)],
-                      chapterIndex: _chapterIndex,
+                      chapter: chapter,
+                      chapterIndex: chapterIndex,
                       chapterCount: chapters.length,
                       onClose: () => Navigator.pop(context),
-                      onPreviousChapter: _chapterIndex == 0
+                      onPreviousChapter: chapterIndex == 0
                           ? null
-                          : () => _chapters.previousPage(
-                              duration: const Duration(milliseconds: 420),
-                              curve: Curves.easeOutCubic,
+                          : () => _changeChapter(
+                              chapters,
+                              ChapterNavigationIntent.previous,
                             ),
-                      onNextChapter: _chapterIndex == chapters.length - 1
+                      onNextChapter: chapterIndex == chapters.length - 1
                           ? null
-                          : () => _chapters.nextPage(
-                              duration: const Duration(milliseconds: 420),
-                              curve: Curves.easeOutCubic,
+                          : () => _changeChapter(
+                              chapters,
+                              ChapterNavigationIntent.next,
                             ),
                     ),
                   ),
@@ -119,6 +126,26 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       ),
     );
   }
+
+  Future<void> _changeChapter(
+    List<GalleryChapter> chapters,
+    ChapterNavigationIntent intent,
+  ) async {
+    if (_changingChapter || intent == ChapterNavigationIntent.none) return;
+    final delta = intent == ChapterNavigationIntent.next ? 1 : -1;
+    final target = _chapterIndex + delta;
+    if (target < 0 || target >= chapters.length) return;
+    setState(() {
+      _changingChapter = true;
+      _chapterIndex = target;
+    });
+    await Future<void>.delayed(
+      MediaQuery.disableAnimationsOf(context)
+          ? const Duration(milliseconds: 120)
+          : const Duration(milliseconds: 240),
+    );
+    if (mounted) setState(() => _changingChapter = false);
+  }
 }
 
 class _ViewerChapter extends StatefulWidget {
@@ -129,6 +156,11 @@ class _ViewerChapter extends StatefulWidget {
     required this.sceneTheme,
     required this.reduceMotion,
     required this.showControls,
+    required this.initialProgress,
+    required this.hasPreviousChapter,
+    required this.hasNextChapter,
+    required this.onProgressChanged,
+    required this.onChapterIntent,
   });
 
   final GalleryChapter chapter;
@@ -136,6 +168,11 @@ class _ViewerChapter extends StatefulWidget {
   final GalleryTheme sceneTheme;
   final bool reduceMotion;
   final bool showControls;
+  final double initialProgress;
+  final bool hasPreviousChapter;
+  final bool hasNextChapter;
+  final ValueChanged<double> onProgressChanged;
+  final ValueChanged<ChapterNavigationIntent> onChapterIntent;
 
   @override
   State<_ViewerChapter> createState() => _ViewerChapterState();
@@ -147,6 +184,10 @@ class _ViewerChapterState extends State<_ViewerChapter>
   late final AnimationController _inertia;
   final TransformationController _transform = TransformationController();
   final NarrativeCameraController _camera = NarrativeCameraController();
+  final NarrativeNavigationCoordinator _navigation =
+      NarrativeNavigationCoordinator();
+  Size? _lastViewport;
+  bool _sentChapterIntent = false;
   double scale = 1;
 
   @override
@@ -162,6 +203,13 @@ class _ViewerChapterState extends State<_ViewerChapter>
       ..addListener(_applyInertia);
     _transform.addListener(_readScale);
     _camera.addListener(_rebuild);
+    _camera.setProgress(widget.initialProgress);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _rebaseTransform(MediaQuery.sizeOf(context));
   }
 
   void _rebuild() {
@@ -171,6 +219,7 @@ class _ViewerChapterState extends State<_ViewerChapter>
   void _applyInertia() {
     final raw = _inertia.value;
     _camera.setProgress(_camera.clampSimulationValue(raw));
+    widget.onProgressChanged(_camera.progress);
     if (raw < 0 || raw > 1) _inertia.stop();
   }
 
@@ -182,48 +231,85 @@ class _ViewerChapterState extends State<_ViewerChapter>
     }
   }
 
-  void _beginTrackDrag(DragStartDetails details) {
+  void _beginPan(DragStartDetails details) {
     _inertia.stop();
+    final axis = NarrativeAxis.fromViewport(MediaQuery.sizeOf(context));
     _camera.begin(scale: scale);
+    _navigation.begin(
+      progress: _camera.progress,
+      axis: axis,
+      itemCount: widget.chapter.placements.length,
+    );
+    _sentChapterIntent = false;
   }
 
-  void _updateTrackDrag(DragUpdateDetails details) {
-    _camera.update(
+  void _updatePan(DragUpdateDetails details) {
+    final viewport = MediaQuery.sizeOf(context);
+    final axis = NarrativeAxis.fromViewport(viewport);
+    final gesture = _camera.update(
       delta: details.delta,
-      viewport: MediaQuery.sizeOf(context),
+      viewport: viewport,
       itemCount: widget.chapter.placements.length,
       scale: scale,
+      axis: axis,
     );
+    widget.onProgressChanged(_camera.progress);
+    final intent = _navigation.update(details.delta, gesture);
+    if (intent != ChapterNavigationIntent.none) {
+      _sentChapterIntent = true;
+      widget.onChapterIntent(intent);
+    }
   }
 
-  void _endTrackDrag(DragEndDetails details) {
-    final velocity = details.primaryVelocity ?? 0;
+  void _endPan(DragEndDetails details) {
+    final viewport = MediaQuery.sizeOf(context);
+    final axis = NarrativeAxis.fromViewport(viewport);
+    final direction = _camera.direction;
     _camera.end();
-    if (velocity.abs() < 60 || widget.reduceMotion) return;
+    _navigation.end();
+    final expected = axis == NarrativeAxis.vertical
+        ? GalleryGesture.vertical
+        : GalleryGesture.horizontal;
+    if (_sentChapterIntent || direction != expected || widget.reduceMotion) {
+      return;
+    }
+    if (axis == NarrativeAxis.vertical) return;
+    final velocity = axis.primaryOffset(details.velocity.pixelsPerSecond);
+    if (velocity.abs() < 60) return;
     final simulation = _camera.simulationForVelocity(
       pixelsPerSecond: velocity,
-      viewportWidth: MediaQuery.sizeOf(context).width,
+      viewport: viewport,
       itemCount: widget.chapter.placements.length,
+      axis: axis,
     );
+    _inertia.value = _camera.progress;
     _inertia.animateWith(simulation);
   }
 
-  void _animateToNeighbor(int delta) {
-    if (scale > 1.01 || widget.chapter.placements.length < 2) return;
-    final last = widget.chapter.placements.length - 1;
-    final rawIndex = _camera.progress * last;
-    final targetIndex = delta > 0
-        ? (rawIndex.floor() + 1).clamp(0, last)
-        : (rawIndex.ceil() - 1).clamp(0, last);
-    final target = targetIndex / last;
-    _inertia.value = _camera.progress;
-    _inertia.animateTo(
-      target,
-      duration: widget.reduceMotion
-          ? const Duration(milliseconds: 100)
-          : const Duration(milliseconds: 360),
-      curve: Curves.easeOutCubic,
+  void _cancelPan() {
+    _camera.end();
+    _navigation.end();
+  }
+
+  void _rebaseTransform(Size nextViewport) {
+    final previous = _lastViewport;
+    _lastViewport = nextViewport;
+    if (previous == null || previous == nextViewport) return;
+    _inertia.stop();
+    _camera.end();
+    _navigation.end();
+    final matrix = _transform.value.clone();
+    final translation = matrix.getTranslation();
+    matrix.setTranslationRaw(
+      previous.width <= 0
+          ? translation.x
+          : translation.x / previous.width * nextViewport.width,
+      previous.height <= 0
+          ? translation.y
+          : translation.y / previous.height * nextViewport.height,
+      translation.z,
     );
+    _transform.value = matrix;
   }
 
   @override
@@ -245,9 +331,14 @@ class _ViewerChapterState extends State<_ViewerChapter>
           child: GestureDetector(
             key: const Key('narrative-gesture-surface'),
             behavior: HitTestBehavior.opaque,
-            onHorizontalDragStart: scale <= 1.01 ? _beginTrackDrag : null,
-            onHorizontalDragUpdate: scale <= 1.01 ? _updateTrackDrag : null,
-            onHorizontalDragEnd: scale <= 1.01 ? _endTrackDrag : null,
+            onHorizontalDragStart: scale <= 1.01 ? _beginPan : null,
+            onHorizontalDragUpdate: scale <= 1.01 ? _updatePan : null,
+            onHorizontalDragEnd: scale <= 1.01 ? _endPan : null,
+            onHorizontalDragCancel: scale <= 1.01 ? _cancelPan : null,
+            onVerticalDragStart: scale <= 1.01 ? _beginPan : null,
+            onVerticalDragUpdate: scale <= 1.01 ? _updatePan : null,
+            onVerticalDragEnd: scale <= 1.01 ? _endPan : null,
+            onVerticalDragCancel: scale <= 1.01 ? _cancelPan : null,
             child: InteractiveViewer(
               transformationController: _transform,
               minScale: 1,
@@ -272,29 +363,18 @@ class _ViewerChapterState extends State<_ViewerChapter>
           Positioned(
             left: 0,
             right: 0,
-            bottom: MediaQuery.paddingOf(context).bottom + 78,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (widget.chapter.layout == GalleryLayout.storyPath) ...[
-                  IconButton.filledTonal(
-                    tooltip: '回到全景',
-                    onPressed: _camera.progress <= .001
-                        ? null
-                        : _camera.resetOverview,
-                    icon: const Icon(Icons.fit_screen_outlined),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                IconButton.filledTonal(
-                  tooltip: '上一项',
-                  onPressed: _camera.progress <= .001
-                      ? null
-                      : () => _animateToNeighbor(-1),
-                  icon: const Icon(Icons.arrow_back),
+            bottom: MediaQuery.paddingOf(context).bottom + 22,
+            child: Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .42),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   child: Text(
                     '进度 ${(_camera.progress * 100).round()}%',
                     key: const Key('viewer-track-progress'),
@@ -304,14 +384,7 @@ class _ViewerChapterState extends State<_ViewerChapter>
                     ),
                   ),
                 ),
-                IconButton.filledTonal(
-                  tooltip: '下一项',
-                  onPressed: _camera.progress >= .999
-                      ? null
-                      : () => _animateToNeighbor(1),
-                  icon: const Icon(Icons.arrow_forward),
-                ),
-              ],
+              ),
             ),
           ),
       ],
@@ -340,6 +413,13 @@ class _ViewerChrome extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final axis = NarrativeAxis.fromViewport(MediaQuery.sizeOf(context));
+    final previousChapterIcon = axis == NarrativeAxis.vertical
+        ? Icons.keyboard_arrow_up
+        : Icons.keyboard_arrow_left;
+    final nextChapterIcon = axis == NarrativeAxis.vertical
+        ? Icons.keyboard_arrow_down
+        : Icons.keyboard_arrow_right;
     return SafeArea(
       child: Stack(
         children: [
@@ -443,7 +523,7 @@ class _ViewerChrome extends StatelessWidget {
             child: IconButton(
               tooltip: '上一章',
               onPressed: onPreviousChapter,
-              icon: const Icon(Icons.keyboard_arrow_up),
+              icon: Icon(previousChapterIcon),
             ),
           ),
           Positioned(
@@ -452,7 +532,7 @@ class _ViewerChrome extends StatelessWidget {
             child: IconButton(
               tooltip: '下一章',
               onPressed: onNextChapter,
-              icon: const Icon(Icons.keyboard_arrow_down),
+              icon: Icon(nextChapterIcon),
             ),
           ),
         ],

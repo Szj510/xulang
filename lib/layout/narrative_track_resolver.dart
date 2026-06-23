@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/layout/layout_resolver.dart';
+import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_track.dart';
 
 class NarrativeTrackResolver {
@@ -13,29 +14,66 @@ class NarrativeTrackResolver {
     required Size viewport,
   }) {
     final scene = LayoutResolver.resolve(chapter: chapter, viewport: viewport);
+    final axis = scene.primaryAxis == Axis.horizontal
+        ? NarrativeAxis.horizontal
+        : NarrativeAxis.vertical;
+    final sharedCamera =
+        chapter.layout == GalleryLayout.storyPath ||
+        chapter.layout == GalleryLayout.filmstrip;
     final itemCount = chapter.placements.length;
     if (itemCount == 0) {
-      return const ResolvedNarrativeTrack(keyframes: [], visibilityWindow: 1);
+      return ResolvedNarrativeTrack(
+        keyframes: const [],
+        visibilityWindow: 1,
+        axis: axis,
+        viewport: viewport,
+        contentExtent: scene.contentExtent,
+        sharedCamera: sharedCamera,
+      );
     }
     final spacing = itemCount == 1 ? 1.0 : 1 / (itemCount - 1);
     final visibilityWindow = math.max(.34, spacing * 1.8);
     return ResolvedNarrativeTrack(
       visibilityWindow: visibilityWindow,
+      axis: axis,
+      viewport: viewport,
+      contentExtent: scene.contentExtent,
+      sharedCamera: sharedCamera,
       keyframes: [
         for (var index = 0; index < scene.nodes.length; index++)
-          _keyframe(
-            node: scene.nodes[index],
-            viewport: viewport,
-            focusProgress: chapter.layout == GalleryLayout.storyPath
-                ? itemCount == 1
+          chapter.layout == GalleryLayout.storyPath
+              ? _storyKeyframe(
+                  node: scene.nodes[index],
+                  focusProgress: itemCount == 1
                       ? .5
-                      : .16 + (index / (itemCount - 1)) * .70
-                : itemCount == 1
-                ? 0.0
-                : index / (itemCount - 1),
-            storyPath: chapter.layout == GalleryLayout.storyPath,
-          ),
+                      : .16 + (index / (itemCount - 1)) * .70,
+                )
+              : _keyframe(
+                  node: scene.nodes[index],
+                  viewport: viewport,
+                  focusProgress: itemCount == 1 ? 0.0 : index / (itemCount - 1),
+                ),
       ],
+    );
+  }
+
+  static NarrativeKeyframe _storyKeyframe({
+    required SceneNode node,
+    required double focusProgress,
+  }) {
+    final worldTransform = NarrativeTransform(
+      rect: node.rect,
+      depth: node.depth,
+      opacity: 1,
+      rotation: node.rotation,
+      rotateY: (1 - node.depth) * .12,
+    );
+    return NarrativeKeyframe(
+      placementId: node.placementId,
+      focusProgress: focusProgress,
+      enter: worldTransform,
+      focus: worldTransform,
+      exit: worldTransform,
     );
   }
 
@@ -43,26 +81,18 @@ class NarrativeTrackResolver {
     required SceneNode node,
     required Size viewport,
     required double focusProgress,
-    required bool storyPath,
   }) {
     final enterShift = Offset(viewport.width * .30, viewport.height * .02);
-    final exitShift = Offset(
-      viewport.width * (storyPath ? -.48 : -.34),
-      viewport.height * (storyPath ? .10 : -.02),
-    );
+    final exitShift = Offset(viewport.width * -.34, viewport.height * -.02);
     return NarrativeKeyframe(
       placementId: node.placementId,
       focusProgress: focusProgress,
       enter: NarrativeTransform(
-        rect: storyPath
-            ? _scaled(node.rect, .88)
-            : _scaled(node.rect, .72).shift(enterShift),
-        depth: storyPath
-            ? math.max(.12, node.depth * .72)
-            : math.max(.05, node.depth * .32),
-        opacity: storyPath ? .48 : .03,
-        rotation: storyPath ? node.rotation : node.rotation - .08,
-        rotateY: storyPath ? .04 : .18,
+        rect: _scaled(node.rect, .72).shift(enterShift),
+        depth: math.max(.05, node.depth * .32),
+        opacity: .03,
+        rotation: node.rotation - .08,
+        rotateY: .18,
       ),
       focus: NarrativeTransform(
         rect: node.rect,

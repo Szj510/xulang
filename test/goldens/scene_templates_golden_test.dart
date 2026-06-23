@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/layout/layout_resolver.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
 
 void main() {
@@ -92,6 +93,18 @@ void main() {
               motion: GalleryMotion.unfold,
               placements: placements,
             );
+            if (layout == GalleryLayout.storyPath) {
+              final scene = LayoutResolver.resolve(
+                chapter: chapter,
+                viewport: portrait
+                    ? const Size(390, 844)
+                    : const Size(844, 390),
+              );
+              expect(
+                scene.primaryAxis,
+                portrait ? Axis.vertical : Axis.horizontal,
+              );
+            }
 
             await tester.pumpWidget(
               MaterialApp(

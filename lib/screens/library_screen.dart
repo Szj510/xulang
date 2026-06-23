@@ -1,10 +1,13 @@
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xulang/data/gallery_database.dart';
 import 'package:xulang/data/gallery_repository.dart';
+import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/editor_screen.dart';
 import 'package:xulang/screens/viewer_screen.dart';
+import 'package:xulang/share/exhibition_exporter.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/gallery_image.dart';
 
@@ -23,6 +26,7 @@ class LibraryScreen extends ConsumerWidget {
             children: [
               _LibraryHeader(
                 onCreate: () => _createExhibition(context, ref),
+                onImportTemplate: () => _importTemplate(context, ref),
                 onInfo: () => _showLocalInfo(context),
               ),
               const SizedBox(height: 26),
@@ -31,6 +35,7 @@ class LibraryScreen extends ConsumerWidget {
                   data: (items) => items.isEmpty
                       ? _EmptyLibrary(
                           onCreate: () => _createExhibition(context, ref),
+                          onImportTemplate: () => _importTemplate(context, ref),
                         )
                       : _ExhibitionGrid(items: items),
                   loading: () =>
@@ -65,12 +70,56 @@ class LibraryScreen extends ConsumerWidget {
       MaterialPageRoute<void>(builder: (_) => EditorScreen(exhibitionId: id)),
     );
   }
+
+  Future<void> _importTemplate(BuildContext context, WidgetRef ref) async {
+    try {
+      final picked = await openFile(
+        acceptedTypeGroups: const [
+          XTypeGroup(
+            label: '叙廊模板',
+            extensions: ['json'],
+            mimeTypes: ['application/json'],
+          ),
+        ],
+      );
+      if (picked == null || !context.mounted) return;
+      final repository = ref.read(galleryRepositoryProvider);
+      final id = repository.createId();
+      final now = DateTime.now();
+      final base = GalleryDocument.create(
+        id: id,
+        title: '导入的模板',
+        createdAt: now,
+      );
+      final document = const ExhibitionTemplateCodec().applyToDocument(
+        base: base,
+        templateJson: await picked.readAsString(),
+        createId: repository.createId,
+        now: now,
+      );
+      await repository.save(GalleryBundle(document: document, media: const []));
+      if (!context.mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => EditorScreen(exhibitionId: id)),
+      );
+    } catch (caught) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('导入模板失败：$caught')));
+    }
+  }
 }
 
 class _LibraryHeader extends StatelessWidget {
-  const _LibraryHeader({required this.onCreate, required this.onInfo});
+  const _LibraryHeader({
+    required this.onCreate,
+    required this.onImportTemplate,
+    required this.onInfo,
+  });
 
   final VoidCallback onCreate;
+  final VoidCallback onImportTemplate;
   final VoidCallback onInfo;
 
   @override
@@ -103,6 +152,11 @@ class _LibraryHeader extends StatelessWidget {
           onPressed: onInfo,
           icon: const Icon(Icons.info_outline),
         ),
+        IconButton(
+          tooltip: '导入模板',
+          onPressed: onImportTemplate,
+          icon: const Icon(Icons.file_open_outlined),
+        ),
         const SizedBox(width: 4),
         FilledButton.icon(
           onPressed: onCreate,
@@ -115,9 +169,10 @@ class _LibraryHeader extends StatelessWidget {
 }
 
 class _EmptyLibrary extends StatelessWidget {
-  const _EmptyLibrary({required this.onCreate});
+  const _EmptyLibrary({required this.onCreate, required this.onImportTemplate});
 
   final VoidCallback onCreate;
+  final VoidCallback onImportTemplate;
 
   @override
   Widget build(BuildContext context) {
@@ -160,7 +215,22 @@ class _EmptyLibrary extends StatelessWidget {
                 style: TextStyle(color: XulangColors.muted, height: 1.7),
               ),
               const SizedBox(height: 26),
-              FilledButton(onPressed: onCreate, child: const Text('创建第一个展览')),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                alignment: WrapAlignment.center,
+                children: [
+                  FilledButton(
+                    onPressed: onCreate,
+                    child: const Text('创建第一个展览'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: onImportTemplate,
+                    icon: const Icon(Icons.file_open_outlined, size: 18),
+                    label: const Text('导入模板'),
+                  ),
+                ],
+              ),
               const SizedBox(height: 18),
               const Text(
                 '卸载应用会删除全部展览，请谨慎操作。',

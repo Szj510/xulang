@@ -2,7 +2,17 @@ enum GalleryLayout { hero, filmstrip, diptych, collage, storyPath }
 
 enum GalleryMotion { pan, push, focus, unfold }
 
-enum GalleryFrame { none, hairline, mat, stamp }
+enum GalleryFrame {
+  none,
+  hairline,
+  mat,
+  stamp,
+  wood,
+  darkWood,
+  metal,
+  vintage,
+  film,
+}
 
 enum GallerySize { small, medium, large }
 

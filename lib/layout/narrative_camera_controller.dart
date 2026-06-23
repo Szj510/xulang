@@ -3,10 +3,13 @@ import 'dart:math' as math;
 import 'package:flutter/physics.dart';
 import 'package:flutter/widgets.dart';
 import 'package:xulang/layout/gesture_direction_lock.dart';
+import 'package:xulang/layout/narrative_axis.dart';
 
 class NarrativeCameraController extends ChangeNotifier {
   NarrativeCameraController({double initialProgress = 0})
     : progress = initialProgress.clamp(0, 1);
+
+  static const double sensitivity = 2;
 
   final GestureDirectionLock _directionLock = GestureDirectionLock();
 
@@ -26,14 +29,21 @@ class NarrativeCameraController extends ChangeNotifier {
     required Size viewport,
     required int itemCount,
     required double scale,
+    required NarrativeAxis axis,
   }) {
     this.scale = scale;
     final gesture = _directionLock.update(delta, scale: scale);
-    if (gesture != GalleryGesture.horizontal || viewport.width <= 0) {
+    final expectedGesture = axis == NarrativeAxis.vertical
+        ? GalleryGesture.vertical
+        : GalleryGesture.horizontal;
+    final extent = axis.primaryExtent(viewport);
+    if (gesture != expectedGesture || extent <= 0) {
       return gesture;
     }
     final dragSpan = math.max(1, itemCount - 1).toDouble();
-    setProgress(progress - delta.dx / viewport.width / dragSpan);
+    setProgress(
+      progress - axis.primaryOffset(delta) * sensitivity / extent / dragSpan,
+    );
     return gesture;
   }
 
@@ -56,13 +66,15 @@ class NarrativeCameraController extends ChangeNotifier {
 
   FrictionSimulation simulationForVelocity({
     required double pixelsPerSecond,
-    required double viewportWidth,
+    required Size viewport,
     required int itemCount,
+    required NarrativeAxis axis,
   }) {
     final dragSpan = math.max(1, itemCount - 1).toDouble();
-    final progressVelocity = viewportWidth <= 0
+    final extent = axis.primaryExtent(viewport);
+    final progressVelocity = extent <= 0
         ? 0.0
-        : -pixelsPerSecond / viewportWidth / dragSpan;
+        : -pixelsPerSecond * sensitivity / extent / dragSpan;
     return FrictionSimulation(.135, progress, progressVelocity);
   }
 
