@@ -127,14 +127,6 @@ class _EditorBodyState extends State<_EditorBody> {
                           _handleExportAction(context, action),
                       itemBuilder: (context) => const [
                         PopupMenuItem(
-                          value: _EditorExportAction.gif,
-                          child: Text('分享 GIF'),
-                        ),
-                        PopupMenuItem(
-                          value: _EditorExportAction.html,
-                          child: Text('导出 HTML'),
-                        ),
-                        PopupMenuItem(
                           value: _EditorExportAction.template,
                           child: Text('分享模板'),
                         ),
@@ -232,14 +224,6 @@ class _EditorBodyState extends State<_EditorBody> {
                                     _handleExportAction(context, action),
                                 itemBuilder: (context) => const [
                                   PopupMenuItem(
-                                    value: _EditorExportAction.gif,
-                                    child: Text('分享 GIF'),
-                                  ),
-                                  PopupMenuItem(
-                                    value: _EditorExportAction.html,
-                                    child: Text('导出 HTML'),
-                                  ),
-                                  PopupMenuItem(
                                     value: _EditorExportAction.template,
                                     child: Text('分享模板'),
                                   ),
@@ -315,21 +299,6 @@ class _EditorBodyState extends State<_EditorBody> {
     try {
       final service = await _exportFileService();
       switch (action) {
-        case _EditorExportAction.gif:
-          final file = await service.writeGif(
-            bundle,
-            chapterIndex: session.selectedChapterIndex,
-          );
-          await service.shareFile(file, title: '${bundle.document.title} GIF');
-          if (context.mounted) {
-            _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
-          }
-        case _EditorExportAction.html:
-          final file = await service.writeHtml(bundle);
-          await service.shareFile(file, title: '${bundle.document.title} HTML');
-          if (context.mounted) {
-            _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
-          }
         case _EditorExportAction.template:
           final file = await service.writeTemplate(bundle.document);
           await service.shareFile(file, title: '${bundle.document.title} 模板');
@@ -393,7 +362,7 @@ class _EditorBodyState extends State<_EditorBody> {
   }
 }
 
-enum _EditorExportAction { gif, html, template, importTemplate }
+enum _EditorExportAction { template, importTemplate }
 
 class _ChapterRail extends StatelessWidget {
   const _ChapterRail({
@@ -753,6 +722,25 @@ class _InspectorState extends State<_Inspector> {
 
   EditorSession get session => widget.session;
 
+  Future<void> _pickBackgroundMusic(BuildContext context) async {
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(
+          label: '音频',
+          extensions: ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac'],
+          mimeTypes: ['audio/*'],
+        ),
+      ],
+    );
+    if (file == null) return;
+    await session.importBackgroundMusic(file.path);
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('已添加背景音乐')));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final chapter = session.selectedChapter!;
@@ -841,17 +829,49 @@ class _InspectorState extends State<_Inspector> {
                   const Padding(
                     padding: EdgeInsets.only(right: 5),
                     child: Text(
-                      '转场',
+                      '路径线条',
                       style: TextStyle(color: XulangColors.muted, fontSize: 12),
                     ),
                   ),
-                  for (final motion in GalleryMotion.values)
+                  for (final style in StoryPathStyle.values)
                     ChoiceChip(
-                      selected: chapter.motion == motion,
-                      onSelected: (_) => session.updateChapter(motion: motion),
-                      label: Text(_motionLabel(motion)),
+                      selected: chapter.pathStyle == style,
+                      onSelected: (_) =>
+                          session.updateChapter(pathStyle: style),
+                      label: Text(_pathStyleLabel(style)),
                     ),
                 ],
+              ),
+              SwitchListTile.adaptive(
+                key: const Key('editor-show-chapter-title-playback'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('录屏时显示章节名'),
+                value: session.bundle!.document.showChapterTitleInPlayback,
+                onChanged: session.updateShowChapterTitleInPlayback,
+              ),
+              ListTile(
+                key: const Key('editor-background-music'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.music_note_outlined),
+                title: Text(
+                  session.bundle!.document.musicTitle ?? '未添加背景音乐',
+                  overflow: TextOverflow.ellipsis,
+                ),
+                subtitle: const Text('播放和录屏模式可使用本地音乐'),
+                trailing: Wrap(
+                  spacing: 4,
+                  children: [
+                    TextButton(
+                      onPressed: () => _pickBackgroundMusic(context),
+                      child: const Text('选择'),
+                    ),
+                    if (session.bundle!.document.musicPath != null)
+                      TextButton(
+                        onPressed: session.clearBackgroundMusic,
+                        child: const Text('清除'),
+                      ),
+                  ],
+                ),
               ),
               const SizedBox(height: 14),
               SizedBox(
@@ -1145,11 +1165,11 @@ String _sizeLabel(GallerySize size) => switch (size) {
   GallerySize.large => '大',
 };
 
-String _motionLabel(GalleryMotion motion) => switch (motion) {
-  GalleryMotion.pan => '平移',
-  GalleryMotion.push => '推进',
-  GalleryMotion.focus => '聚焦',
-  GalleryMotion.unfold => '层叠展开',
+String _pathStyleLabel(StoryPathStyle style) => switch (style) {
+  StoryPathStyle.solid => '细线',
+  StoryPathStyle.dashed => '虚线',
+  StoryPathStyle.glow => '微光',
+  StoryPathStyle.none => '隐藏',
 };
 
 String _frameLabel(GalleryFrame frame) => switch (frame) {

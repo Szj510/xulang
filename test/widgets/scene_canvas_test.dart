@@ -166,6 +166,44 @@ void main() {
     expect(updates.last, 'end:placement');
   });
 
+  testWidgets('scene node two finger pinch emits scale greater than one', (
+    tester,
+  ) async {
+    final scales = <double>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(
+            chapter: chapter,
+            media: [media],
+            onPlacementTransformStart: (_) {},
+            onPlacementTransformUpdate: (_, scale, _) => scales.add(scale),
+            onPlacementTransformEnd: (_) {},
+          ),
+        ),
+      ),
+    );
+
+    final center = tester.getCenter(
+      find.byKey(const Key('scene-node-placement')),
+    );
+    final first = await tester.createGesture();
+    final second = await tester.createGesture();
+    await first.down(center - const Offset(20, 0));
+    await second.down(center + const Offset(20, 0));
+    await tester.pump();
+    await first.moveTo(center - const Offset(44, 0));
+    await second.moveTo(center + const Offset(44, 0));
+    await tester.pump();
+    await first.up();
+    await second.up();
+
+    expect(scales, isNotEmpty);
+    expect(scales.reduce((a, b) => a > b ? a : b), greaterThan(1.2));
+  });
+
   testWidgets('story path painter receives resolved scene geometry', (
     tester,
   ) async {

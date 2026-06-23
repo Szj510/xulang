@@ -2,6 +2,8 @@ enum GalleryLayout { hero, filmstrip, diptych, collage, storyPath, depthWall }
 
 enum GalleryMotion { pan, push, focus, unfold }
 
+enum StoryPathStyle { solid, dashed, glow, none }
+
 enum GalleryFrame {
   none,
   hairline,
@@ -27,6 +29,9 @@ class GalleryDocument {
     required this.chapters,
     this.coverMediaId,
     this.theme = GalleryTheme.ink,
+    this.musicPath,
+    this.musicTitle,
+    this.showChapterTitleInPlayback = true,
   });
 
   factory GalleryDocument.create({
@@ -56,6 +61,9 @@ class GalleryDocument {
   final String title;
   final String? coverMediaId;
   final GalleryTheme theme;
+  final String? musicPath;
+  final String? musicTitle;
+  final bool showChapterTitleInPlayback;
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<GalleryChapter> chapters;
@@ -64,6 +72,9 @@ class GalleryDocument {
     String? title,
     String? coverMediaId,
     GalleryTheme? theme,
+    Object? musicPath = _unchanged,
+    Object? musicTitle = _unchanged,
+    bool? showChapterTitleInPlayback,
     DateTime? updatedAt,
     List<GalleryChapter>? chapters,
   }) {
@@ -72,6 +83,14 @@ class GalleryDocument {
       title: title ?? this.title,
       coverMediaId: coverMediaId ?? this.coverMediaId,
       theme: theme ?? this.theme,
+      musicPath: identical(musicPath, _unchanged)
+          ? this.musicPath
+          : musicPath as String?,
+      musicTitle: identical(musicTitle, _unchanged)
+          ? this.musicTitle
+          : musicTitle as String?,
+      showChapterTitleInPlayback:
+          showChapterTitleInPlayback ?? this.showChapterTitleInPlayback,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       chapters: chapters ?? this.chapters,
@@ -88,6 +107,7 @@ class GalleryChapter {
     required this.motion,
     required this.placements,
     this.caption = '',
+    this.pathStyle = StoryPathStyle.solid,
   });
 
   final String id;
@@ -96,6 +116,7 @@ class GalleryChapter {
   final int order;
   final GalleryLayout layout;
   final GalleryMotion motion;
+  final StoryPathStyle pathStyle;
   final List<GalleryPlacement> placements;
 
   GalleryChapter copyWith({
@@ -104,6 +125,7 @@ class GalleryChapter {
     int? order,
     GalleryLayout? layout,
     GalleryMotion? motion,
+    StoryPathStyle? pathStyle,
     List<GalleryPlacement>? placements,
   }) {
     return GalleryChapter(
@@ -113,6 +135,7 @@ class GalleryChapter {
       order: order ?? this.order,
       layout: layout ?? this.layout,
       motion: motion ?? this.motion,
+      pathStyle: pathStyle ?? this.pathStyle,
       placements: placements ?? this.placements,
     );
   }
@@ -132,6 +155,8 @@ class GalleryChapter {
     );
   }
 }
+
+const Object _unchanged = Object();
 
 class GalleryPlacement {
   const GalleryPlacement({

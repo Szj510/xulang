@@ -74,6 +74,21 @@ void main() {
     expect(find.textContaining('进度 0%'), findsNothing);
   });
 
+  testWidgets('recording mode hides playback chrome and progress overlays', (
+    tester,
+  ) async {
+    await pumpViewer(tester);
+
+    expect(find.byKey(const Key('viewer-recording-mode')), findsOneWidget);
+    await tester.tap(find.byKey(const Key('viewer-recording-mode')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('viewer-top-scrim')), findsNothing);
+    expect(find.byKey(const Key('viewer-caption-scrim')), findsNothing);
+    expect(find.byKey(const Key('viewer-track-progress')), findsNothing);
+    expect(find.byKey(const Key('viewer-recording-mode')), findsNothing);
+  });
+
   testWidgets('keeps camera progress through orientation changes', (
     tester,
   ) async {

@@ -1,68 +1,15 @@
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:image/image.dart' as img;
-import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/share/exhibition_exporter.dart';
 
 void main() {
-  test('html export escapes text and embeds local image data', () async {
-    final temp = await Directory.systemTemp.createTemp('xulang-export-test-');
-    addTearDown(() => temp.delete(recursive: true));
-    final image = File('${temp.path}/photo.jpg');
-    await image.writeAsBytes([1, 2, 3, 4]);
-    final bundle = GalleryBundle(
-      document: GalleryDocument(
-        id: 'exhibition',
-        title: '海风 <script>',
-        createdAt: DateTime(2026, 6, 23),
-        updatedAt: DateTime(2026, 6, 23),
-        chapters: const [
-          GalleryChapter(
-            id: 'chapter',
-            title: '夏日 & 散步',
-            caption: '风 < 慢下来',
-            order: 0,
-            layout: GalleryLayout.storyPath,
-            motion: GalleryMotion.unfold,
-            placements: [
-              GalleryPlacement(
-                id: 'placement',
-                mediaId: 'media',
-                order: 0,
-                frame: GalleryFrame.stamp,
-                caption: '巷遇',
-              ),
-            ],
-          ),
-        ],
-      ),
-      media: [
-        GalleryMedia(
-          id: 'media',
-          originalPath: image.path,
-          thumbnailPath: image.path,
-          width: 20,
-          height: 10,
-          contentHash: 'hash',
-        ),
-      ],
-    );
-
-    final html = await ExhibitionHtmlExporter().buildHtml(bundle);
-
-    expect(html, contains('海风 &lt;script&gt;'));
-    expect(html, contains('夏日 &amp; 散步'));
-    expect(html, contains('data:image/jpeg;base64,AQIDBA=='));
-    expect(html, isNot(contains('<script>')));
-  });
-
   test('template export omits media identities and can apply styles', () {
     final document = GalleryDocument(
       id: 'exhibition',
       title: '山海',
+      showChapterTitleInPlayback: false,
       createdAt: DateTime(2026, 6, 23),
       updatedAt: DateTime(2026, 6, 23),
       chapters: const [
@@ -73,6 +20,7 @@ void main() {
           order: 0,
           layout: GalleryLayout.filmstrip,
           motion: GalleryMotion.pan,
+          pathStyle: StoryPathStyle.glow,
           placements: [
             GalleryPlacement(
               id: 'p1',
@@ -82,6 +30,8 @@ void main() {
               frame: GalleryFrame.wood,
               focalX: .25,
               focalY: .75,
+              scale: 1.2,
+              offsetX: .1,
               caption: '第一张',
             ),
             GalleryPlacement(
@@ -105,6 +55,7 @@ void main() {
     var id = 0;
     final applied = ExhibitionTemplateCodec().applyToDocument(
       base: document.copyWith(
+        showChapterTitleInPlayback: true,
         chapters: [
           document.chapters.single.copyWith(
             placements: const [
@@ -121,68 +72,13 @@ void main() {
 
     final placements = applied.chapters.single.placements;
     expect(applied.chapters.single.layout, GalleryLayout.filmstrip);
+    expect(applied.chapters.single.pathStyle, StoryPathStyle.glow);
+    expect(applied.showChapterTitleInPlayback, isFalse);
     expect(placements.map((item) => item.mediaId), ['m1', 'm2']);
     expect(placements.first.frame, GalleryFrame.wood);
     expect(placements.first.size, GallerySize.large);
     expect(placements.first.focalX, .25);
+    expect(placements.first.scale, 1.2);
+    expect(placements.first.offsetX, .1);
   });
-
-  test(
-    'gif export builds compact animated preview and skips missing files',
-    () async {
-      final temp = await Directory.systemTemp.createTemp('xulang-gif-test-');
-      addTearDown(() => temp.delete(recursive: true));
-      final imageFile = File('${temp.path}/photo.png');
-      final source = img.Image(width: 48, height: 32);
-      img.fill(source, color: img.ColorRgb8(220, 160, 90));
-      await imageFile.writeAsBytes(img.encodePng(source));
-
-      final bundle = GalleryBundle(
-        document: GalleryDocument(
-          id: 'exhibition',
-          title: 'GIF',
-          createdAt: DateTime(2026, 6, 23),
-          updatedAt: DateTime(2026, 6, 23),
-          chapters: const [
-            GalleryChapter(
-              id: 'chapter',
-              title: 'chapter',
-              order: 0,
-              layout: GalleryLayout.storyPath,
-              motion: GalleryMotion.pan,
-              placements: [
-                GalleryPlacement(id: 'p1', mediaId: 'm1', order: 0),
-                GalleryPlacement(id: 'p2', mediaId: 'missing', order: 1),
-              ],
-            ),
-          ],
-        ),
-        media: [
-          GalleryMedia(
-            id: 'm1',
-            originalPath: imageFile.path,
-            thumbnailPath: imageFile.path,
-            width: 48,
-            height: 32,
-            contentHash: 'hash',
-          ),
-          const GalleryMedia(
-            id: 'missing',
-            originalPath: 'missing.png',
-            thumbnailPath: 'missing.png',
-            width: 48,
-            height: 32,
-            contentHash: 'missing',
-          ),
-        ],
-      );
-
-      final bytes = await ExhibitionGifExporter().buildGif(bundle);
-
-      expect(ascii.decode(bytes.take(6).toList()), anyOf('GIF89a', 'GIF87a'));
-      expect(img.GifDecoder(bytes).numFrames(), greaterThan(1));
-      expect(bytes.length, greaterThan(200));
-      expect(bytes.length, lessThan(300000));
-    },
-  );
 }

@@ -93,10 +93,12 @@ void main() {
     expect(find.text('横向胶片'), findsOneWidget);
     expect(find.text('双联画'), findsOneWidget);
     expect(find.text('叙事拼贴'), findsOneWidget);
-    expect(find.text('平移'), findsOneWidget);
-    expect(find.text('推进'), findsOneWidget);
-    expect(find.text('聚焦'), findsOneWidget);
-    expect(find.text('层叠展开'), findsOneWidget);
+    expect(find.text('路径线条'), findsOneWidget);
+    expect(find.text('细线'), findsOneWidget);
+    expect(find.text('虚线'), findsOneWidget);
+    expect(find.text('微光'), findsOneWidget);
+    expect(find.text('隐藏'), findsOneWidget);
+    expect(find.text('平移'), findsNothing);
   });
 
   testWidgets('closing a text dialog does not outlive its input state', (

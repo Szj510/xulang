@@ -1,5 +1,9 @@
+import 'dart:async';
+
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
@@ -25,17 +29,24 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   final Map<String, double> _chapterProgress = {};
   int _chapterIndex = 0;
   bool _showChrome = true;
+  bool _recordingMode = false;
+  bool _musicPlaying = false;
   bool _changingChapter = false;
+  final AudioPlayer _audioPlayer = AudioPlayer();
+  String? _playingMusicPath;
 
   @override
   void initState() {
     super.initState();
     _bundle = ref.read(galleryRepositoryProvider).load(widget.exhibitionId);
+    unawaited(_audioPlayer.setReleaseMode(ReleaseMode.loop));
     WakelockPlus.enable();
   }
 
   @override
   void dispose() {
+    unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
+    unawaited(_audioPlayer.dispose());
     WakelockPlus.disable();
     super.dispose();
   }
@@ -68,7 +79,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
           final chapter = chapters[chapterIndex];
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onTap: () => setState(() => _showChrome = !_showChrome),
+            onTap: _recordingMode
+                ? null
+                : () => setState(() => _showChrome = !_showChrome),
             child: Stack(
               children: [
                 Positioned.fill(
@@ -82,7 +95,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       media: bundle.media,
                       sceneTheme: bundle.document.theme,
                       reduceMotion: MediaQuery.disableAnimationsOf(context),
-                      showControls: _showChrome,
+                      showControls: _showChrome && !_recordingMode,
                       initialProgress: _chapterProgress[chapter.id] ?? 0,
                       hasPreviousChapter: chapterIndex > 0,
                       hasNextChapter: chapterIndex < chapters.length - 1,
@@ -93,32 +106,59 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     ),
                   ),
                 ),
-                IgnorePointer(
-                  ignoring: !_showChrome,
-                  child: AnimatedOpacity(
-                    opacity: _showChrome ? 1 : 0,
-                    duration: const Duration(milliseconds: 180),
-                    child: _ViewerChrome(
-                      document: bundle.document,
-                      chapter: chapter,
-                      chapterIndex: chapterIndex,
-                      chapterCount: chapters.length,
-                      onClose: () => Navigator.pop(context),
-                      onPreviousChapter: chapterIndex == 0
-                          ? null
-                          : () => _changeChapter(
-                              chapters,
-                              ChapterNavigationIntent.previous,
-                            ),
-                      onNextChapter: chapterIndex == chapters.length - 1
-                          ? null
-                          : () => _changeChapter(
-                              chapters,
-                              ChapterNavigationIntent.next,
-                            ),
+                if (!_recordingMode)
+                  IgnorePointer(
+                    ignoring: !_showChrome,
+                    child: AnimatedOpacity(
+                      opacity: _showChrome ? 1 : 0,
+                      duration: const Duration(milliseconds: 180),
+                      child: _ViewerChrome(
+                        document: bundle.document,
+                        chapter: chapter,
+                        chapterIndex: chapterIndex,
+                        chapterCount: chapters.length,
+                        onClose: () => Navigator.pop(context),
+                        onPreviousChapter: chapterIndex == 0
+                            ? null
+                            : () => _changeChapter(
+                                chapters,
+                                ChapterNavigationIntent.previous,
+                              ),
+                        onNextChapter: chapterIndex == chapters.length - 1
+                            ? null
+                            : () => _changeChapter(
+                                chapters,
+                                ChapterNavigationIntent.next,
+                              ),
+                        onStartRecording: () =>
+                            _setRecordingMode(bundle.document, true),
+                        onToggleMusic: bundle.document.musicPath == null
+                            ? null
+                            : () => _toggleMusic(bundle.document),
+                        musicPlaying: _musicPlaying,
+                      ),
                     ),
                   ),
-                ),
+                if (_recordingMode &&
+                    bundle.document.showChapterTitleInPlayback)
+                  Positioned(
+                    key: const Key('viewer-recording-chapter-title'),
+                    top: MediaQuery.paddingOf(context).top + 18,
+                    left: 24,
+                    right: 24,
+                    child: IgnorePointer(
+                      child: Text(
+                        chapter.title,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: XulangColors.paper,
+                          fontFamily: 'serif',
+                          fontSize: 18,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
           );
@@ -145,6 +185,44 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
           : const Duration(milliseconds: 240),
     );
     if (mounted) setState(() => _changingChapter = false);
+  }
+
+  Future<void> _setRecordingMode(GalleryDocument document, bool enabled) async {
+    if (mounted) {
+      setState(() {
+        _recordingMode = enabled;
+        if (enabled) _showChrome = false;
+      });
+    }
+    if (enabled) {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      if (document.musicPath != null) {
+        await _playMusic(document);
+      }
+    } else {
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
+
+  Future<void> _toggleMusic(GalleryDocument document) async {
+    if (_musicPlaying) {
+      await _audioPlayer.pause();
+      if (mounted) setState(() => _musicPlaying = false);
+    } else {
+      await _playMusic(document);
+    }
+  }
+
+  Future<void> _playMusic(GalleryDocument document) async {
+    final path = document.musicPath;
+    if (path == null) return;
+    if (_playingMusicPath != path) {
+      _playingMusicPath = path;
+      await _audioPlayer.play(DeviceFileSource(path));
+    } else {
+      await _audioPlayer.resume();
+    }
+    if (mounted) setState(() => _musicPlaying = true);
   }
 }
 
@@ -401,6 +479,9 @@ class _ViewerChrome extends StatelessWidget {
     required this.onClose,
     required this.onPreviousChapter,
     required this.onNextChapter,
+    required this.onStartRecording,
+    required this.onToggleMusic,
+    required this.musicPlaying,
   });
 
   final GalleryDocument document;
@@ -410,6 +491,9 @@ class _ViewerChrome extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback? onPreviousChapter;
   final VoidCallback? onNextChapter;
+  final VoidCallback onStartRecording;
+  final VoidCallback? onToggleMusic;
+  final bool musicPlaying;
 
   @override
   Widget build(BuildContext context) {
@@ -478,7 +562,22 @@ class _ViewerChrome extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 48),
+                IconButton.filledTonal(
+                  key: const Key('viewer-recording-mode'),
+                  onPressed: onStartRecording,
+                  tooltip: '录屏模式',
+                  icon: const Icon(Icons.videocam_outlined),
+                ),
+                IconButton.filledTonal(
+                  key: const Key('viewer-music-toggle'),
+                  onPressed: onToggleMusic,
+                  tooltip: musicPlaying ? '暂停音乐' : '播放音乐',
+                  icon: Icon(
+                    musicPlaying
+                        ? Icons.music_off_outlined
+                        : Icons.music_note_outlined,
+                  ),
+                ),
               ],
             ),
           ),

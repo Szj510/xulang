@@ -112,6 +112,24 @@ void main() {
     expect(persisted!.document.theme, GalleryTheme.paper);
   });
 
+  test('imports and clears local background music', () async {
+    final source = File('${mediaRoot.path}/source-track.mp3');
+    await source.writeAsBytes([1, 2, 3, 4, 5]);
+
+    await session.importBackgroundMusic(source.path);
+
+    final document = session.bundle!.document;
+    expect(document.musicTitle, 'source-track.mp3');
+    expect(document.musicPath, isNotNull);
+    expect(document.musicPath, isNot(source.path));
+    expect(await File(document.musicPath!).readAsBytes(), [1, 2, 3, 4, 5]);
+
+    await session.clearBackgroundMusic();
+
+    expect(session.bundle!.document.musicPath, isNull);
+    expect(session.bundle!.document.musicTitle, isNull);
+  });
+
   test('applies imported template while preserving existing media', () async {
     final template = ExhibitionTemplateCodec().encode(
       GalleryDocument(

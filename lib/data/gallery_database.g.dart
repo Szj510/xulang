@@ -47,6 +47,43 @@ class $ExhibitionsTable extends Exhibitions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _musicPathMeta = const VerificationMeta(
+    'musicPath',
+  );
+  @override
+  late final GeneratedColumn<String> musicPath = GeneratedColumn<String>(
+    'music_path',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _musicTitleMeta = const VerificationMeta(
+    'musicTitle',
+  );
+  @override
+  late final GeneratedColumn<String> musicTitle = GeneratedColumn<String>(
+    'music_title',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _showChapterTitleInPlaybackMeta =
+      const VerificationMeta('showChapterTitleInPlayback');
+  @override
+  late final GeneratedColumn<bool> showChapterTitleInPlayback =
+      GeneratedColumn<bool>(
+        'show_chapter_title_in_playback',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("show_chapter_title_in_playback" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -75,6 +112,9 @@ class $ExhibitionsTable extends Exhibitions
     title,
     coverMediaId,
     theme,
+    musicPath,
+    musicTitle,
+    showChapterTitleInPlayback,
     createdAt,
     updatedAt,
   ];
@@ -120,6 +160,27 @@ class $ExhibitionsTable extends Exhibitions
     } else if (isInserting) {
       context.missing(_themeMeta);
     }
+    if (data.containsKey('music_path')) {
+      context.handle(
+        _musicPathMeta,
+        musicPath.isAcceptableOrUnknown(data['music_path']!, _musicPathMeta),
+      );
+    }
+    if (data.containsKey('music_title')) {
+      context.handle(
+        _musicTitleMeta,
+        musicTitle.isAcceptableOrUnknown(data['music_title']!, _musicTitleMeta),
+      );
+    }
+    if (data.containsKey('show_chapter_title_in_playback')) {
+      context.handle(
+        _showChapterTitleInPlaybackMeta,
+        showChapterTitleInPlayback.isAcceptableOrUnknown(
+          data['show_chapter_title_in_playback']!,
+          _showChapterTitleInPlaybackMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -161,6 +222,18 @@ class $ExhibitionsTable extends Exhibitions
         DriftSqlType.string,
         data['${effectivePrefix}theme'],
       )!,
+      musicPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}music_path'],
+      ),
+      musicTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}music_title'],
+      ),
+      showChapterTitleInPlayback: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}show_chapter_title_in_playback'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -183,6 +256,9 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
   final String title;
   final String? coverMediaId;
   final String theme;
+  final String? musicPath;
+  final String? musicTitle;
+  final bool showChapterTitleInPlayback;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Exhibition({
@@ -190,6 +266,9 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     required this.title,
     this.coverMediaId,
     required this.theme,
+    this.musicPath,
+    this.musicTitle,
+    required this.showChapterTitleInPlayback,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -202,6 +281,15 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       map['cover_media_id'] = Variable<String>(coverMediaId);
     }
     map['theme'] = Variable<String>(theme);
+    if (!nullToAbsent || musicPath != null) {
+      map['music_path'] = Variable<String>(musicPath);
+    }
+    if (!nullToAbsent || musicTitle != null) {
+      map['music_title'] = Variable<String>(musicTitle);
+    }
+    map['show_chapter_title_in_playback'] = Variable<bool>(
+      showChapterTitleInPlayback,
+    );
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -215,6 +303,13 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           ? const Value.absent()
           : Value(coverMediaId),
       theme: Value(theme),
+      musicPath: musicPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(musicPath),
+      musicTitle: musicTitle == null && nullToAbsent
+          ? const Value.absent()
+          : Value(musicTitle),
+      showChapterTitleInPlayback: Value(showChapterTitleInPlayback),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -230,6 +325,11 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       title: serializer.fromJson<String>(json['title']),
       coverMediaId: serializer.fromJson<String?>(json['coverMediaId']),
       theme: serializer.fromJson<String>(json['theme']),
+      musicPath: serializer.fromJson<String?>(json['musicPath']),
+      musicTitle: serializer.fromJson<String?>(json['musicTitle']),
+      showChapterTitleInPlayback: serializer.fromJson<bool>(
+        json['showChapterTitleInPlayback'],
+      ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -242,6 +342,11 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       'title': serializer.toJson<String>(title),
       'coverMediaId': serializer.toJson<String?>(coverMediaId),
       'theme': serializer.toJson<String>(theme),
+      'musicPath': serializer.toJson<String?>(musicPath),
+      'musicTitle': serializer.toJson<String?>(musicTitle),
+      'showChapterTitleInPlayback': serializer.toJson<bool>(
+        showChapterTitleInPlayback,
+      ),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -252,6 +357,9 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     String? title,
     Value<String?> coverMediaId = const Value.absent(),
     String? theme,
+    Value<String?> musicPath = const Value.absent(),
+    Value<String?> musicTitle = const Value.absent(),
+    bool? showChapterTitleInPlayback,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Exhibition(
@@ -259,6 +367,10 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     title: title ?? this.title,
     coverMediaId: coverMediaId.present ? coverMediaId.value : this.coverMediaId,
     theme: theme ?? this.theme,
+    musicPath: musicPath.present ? musicPath.value : this.musicPath,
+    musicTitle: musicTitle.present ? musicTitle.value : this.musicTitle,
+    showChapterTitleInPlayback:
+        showChapterTitleInPlayback ?? this.showChapterTitleInPlayback,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -270,6 +382,13 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           ? data.coverMediaId.value
           : this.coverMediaId,
       theme: data.theme.present ? data.theme.value : this.theme,
+      musicPath: data.musicPath.present ? data.musicPath.value : this.musicPath,
+      musicTitle: data.musicTitle.present
+          ? data.musicTitle.value
+          : this.musicTitle,
+      showChapterTitleInPlayback: data.showChapterTitleInPlayback.present
+          ? data.showChapterTitleInPlayback.value
+          : this.showChapterTitleInPlayback,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -282,6 +401,9 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           ..write('title: $title, ')
           ..write('coverMediaId: $coverMediaId, ')
           ..write('theme: $theme, ')
+          ..write('musicPath: $musicPath, ')
+          ..write('musicTitle: $musicTitle, ')
+          ..write('showChapterTitleInPlayback: $showChapterTitleInPlayback, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -289,8 +411,17 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, title, coverMediaId, theme, createdAt, updatedAt);
+  int get hashCode => Object.hash(
+    id,
+    title,
+    coverMediaId,
+    theme,
+    musicPath,
+    musicTitle,
+    showChapterTitleInPlayback,
+    createdAt,
+    updatedAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -299,6 +430,9 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           other.title == this.title &&
           other.coverMediaId == this.coverMediaId &&
           other.theme == this.theme &&
+          other.musicPath == this.musicPath &&
+          other.musicTitle == this.musicTitle &&
+          other.showChapterTitleInPlayback == this.showChapterTitleInPlayback &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -308,6 +442,9 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
   final Value<String> title;
   final Value<String?> coverMediaId;
   final Value<String> theme;
+  final Value<String?> musicPath;
+  final Value<String?> musicTitle;
+  final Value<bool> showChapterTitleInPlayback;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -316,6 +453,9 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     this.title = const Value.absent(),
     this.coverMediaId = const Value.absent(),
     this.theme = const Value.absent(),
+    this.musicPath = const Value.absent(),
+    this.musicTitle = const Value.absent(),
+    this.showChapterTitleInPlayback = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -325,6 +465,9 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     required String title,
     this.coverMediaId = const Value.absent(),
     required String theme,
+    this.musicPath = const Value.absent(),
+    this.musicTitle = const Value.absent(),
+    this.showChapterTitleInPlayback = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -338,6 +481,9 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     Expression<String>? title,
     Expression<String>? coverMediaId,
     Expression<String>? theme,
+    Expression<String>? musicPath,
+    Expression<String>? musicTitle,
+    Expression<bool>? showChapterTitleInPlayback,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -347,6 +493,10 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
       if (title != null) 'title': title,
       if (coverMediaId != null) 'cover_media_id': coverMediaId,
       if (theme != null) 'theme': theme,
+      if (musicPath != null) 'music_path': musicPath,
+      if (musicTitle != null) 'music_title': musicTitle,
+      if (showChapterTitleInPlayback != null)
+        'show_chapter_title_in_playback': showChapterTitleInPlayback,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -358,6 +508,9 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     Value<String>? title,
     Value<String?>? coverMediaId,
     Value<String>? theme,
+    Value<String?>? musicPath,
+    Value<String?>? musicTitle,
+    Value<bool>? showChapterTitleInPlayback,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -367,6 +520,10 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
       title: title ?? this.title,
       coverMediaId: coverMediaId ?? this.coverMediaId,
       theme: theme ?? this.theme,
+      musicPath: musicPath ?? this.musicPath,
+      musicTitle: musicTitle ?? this.musicTitle,
+      showChapterTitleInPlayback:
+          showChapterTitleInPlayback ?? this.showChapterTitleInPlayback,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -388,6 +545,17 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     if (theme.present) {
       map['theme'] = Variable<String>(theme.value);
     }
+    if (musicPath.present) {
+      map['music_path'] = Variable<String>(musicPath.value);
+    }
+    if (musicTitle.present) {
+      map['music_title'] = Variable<String>(musicTitle.value);
+    }
+    if (showChapterTitleInPlayback.present) {
+      map['show_chapter_title_in_playback'] = Variable<bool>(
+        showChapterTitleInPlayback.value,
+      );
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -407,6 +575,9 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
           ..write('title: $title, ')
           ..write('coverMediaId: $coverMediaId, ')
           ..write('theme: $theme, ')
+          ..write('musicPath: $musicPath, ')
+          ..write('musicTitle: $musicTitle, ')
+          ..write('showChapterTitleInPlayback: $showChapterTitleInPlayback, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -492,6 +663,18 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _pathStyleMeta = const VerificationMeta(
+    'pathStyle',
+  );
+  @override
+  late final GeneratedColumn<String> pathStyle = GeneratedColumn<String>(
+    'path_style',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('solid'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -501,6 +684,7 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
     sortOrder,
     layout,
     motion,
+    pathStyle,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -570,6 +754,12 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
     } else if (isInserting) {
       context.missing(_motionMeta);
     }
+    if (data.containsKey('path_style')) {
+      context.handle(
+        _pathStyleMeta,
+        pathStyle.isAcceptableOrUnknown(data['path_style']!, _pathStyleMeta),
+      );
+    }
     return context;
   }
 
@@ -607,6 +797,10 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
         DriftSqlType.string,
         data['${effectivePrefix}motion'],
       )!,
+      pathStyle: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}path_style'],
+      )!,
     );
   }
 
@@ -624,6 +818,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
   final int sortOrder;
   final String layout;
   final String motion;
+  final String pathStyle;
   const Chapter({
     required this.id,
     required this.exhibitionId,
@@ -632,6 +827,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     required this.sortOrder,
     required this.layout,
     required this.motion,
+    required this.pathStyle,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -643,6 +839,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     map['sort_order'] = Variable<int>(sortOrder);
     map['layout'] = Variable<String>(layout);
     map['motion'] = Variable<String>(motion);
+    map['path_style'] = Variable<String>(pathStyle);
     return map;
   }
 
@@ -655,6 +852,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
       sortOrder: Value(sortOrder),
       layout: Value(layout),
       motion: Value(motion),
+      pathStyle: Value(pathStyle),
     );
   }
 
@@ -671,6 +869,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
       sortOrder: serializer.fromJson<int>(json['sortOrder']),
       layout: serializer.fromJson<String>(json['layout']),
       motion: serializer.fromJson<String>(json['motion']),
+      pathStyle: serializer.fromJson<String>(json['pathStyle']),
     );
   }
   @override
@@ -684,6 +883,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
       'sortOrder': serializer.toJson<int>(sortOrder),
       'layout': serializer.toJson<String>(layout),
       'motion': serializer.toJson<String>(motion),
+      'pathStyle': serializer.toJson<String>(pathStyle),
     };
   }
 
@@ -695,6 +895,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     int? sortOrder,
     String? layout,
     String? motion,
+    String? pathStyle,
   }) => Chapter(
     id: id ?? this.id,
     exhibitionId: exhibitionId ?? this.exhibitionId,
@@ -703,6 +904,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     sortOrder: sortOrder ?? this.sortOrder,
     layout: layout ?? this.layout,
     motion: motion ?? this.motion,
+    pathStyle: pathStyle ?? this.pathStyle,
   );
   Chapter copyWithCompanion(ChaptersCompanion data) {
     return Chapter(
@@ -715,6 +917,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
       sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
       layout: data.layout.present ? data.layout.value : this.layout,
       motion: data.motion.present ? data.motion.value : this.motion,
+      pathStyle: data.pathStyle.present ? data.pathStyle.value : this.pathStyle,
     );
   }
 
@@ -727,14 +930,23 @@ class Chapter extends DataClass implements Insertable<Chapter> {
           ..write('caption: $caption, ')
           ..write('sortOrder: $sortOrder, ')
           ..write('layout: $layout, ')
-          ..write('motion: $motion')
+          ..write('motion: $motion, ')
+          ..write('pathStyle: $pathStyle')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, exhibitionId, title, caption, sortOrder, layout, motion);
+  int get hashCode => Object.hash(
+    id,
+    exhibitionId,
+    title,
+    caption,
+    sortOrder,
+    layout,
+    motion,
+    pathStyle,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -745,7 +957,8 @@ class Chapter extends DataClass implements Insertable<Chapter> {
           other.caption == this.caption &&
           other.sortOrder == this.sortOrder &&
           other.layout == this.layout &&
-          other.motion == this.motion);
+          other.motion == this.motion &&
+          other.pathStyle == this.pathStyle);
 }
 
 class ChaptersCompanion extends UpdateCompanion<Chapter> {
@@ -756,6 +969,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
   final Value<int> sortOrder;
   final Value<String> layout;
   final Value<String> motion;
+  final Value<String> pathStyle;
   final Value<int> rowid;
   const ChaptersCompanion({
     this.id = const Value.absent(),
@@ -765,6 +979,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     this.sortOrder = const Value.absent(),
     this.layout = const Value.absent(),
     this.motion = const Value.absent(),
+    this.pathStyle = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ChaptersCompanion.insert({
@@ -775,6 +990,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     required int sortOrder,
     required String layout,
     required String motion,
+    this.pathStyle = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        exhibitionId = Value(exhibitionId),
@@ -791,6 +1007,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     Expression<int>? sortOrder,
     Expression<String>? layout,
     Expression<String>? motion,
+    Expression<String>? pathStyle,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -801,6 +1018,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
       if (sortOrder != null) 'sort_order': sortOrder,
       if (layout != null) 'layout': layout,
       if (motion != null) 'motion': motion,
+      if (pathStyle != null) 'path_style': pathStyle,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -813,6 +1031,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     Value<int>? sortOrder,
     Value<String>? layout,
     Value<String>? motion,
+    Value<String>? pathStyle,
     Value<int>? rowid,
   }) {
     return ChaptersCompanion(
@@ -823,6 +1042,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
       sortOrder: sortOrder ?? this.sortOrder,
       layout: layout ?? this.layout,
       motion: motion ?? this.motion,
+      pathStyle: pathStyle ?? this.pathStyle,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -851,6 +1071,9 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     if (motion.present) {
       map['motion'] = Variable<String>(motion.value);
     }
+    if (pathStyle.present) {
+      map['path_style'] = Variable<String>(pathStyle.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -867,6 +1090,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
           ..write('sortOrder: $sortOrder, ')
           ..write('layout: $layout, ')
           ..write('motion: $motion, ')
+          ..write('pathStyle: $pathStyle, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2145,6 +2369,9 @@ typedef $$ExhibitionsTableCreateCompanionBuilder =
       required String title,
       Value<String?> coverMediaId,
       required String theme,
+      Value<String?> musicPath,
+      Value<String?> musicTitle,
+      Value<bool> showChapterTitleInPlayback,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -2155,6 +2382,9 @@ typedef $$ExhibitionsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String?> coverMediaId,
       Value<String> theme,
+      Value<String?> musicPath,
+      Value<String?> musicTitle,
+      Value<bool> showChapterTitleInPlayback,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -2228,6 +2458,21 @@ class $$ExhibitionsTableFilterComposer
 
   ColumnFilters<String> get theme => $composableBuilder(
     column: $table.theme,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get musicPath => $composableBuilder(
+    column: $table.musicPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get musicTitle => $composableBuilder(
+    column: $table.musicTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get showChapterTitleInPlayback => $composableBuilder(
+    column: $table.showChapterTitleInPlayback,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2321,6 +2566,21 @@ class $$ExhibitionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get musicPath => $composableBuilder(
+    column: $table.musicPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get musicTitle => $composableBuilder(
+    column: $table.musicTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get showChapterTitleInPlayback => $composableBuilder(
+    column: $table.showChapterTitleInPlayback,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -2354,6 +2614,19 @@ class $$ExhibitionsTableAnnotationComposer
 
   GeneratedColumn<String> get theme =>
       $composableBuilder(column: $table.theme, builder: (column) => column);
+
+  GeneratedColumn<String> get musicPath =>
+      $composableBuilder(column: $table.musicPath, builder: (column) => column);
+
+  GeneratedColumn<String> get musicTitle => $composableBuilder(
+    column: $table.musicTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get showChapterTitleInPlayback => $composableBuilder(
+    column: $table.showChapterTitleInPlayback,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -2444,6 +2717,9 @@ class $$ExhibitionsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String?> coverMediaId = const Value.absent(),
                 Value<String> theme = const Value.absent(),
+                Value<String?> musicPath = const Value.absent(),
+                Value<String?> musicTitle = const Value.absent(),
+                Value<bool> showChapterTitleInPlayback = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -2452,6 +2728,9 @@ class $$ExhibitionsTableTableManager
                 title: title,
                 coverMediaId: coverMediaId,
                 theme: theme,
+                musicPath: musicPath,
+                musicTitle: musicTitle,
+                showChapterTitleInPlayback: showChapterTitleInPlayback,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -2462,6 +2741,9 @@ class $$ExhibitionsTableTableManager
                 required String title,
                 Value<String?> coverMediaId = const Value.absent(),
                 required String theme,
+                Value<String?> musicPath = const Value.absent(),
+                Value<String?> musicTitle = const Value.absent(),
+                Value<bool> showChapterTitleInPlayback = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -2470,6 +2752,9 @@ class $$ExhibitionsTableTableManager
                 title: title,
                 coverMediaId: coverMediaId,
                 theme: theme,
+                musicPath: musicPath,
+                musicTitle: musicTitle,
+                showChapterTitleInPlayback: showChapterTitleInPlayback,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -2566,6 +2851,7 @@ typedef $$ChaptersTableCreateCompanionBuilder =
       required int sortOrder,
       required String layout,
       required String motion,
+      Value<String> pathStyle,
       Value<int> rowid,
     });
 typedef $$ChaptersTableUpdateCompanionBuilder =
@@ -2577,6 +2863,7 @@ typedef $$ChaptersTableUpdateCompanionBuilder =
       Value<int> sortOrder,
       Value<String> layout,
       Value<String> motion,
+      Value<String> pathStyle,
       Value<int> rowid,
     });
 
@@ -2656,6 +2943,11 @@ class $$ChaptersTableFilterComposer
 
   ColumnFilters<String> get motion => $composableBuilder(
     column: $table.motion,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get pathStyle => $composableBuilder(
+    column: $table.pathStyle,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2747,6 +3039,11 @@ class $$ChaptersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get pathStyle => $composableBuilder(
+    column: $table.pathStyle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ExhibitionsTableOrderingComposer get exhibitionId {
     final $$ExhibitionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -2797,6 +3094,9 @@ class $$ChaptersTableAnnotationComposer
 
   GeneratedColumn<String> get motion =>
       $composableBuilder(column: $table.motion, builder: (column) => column);
+
+  GeneratedColumn<String> get pathStyle =>
+      $composableBuilder(column: $table.pathStyle, builder: (column) => column);
 
   $$ExhibitionsTableAnnotationComposer get exhibitionId {
     final $$ExhibitionsTableAnnotationComposer composer = $composerBuilder(
@@ -2882,6 +3182,7 @@ class $$ChaptersTableTableManager
                 Value<int> sortOrder = const Value.absent(),
                 Value<String> layout = const Value.absent(),
                 Value<String> motion = const Value.absent(),
+                Value<String> pathStyle = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ChaptersCompanion(
                 id: id,
@@ -2891,6 +3192,7 @@ class $$ChaptersTableTableManager
                 sortOrder: sortOrder,
                 layout: layout,
                 motion: motion,
+                pathStyle: pathStyle,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2902,6 +3204,7 @@ class $$ChaptersTableTableManager
                 required int sortOrder,
                 required String layout,
                 required String motion,
+                Value<String> pathStyle = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ChaptersCompanion.insert(
                 id: id,
@@ -2911,6 +3214,7 @@ class $$ChaptersTableTableManager
                 sortOrder: sortOrder,
                 layout: layout,
                 motion: motion,
+                pathStyle: pathStyle,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

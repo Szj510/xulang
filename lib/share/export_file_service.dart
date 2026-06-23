@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
-import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/share/exhibition_exporter.dart';
 
@@ -10,27 +9,6 @@ class ExportFileService {
   const ExportFileService({required this.outputDirectory});
 
   final Directory outputDirectory;
-
-  Future<File> writeHtml(GalleryBundle bundle) async {
-    await outputDirectory.create(recursive: true);
-    final name = _safeName(bundle.document.title);
-    final file = File(p.join(outputDirectory.path, '$name.html'));
-    return file.writeAsString(
-      await const ExhibitionHtmlExporter().buildHtml(bundle),
-    );
-  }
-
-  Future<File> writeGif(GalleryBundle bundle, {int chapterIndex = 0}) async {
-    await outputDirectory.create(recursive: true);
-    final name = _safeName(bundle.document.title);
-    final file = File(p.join(outputDirectory.path, '$name.gif'));
-    return file.writeAsBytes(
-      await const ExhibitionGifExporter().buildGif(
-        bundle,
-        chapterIndex: chapterIndex,
-      ),
-    );
-  }
 
   Future<File> writeTemplate(GalleryDocument document) async {
     await outputDirectory.create(recursive: true);

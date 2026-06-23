@@ -83,7 +83,9 @@ class SceneCanvas extends StatelessWidget {
             ),
             child: Stack(
               children: [
-                if (showStoryPath && chapter.layout == GalleryLayout.storyPath)
+                if (showStoryPath &&
+                    chapter.layout == GalleryLayout.storyPath &&
+                    chapter.pathStyle != StoryPathStyle.none)
                   Positioned.fill(
                     child: IgnorePointer(
                       child: Opacity(
@@ -94,6 +96,7 @@ class SceneCanvas extends StatelessWidget {
                           painter: StoryPathPainter(
                             sceneTheme: sceneTheme,
                             geometry: displayedGeometry,
+                            style: chapter.pathStyle,
                           ),
                         ),
                       ),
@@ -522,10 +525,15 @@ StoryPathGeometry transformStoryPathGeometry({
 }
 
 class StoryPathPainter extends CustomPainter {
-  StoryPathPainter({required this.sceneTheme, required this.geometry});
+  StoryPathPainter({
+    required this.sceneTheme,
+    required this.geometry,
+    this.style = StoryPathStyle.solid,
+  });
 
   final GalleryTheme sceneTheme;
   final StoryPathGeometry geometry;
+  final StoryPathStyle style;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -534,10 +542,11 @@ class StoryPathPainter extends CustomPainter {
                 ? XulangColors.ink
                 : XulangColors.paper)
             .withValues(alpha: .20);
+    if (style == StoryPathStyle.none) return;
     final stroke = Paint()
       ..color = color
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1;
+      ..strokeWidth = style == StoryPathStyle.glow ? 1.6 : 1;
     for (final segment in geometry.segments) {
       final path = Path()
         ..moveTo(segment.start.dx, segment.start.dy)
@@ -549,7 +558,21 @@ class StoryPathPainter extends CustomPainter {
           segment.end.dx,
           segment.end.dy,
         );
-      canvas.drawPath(path, stroke);
+      if (style == StoryPathStyle.glow) {
+        canvas.drawPath(
+          path,
+          Paint()
+            ..color = storyPathDotColor(sceneTheme).withValues(alpha: .20)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 6
+            ..strokeCap = StrokeCap.round,
+        );
+      }
+      if (style == StoryPathStyle.dashed) {
+        _drawDashedPath(canvas, path, stroke);
+      } else {
+        canvas.drawPath(path, stroke);
+      }
     }
     final dot = Paint()
       ..color = storyPathDotColor(sceneTheme)
@@ -561,5 +584,18 @@ class StoryPathPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant StoryPathPainter oldDelegate) =>
-      sceneTheme != oldDelegate.sceneTheme || geometry != oldDelegate.geometry;
+      sceneTheme != oldDelegate.sceneTheme ||
+      geometry != oldDelegate.geometry ||
+      style != oldDelegate.style;
+}
+
+void _drawDashedPath(Canvas canvas, Path path, Paint paint) {
+  for (final metric in path.computeMetrics()) {
+    var distance = 0.0;
+    while (distance < metric.length) {
+      final next = (distance + 14).clamp(0.0, metric.length);
+      canvas.drawPath(metric.extractPath(distance, next), paint);
+      distance += 22;
+    }
+  }
 }

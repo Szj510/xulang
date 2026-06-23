@@ -1,6 +1,8 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:path/path.dart' as p;
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/data/image_selection_service.dart';
 import 'package:xulang/data/media_import_service.dart';
@@ -88,6 +90,56 @@ class EditorSession extends ChangeNotifier {
     );
   }
 
+  Future<void> updateShowChapterTitleInPlayback(bool value) async {
+    final current = bundle;
+    if (current == null) return;
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          showChapterTitleInPlayback: value,
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> importBackgroundMusic(String sourcePath) async {
+    final current = bundle;
+    if (current == null) return;
+    final source = File(sourcePath);
+    if (!await source.exists()) return;
+    final directory = Directory(
+      p.join(repository.mediaRoot.path, exhibitionId, 'music'),
+    );
+    await directory.create(recursive: true);
+    final extension = p.extension(sourcePath);
+    final fileName = '${repository.createId()}$extension';
+    final copied = await source.copy(p.join(directory.path, fileName));
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          musicPath: copied.path,
+          musicTitle: p.basename(sourcePath),
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> clearBackgroundMusic() async {
+    final current = bundle;
+    if (current == null) return;
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          musicPath: null,
+          musicTitle: null,
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
   Future<void> applyTemplateJson(String templateJson) async {
     final current = bundle;
     if (current == null) return;
@@ -153,6 +205,7 @@ class EditorSession extends ChangeNotifier {
     String? caption,
     GalleryLayout? layout,
     GalleryMotion? motion,
+    StoryPathStyle? pathStyle,
   }) async {
     final current = bundle;
     if (current == null) return;
@@ -163,6 +216,7 @@ class EditorSession extends ChangeNotifier {
       caption: caption,
       layout: layout,
       motion: motion,
+      pathStyle: pathStyle,
     );
     await _commit(
       current.copyWith(
