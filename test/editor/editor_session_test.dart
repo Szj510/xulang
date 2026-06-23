@@ -8,6 +8,7 @@ import 'package:xulang/data/image_selection_service.dart';
 import 'package:xulang/data/media_import_service.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/editor/editor_session.dart';
+import 'package:xulang/share/exhibition_exporter.dart';
 
 void main() {
   late GalleryDatabase database;
@@ -103,6 +104,45 @@ void main() {
     expect(session.bundle!.document.theme, GalleryTheme.paper);
     final persisted = await repository.load('exhibition');
     expect(persisted!.document.theme, GalleryTheme.paper);
+  });
+
+  test('applies imported template while preserving existing media', () async {
+    final template = ExhibitionTemplateCodec().encode(
+      GalleryDocument(
+        id: 'template',
+        title: '模板',
+        createdAt: DateTime(2026, 6, 23),
+        updatedAt: DateTime(2026, 6, 23),
+        chapters: const [
+          GalleryChapter(
+            id: 'template-chapter',
+            title: '木框胶片',
+            order: 0,
+            layout: GalleryLayout.filmstrip,
+            motion: GalleryMotion.pan,
+            placements: [
+              GalleryPlacement(
+                id: 'slot',
+                mediaId: 'template-media',
+                order: 0,
+                frame: GalleryFrame.wood,
+                size: GallerySize.large,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    await session.applyTemplateJson(template);
+
+    final chapter = session.bundle!.document.chapters.single;
+    expect(chapter.title, '木框胶片');
+    expect(chapter.layout, GalleryLayout.filmstrip);
+    expect(chapter.placements.single.mediaId, 'media');
+    expect(chapter.placements.single.frame, GalleryFrame.wood);
+    final persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters.single.layout, GalleryLayout.filmstrip);
   });
 }
 

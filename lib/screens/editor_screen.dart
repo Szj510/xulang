@@ -1,9 +1,17 @@
+import 'dart:io';
+
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/editor/editor_session.dart';
+import 'package:xulang/layout/narrative_axis.dart';
+import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/viewer_screen.dart';
+import 'package:xulang/share/export_file_service.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/gallery_image.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
@@ -36,101 +44,308 @@ class EditorScreen extends ConsumerWidget {
   }
 }
 
-class _EditorBody extends StatelessWidget {
+class _EditorBody extends StatefulWidget {
   const _EditorBody({required this.session});
 
   final EditorSession session;
+
+  @override
+  State<_EditorBody> createState() => _EditorBodyState();
+}
+
+class _EditorBodyState extends State<_EditorBody> {
+  bool _showChapters = false;
+
+  EditorSession get session => widget.session;
 
   @override
   Widget build(BuildContext context) {
     final bundle = session.bundle!;
     final document = bundle.document;
     final chapter = session.selectedChapter!;
-    return Scaffold(
-      appBar: AppBar(
-        backgroundColor: XulangColors.ink,
-        titleSpacing: 4,
-        title: InkWell(
-          onTap: () => _rename(context),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
-                  document.title,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontFamily: 'serif', letterSpacing: 1),
-                ),
-              ),
-              const SizedBox(width: 6),
-              const Icon(
-                Icons.edit_outlined,
-                size: 15,
-                color: XulangColors.muted,
-              ),
-            ],
-          ),
-        ),
-        actions: [
-          IconButton(
-            tooltip: '撤销',
-            onPressed: session.canUndo ? session.undo : null,
-            icon: const Icon(Icons.undo),
-          ),
-          IconButton(
-            tooltip: '重做',
-            onPressed: session.canRedo ? session.redo : null,
-            icon: const Icon(Icons.redo),
-          ),
-          IconButton(
-            tooltip: '沉浸观看',
-            onPressed: chapter.placements.isEmpty
-                ? null
-                : () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => ViewerScreen(exhibitionId: document.id),
+    return OrientationBuilder(
+      builder: (context, orientation) {
+        final landscape = orientation == Orientation.landscape;
+        return Scaffold(
+          appBar: landscape
+              ? null
+              : AppBar(
+                  key: const Key('editor-app-bar'),
+                  backgroundColor: XulangColors.ink,
+                  titleSpacing: 4,
+                  title: InkWell(
+                    onTap: () => _rename(context),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Flexible(
+                          child: Text(
+                            document.title,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              fontFamily: 'serif',
+                              letterSpacing: 1,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        const Icon(
+                          Icons.edit_outlined,
+                          size: 15,
+                          color: XulangColors.muted,
+                        ),
+                      ],
                     ),
                   ),
-            icon: const Icon(Icons.play_arrow_rounded),
-          ),
-          const SizedBox(width: 6),
-        ],
-      ),
-      body: LayoutBuilder(
-        builder: (context, constraints) {
-          final landscape = constraints.maxWidth > constraints.maxHeight;
-          if (landscape) {
-            final inspectorWidth = (constraints.maxWidth * .36).clamp(
-              280.0,
-              340.0,
-            );
-            return Column(
-              children: [
-                _ChapterRail(session: session),
-                Expanded(
-                  child: Row(
-                    children: [
-                      Expanded(flex: 7, child: _Preview(session: session)),
-                      SizedBox(
-                        width: inspectorWidth,
-                        child: _Inspector(session: session),
-                      ),
-                    ],
-                  ),
+                  actions: [
+                    IconButton(
+                      tooltip: '撤销',
+                      onPressed: session.canUndo ? session.undo : null,
+                      icon: const Icon(Icons.undo),
+                    ),
+                    IconButton(
+                      tooltip: '重做',
+                      onPressed: session.canRedo ? session.redo : null,
+                      icon: const Icon(Icons.redo),
+                    ),
+                    IconButton(
+                      tooltip: '沉浸观看',
+                      onPressed: chapter.placements.isEmpty
+                          ? null
+                          : () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    ViewerScreen(exhibitionId: document.id),
+                              ),
+                            ),
+                      icon: const Icon(Icons.play_arrow_rounded),
+                    ),
+                    PopupMenuButton<_EditorExportAction>(
+                      tooltip: '导出与分享',
+                      onSelected: (action) =>
+                          _handleExportAction(context, action),
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: _EditorExportAction.html,
+                          child: Text('导出 HTML'),
+                        ),
+                        PopupMenuItem(
+                          value: _EditorExportAction.template,
+                          child: Text('分享模板'),
+                        ),
+                        PopupMenuItem(
+                          value: _EditorExportAction.importTemplate,
+                          child: Text('导入模板'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 6),
+                  ],
                 ),
-              ],
-            );
-          }
-          return Column(
-            children: [
-              _ChapterRail(session: session),
-              Expanded(child: _Preview(session: session)),
-              SizedBox(height: 214, child: _Inspector(session: session)),
-            ],
-          );
-        },
+          body: LayoutBuilder(
+            builder: (context, constraints) {
+              if (landscape) {
+                final inspectorWidth = (constraints.maxWidth * .36).clamp(
+                  280.0,
+                  340.0,
+                );
+                return Stack(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _Preview(
+                            session: session,
+                            onCanvasTap: _hideChapters,
+                          ),
+                        ),
+                        SizedBox(
+                          width: inspectorWidth,
+                          child: _Inspector(session: session),
+                        ),
+                      ],
+                    ),
+                    Positioned(
+                      left: 0,
+                      top: 0,
+                      child: SafeArea(
+                        child: SizedBox.square(
+                          dimension: 48,
+                          child: IconButton(
+                            tooltip: '返回',
+                            onPressed: () => Navigator.maybePop(context),
+                            icon: const Icon(Icons.arrow_back),
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      right: 8,
+                      top: 0,
+                      child: SafeArea(
+                        child: Material(
+                          key: const Key('landscape-editor-toolbar'),
+                          color: XulangColors.ink.withValues(alpha: .9),
+                          borderRadius: BorderRadius.circular(24),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              IconButton(
+                                tooltip: '章节',
+                                onPressed: () => setState(
+                                  () => _showChapters = !_showChapters,
+                                ),
+                                icon: const Icon(Icons.view_carousel_outlined),
+                              ),
+                              IconButton(
+                                key: const Key('landscape-editor-undo'),
+                                tooltip: '撤销',
+                                onPressed: session.canUndo
+                                    ? session.undo
+                                    : null,
+                                icon: const Icon(Icons.undo),
+                              ),
+                              IconButton(
+                                key: const Key('landscape-editor-redo'),
+                                tooltip: '重做',
+                                onPressed: session.canRedo
+                                    ? session.redo
+                                    : null,
+                                icon: const Icon(Icons.redo),
+                              ),
+                              IconButton(
+                                key: const Key('landscape-editor-play'),
+                                tooltip: '沉浸观看',
+                                onPressed: chapter.placements.isEmpty
+                                    ? null
+                                    : () => _play(context),
+                                icon: const Icon(Icons.play_arrow_rounded),
+                              ),
+                              PopupMenuButton<_EditorExportAction>(
+                                tooltip: '导出与分享',
+                                onSelected: (action) =>
+                                    _handleExportAction(context, action),
+                                itemBuilder: (context) => const [
+                                  PopupMenuItem(
+                                    value: _EditorExportAction.html,
+                                    child: Text('导出 HTML'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: _EditorExportAction.template,
+                                    child: Text('分享模板'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: _EditorExportAction.importTemplate,
+                                    child: Text('导入模板'),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    if (_showChapters)
+                      Positioned(
+                        left: 48,
+                        right: 8,
+                        top: 0,
+                        child: SafeArea(
+                          child: Padding(
+                            padding: const EdgeInsets.only(top: 56),
+                            child: _ChapterRail(
+                              key: const Key('landscape-chapter-overlay'),
+                              session: session,
+                              onSelected: (index) {
+                                session.selectChapter(index);
+                                _hideChapters();
+                              },
+                              onRename: () => _rename(context),
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              }
+              return Column(
+                children: [
+                  _ChapterRail(
+                    key: const Key('editor-chapter-rail'),
+                    session: session,
+                  ),
+                  Expanded(child: _Preview(session: session)),
+                  SizedBox(height: 214, child: _Inspector(session: session)),
+                ],
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+
+  void _hideChapters() {
+    if (_showChapters) setState(() => _showChapters = false);
+  }
+
+  void _play(BuildContext context) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ViewerScreen(exhibitionId: session.bundle!.document.id),
       ),
     );
+  }
+
+  Future<void> _handleExportAction(
+    BuildContext context,
+    _EditorExportAction action,
+  ) async {
+    final bundle = session.bundle;
+    if (bundle == null) return;
+    try {
+      final service = await _exportFileService();
+      switch (action) {
+        case _EditorExportAction.html:
+          final file = await service.writeHtml(bundle);
+          await service.shareFile(file, title: '${bundle.document.title} HTML');
+          if (context.mounted) {
+            _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
+          }
+        case _EditorExportAction.template:
+          final file = await service.writeTemplate(bundle.document);
+          await service.shareFile(file, title: '${bundle.document.title} 模板');
+          if (context.mounted) {
+            _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
+          }
+        case _EditorExportAction.importTemplate:
+          final file = await openFile(
+            acceptedTypeGroups: const [
+              XTypeGroup(
+                label: '叙廊模板',
+                extensions: ['json'],
+                mimeTypes: ['application/json'],
+              ),
+            ],
+          );
+          if (file == null) return;
+          await session.applyTemplateJson(await file.readAsString());
+          if (context.mounted) _showSnack(context, '已套用模板');
+      }
+    } catch (caught) {
+      if (context.mounted) _showSnack(context, '操作失败：$caught');
+    }
+  }
+
+  Future<ExportFileService> _exportFileService() async {
+    final root = await getApplicationDocumentsDirectory();
+    return ExportFileService(
+      outputDirectory: Directory(p.join(root.path, 'exports')),
+    );
+  }
+
+  void _showSnack(BuildContext context, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
   }
 
   Future<void> _rename(BuildContext context) async {
@@ -160,10 +375,19 @@ class _EditorBody extends StatelessWidget {
   }
 }
 
+enum _EditorExportAction { html, template, importTemplate }
+
 class _ChapterRail extends StatelessWidget {
-  const _ChapterRail({required this.session});
+  const _ChapterRail({
+    super.key,
+    required this.session,
+    this.onSelected,
+    this.onRename,
+  });
 
   final EditorSession session;
+  final ValueChanged<int>? onSelected;
+  final VoidCallback? onRename;
 
   @override
   Widget build(BuildContext context) {
@@ -189,7 +413,8 @@ class _ChapterRail extends StatelessWidget {
                   padding: const EdgeInsets.only(right: 8),
                   child: ChoiceChip(
                     selected: selected,
-                    onSelected: (_) => session.selectChapter(index),
+                    onSelected: (_) =>
+                        (onSelected ?? session.selectChapter)(index),
                     label: Text('${index + 1}  ${chapters[index].title}'),
                   ),
                 );
@@ -201,6 +426,12 @@ class _ChapterRail extends StatelessWidget {
             onPressed: session.addChapter,
             icon: const Icon(Icons.add),
           ),
+          if (onRename != null)
+            IconButton(
+              tooltip: '重命名展览',
+              onPressed: onRename,
+              icon: const Icon(Icons.edit_outlined),
+            ),
           const SizedBox(width: 4),
         ],
       ),
@@ -209,105 +440,215 @@ class _ChapterRail extends StatelessWidget {
 }
 
 class _Preview extends StatefulWidget {
-  const _Preview({required this.session});
+  const _Preview({required this.session, this.onCanvasTap});
 
   final EditorSession session;
+  final VoidCallback? onCanvasTap;
 
   @override
   State<_Preview> createState() => _PreviewState();
 }
 
 class _PreviewState extends State<_Preview> {
-  double cameraProgress = 0;
+  final Map<String, double> _cameraProgressByChapter = {};
+  final NarrativeCameraController _cameraController =
+      NarrativeCameraController();
 
   EditorSession get session => widget.session;
+  String get _chapterId => session.selectedChapter!.id;
+  double get _cameraProgress => _cameraProgressByChapter[_chapterId] ?? 0;
+
+  @override
+  void dispose() {
+    _cameraController.dispose();
+    super.dispose();
+  }
+
+  void _setProgress(double value) {
+    final next = value.clamp(0.0, 1.0);
+    _cameraController.setProgress(next);
+    setState(() => _cameraProgressByChapter[_chapterId] = next);
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        Positioned.fill(
-          child: SceneCanvas(
-            chapter: session.selectedChapter!,
-            media: session.bundle!.media,
-            cameraProgress: cameraProgress,
-            sceneTheme: session.bundle!.document.theme,
-          ),
-        ),
-        if (session.selectedChapter!.placements.length > 1)
-          Positioned(
-            left: 12,
-            right: 12,
-            bottom: 10,
-            child: SafeArea(
-              top: false,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: .62),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(color: Colors.white12),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewport = Size(constraints.maxWidth, constraints.maxHeight);
+        final landscape =
+            NarrativeAxis.fromViewport(viewport) == NarrativeAxis.horizontal;
+        final chapter = session.selectedChapter!;
+        final progress = _cameraProgress;
+        return Stack(
+          children: [
+            Positioned.fill(
+              child: GestureDetector(
+                key: const Key('editor-preview-gesture-surface'),
+                behavior: HitTestBehavior.opaque,
+                onTap: widget.onCanvasTap,
+                onPanStart: (_) {
+                  _cameraController.setProgress(_cameraProgress);
+                  _cameraController.begin(scale: 1);
+                },
+                onPanUpdate: (details) {
+                  _cameraController.update(
+                    delta: details.delta,
+                    viewport: viewport,
+                    itemCount: chapter.placements.length,
+                    scale: 1,
+                    axis: NarrativeAxis.fromViewport(viewport),
+                  );
+                  setState(() {
+                    _cameraProgressByChapter[_chapterId] =
+                        _cameraController.progress;
+                  });
+                },
+                onPanEnd: (_) => _cameraController.end(),
+                onPanCancel: _cameraController.end,
+                child: SceneCanvas(
+                  chapter: chapter,
+                  media: session.bundle!.media,
+                  cameraProgress: progress,
+                  sceneTheme: session.bundle!.document.theme,
                 ),
-                child: Row(
-                  children: [
-                    const SizedBox(width: 12),
-                    const Icon(
-                      Icons.view_in_ar_outlined,
-                      size: 16,
-                      color: XulangColors.paper,
+              ),
+            ),
+            if (chapter.placements.length > 1)
+              if (landscape)
+                Positioned(
+                  key: const Key('editor-horizontal-progress'),
+                  left: 12,
+                  right: 12,
+                  bottom: 10,
+                  child: SafeArea(
+                    top: false,
+                    child: _ProgressControl(
+                      progress: progress,
+                      onChanged: _setProgress,
                     ),
-                    Expanded(
-                      child: Slider(
-                        key: const Key('editor-camera-slider'),
-                        value: cameraProgress,
-                        onChanged: (value) =>
-                            setState(() => cameraProgress = value),
-                      ),
-                    ),
-                    SizedBox(
-                      width: 42,
-                      child: Text(
-                        '${(cameraProgress * 100).round()}%',
-                        style: const TextStyle(
-                          color: XulangColors.paper,
-                          fontSize: 11,
+                  ),
+                )
+              else
+                Positioned(
+                  key: const Key('editor-vertical-progress'),
+                  right: 8,
+                  top: 76,
+                  bottom: 12,
+                  child: SafeArea(
+                    left: false,
+                    child: SizedBox(
+                      width: 44,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: .62),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(color: Colors.white12),
+                        ),
+                        child: Column(
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: _ProgressText(progress: progress),
+                            ),
+                            Expanded(
+                              child: RotatedBox(
+                                quarterTurns: 3,
+                                child: Slider(
+                                  key: const Key('editor-camera-slider'),
+                                  value: progress,
+                                  onChanged: _setProgress,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                    ),
+                  ),
+                ),
+            Positioned(
+              right: landscape ? 14 : 58,
+              top: 14,
+              child: FilledButton.icon(
+                onPressed: session.importing ? null : session.importImages,
+                icon: session.importing
+                    ? const SizedBox.square(
+                        dimension: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.add_photo_alternate_outlined, size: 18),
+                label: Text(session.importing ? '导入中' : '导入图片'),
+              ),
+            ),
+            if (session.error != null)
+              Positioned(
+                left: 14,
+                right: 14,
+                bottom: 14,
+                child: MaterialBanner(
+                  content: Text('${session.error}'),
+                  actions: [
+                    TextButton(
+                      onPressed: session.clearError,
+                      child: const Text('知道了'),
                     ),
                   ],
                 ),
               ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+class _ProgressControl extends StatelessWidget {
+  const _ProgressControl({required this.progress, required this.onChanged});
+
+  final double progress;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .62),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white12),
+      ),
+      child: Row(
+        children: [
+          const SizedBox(width: 12),
+          const Icon(
+            Icons.view_in_ar_outlined,
+            size: 16,
+            color: XulangColors.paper,
+          ),
+          Expanded(
+            child: Slider(
+              key: const Key('editor-camera-slider'),
+              value: progress,
+              onChanged: onChanged,
             ),
           ),
-        Positioned(
-          right: 14,
-          top: 14,
-          child: FilledButton.icon(
-            onPressed: session.importing ? null : session.importImages,
-            icon: session.importing
-                ? const SizedBox.square(
-                    dimension: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.add_photo_alternate_outlined, size: 18),
-            label: Text(session.importing ? '导入中' : '导入图片'),
-          ),
-        ),
-        if (session.error != null)
-          Positioned(
-            left: 14,
-            right: 14,
-            bottom: 14,
-            child: MaterialBanner(
-              content: Text('${session.error}'),
-              actions: [
-                TextButton(
-                  onPressed: session.clearError,
-                  child: const Text('知道了'),
-                ),
-              ],
-            ),
-          ),
-      ],
+          SizedBox(width: 42, child: _ProgressText(progress: progress)),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProgressText extends StatelessWidget {
+  const _ProgressText({required this.progress});
+
+  final double progress;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      key: const Key('editor-camera-progress'),
+      '${(progress * 100).round()}%',
+      style: const TextStyle(color: XulangColors.paper, fontSize: 11),
     );
   }
 }
@@ -717,4 +1058,9 @@ String _frameLabel(GalleryFrame frame) => switch (frame) {
   GalleryFrame.hairline => '细线',
   GalleryFrame.mat => '相纸',
   GalleryFrame.stamp => '邮票边',
+  GalleryFrame.wood => '木制',
+  GalleryFrame.darkWood => '深木',
+  GalleryFrame.metal => '金属',
+  GalleryFrame.vintage => '复古',
+  GalleryFrame.film => '胶片孔',
 };

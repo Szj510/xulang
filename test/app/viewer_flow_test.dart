@@ -9,6 +9,7 @@ import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/data/sample_gallery.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/viewer_screen.dart';
+import 'package:xulang/widgets/scene_canvas.dart';
 
 void main() {
   late GalleryDatabase database;
@@ -31,6 +32,13 @@ void main() {
     if (await mediaRoot.exists()) await mediaRoot.delete(recursive: true);
   });
 
+  void setViewport(WidgetTester tester, Size size) {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = size;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
   Future<void> pumpViewer(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -51,7 +59,9 @@ void main() {
     expect(find.text('山海之间'), findsOneWidget);
     expect(find.textContaining('潮汐的方向'), findsOneWidget);
     expect(find.textContaining('进度 0%'), findsOneWidget);
-    expect(find.byTooltip('下一项'), findsOneWidget);
+    expect(find.byTooltip('下一项'), findsNothing);
+    expect(find.byTooltip('上一项'), findsNothing);
+    expect(find.byTooltip('回到全景'), findsNothing);
     expect(find.byTooltip('下一章'), findsOneWidget);
     expect(find.byKey(const Key('viewer-top-scrim')), findsOneWidget);
     expect(find.byKey(const Key('viewer-caption-scrim')), findsOneWidget);
@@ -67,26 +77,55 @@ void main() {
   testWidgets('keeps camera progress through orientation changes', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(390, 844));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    setViewport(tester, const Size(390, 844));
     await pumpViewer(tester);
 
     await tester.drag(
       find.byKey(const Key('narrative-gesture-surface')),
-      const Offset(-110, 0),
+      const Offset(0, -220),
     );
     await tester.pump(const Duration(milliseconds: 16));
     final progressBefore = tester
-        .widget<Text>(find.byKey(const Key('viewer-track-progress')))
-        .data;
-    expect(progressBefore, isNot('进度 0%'));
+        .widget<SceneCanvas>(find.byType(SceneCanvas))
+        .cameraProgress;
+    expect(progressBefore, greaterThan(0));
 
-    await tester.binding.setSurfaceSize(const Size(844, 390));
+    setViewport(tester, const Size(844, 390));
     await tester.pumpAndSettle();
     final progressAfter = tester
-        .widget<Text>(find.byKey(const Key('viewer-track-progress')))
-        .data;
+        .widget<SceneCanvas>(find.byType(SceneCanvas))
+        .cameraProgress;
     expect(progressAfter, progressBefore);
     expect(find.textContaining('潮汐的方向'), findsOneWidget);
+  });
+
+  testWidgets('portrait needs a new boundary gesture to change chapter', (
+    tester,
+  ) async {
+    setViewport(tester, const Size(390, 844));
+    await pumpViewer(tester);
+
+    final surface = find.byKey(const Key('narrative-gesture-surface'));
+    await tester.drag(surface, const Offset(0, -700));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('潮汐的方向'), findsOneWidget);
+
+    await tester.drag(surface, const Offset(0, -80));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('夏日散步'), findsOneWidget);
+  });
+
+  testWidgets('landscape separates track and chapter axes', (tester) async {
+    setViewport(tester, const Size(844, 390));
+    await pumpViewer(tester);
+
+    final surface = find.byKey(const Key('narrative-gesture-surface'));
+    await tester.drag(surface, const Offset(-200, 0));
+    await tester.pump();
+    expect(find.text('进度 0%'), findsNothing);
+
+    await tester.drag(surface, const Offset(0, -80));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('夏日散步'), findsOneWidget);
   });
 }

@@ -1,4 +1,8 @@
+import 'dart:math' as math;
 import 'dart:ui';
+
+import 'package:xulang/layout/narrative_axis.dart';
+import 'package:xulang/layout/story_path_geometry.dart';
 
 class NarrativeTransform {
   const NarrativeTransform({
@@ -104,15 +108,24 @@ class NarrativeNodeFrame {
 }
 
 class ResolvedNarrativeFrame {
-  const ResolvedNarrativeFrame({required this.progress, required this.nodes});
+  ResolvedNarrativeFrame({
+    required this.progress,
+    required List<NarrativeNodeFrame> nodes,
+    required this.axis,
+    required this.path,
+  }) : nodes = List.unmodifiable(nodes);
 
   final double progress;
   final List<NarrativeNodeFrame> nodes;
+  final NarrativeAxis axis;
+  final StoryPathGeometry path;
 
   @override
   bool operator ==(Object other) {
     if (other is! ResolvedNarrativeFrame ||
         progress != other.progress ||
+        axis != other.axis ||
+        path != other.path ||
         nodes.length != other.nodes.length) {
       return false;
     }
@@ -123,25 +136,83 @@ class ResolvedNarrativeFrame {
   }
 
   @override
-  int get hashCode => Object.hash(progress, Object.hashAll(nodes));
+  int get hashCode => Object.hash(progress, Object.hashAll(nodes), axis, path);
 }
 
 class ResolvedNarrativeTrack {
   const ResolvedNarrativeTrack({
     required this.keyframes,
     required this.visibilityWindow,
+    required this.axis,
+    required this.viewport,
+    required this.contentExtent,
+    required this.sharedCamera,
   });
 
   final List<NarrativeKeyframe> keyframes;
   final double visibilityWindow;
+  final NarrativeAxis axis;
+  final Size viewport;
+  final double contentExtent;
+  final bool sharedCamera;
 
   ResolvedNarrativeFrame resolve(double rawProgress) {
     final progress = rawProgress.clamp(0.0, 1.0);
+    if (sharedCamera) return _resolveSharedCamera(progress);
     return ResolvedNarrativeFrame(
       progress: progress,
+      axis: axis,
+      path: const StoryPathGeometry.empty(),
       nodes: [
         for (final keyframe in keyframes) _resolveKeyframe(keyframe, progress),
       ],
+    );
+  }
+
+  ResolvedNarrativeFrame _resolveSharedCamera(double progress) {
+    final viewportPrimary = axis.primaryExtent(viewport);
+    final travel = math.max(0.0, contentExtent - viewportPrimary);
+    final camera = travel * progress;
+    final viewportCenter = viewportPrimary / 2;
+    final focusRange = viewportPrimary * .72;
+    final nodes = <NarrativeNodeFrame>[];
+    for (final keyframe in keyframes) {
+      final worldRect = axis.shiftPrimary(keyframe.focus.rect, -camera);
+      final primaryCenter = axis.primaryOffset(worldRect.center);
+      final distance = focusRange > 0
+          ? ((primaryCenter - viewportCenter).abs() / focusRange).clamp(
+              0.0,
+              1.0,
+            )
+          : 1.0;
+      final focus = 1 - distance;
+      nodes.add(
+        NarrativeNodeFrame(
+          placementId: keyframe.placementId,
+          rect: _scaled(worldRect, .88 + focus * .12),
+          depth: .18 + focus * .82,
+          opacity: .12 + focus * .88,
+          rotation: keyframe.focus.rotation * (.72 + focus * .28),
+          rotateY: (1 - focus) * .10,
+        ),
+      );
+    }
+    return ResolvedNarrativeFrame(
+      progress: progress,
+      nodes: nodes,
+      axis: axis,
+      path: StoryPathGeometry.resolve(
+        axis: axis,
+        viewport: viewport,
+        nodes: [
+          for (final node in nodes)
+            StoryPathNodeInput(
+              placementId: node.placementId,
+              rect: node.rect,
+              opacity: node.opacity,
+            ),
+        ],
+      ),
     );
   }
 
@@ -166,6 +237,12 @@ class ResolvedNarrativeTrack {
     );
   }
 }
+
+Rect _scaled(Rect rect, double scale) => Rect.fromCenter(
+  center: rect.center,
+  width: rect.width * scale,
+  height: rect.height * scale,
+);
 
 double _lerpDouble(double begin, double end, double t) =>
     begin + (end - begin) * t;

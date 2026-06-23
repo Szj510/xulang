@@ -20,6 +20,15 @@ void main() {
     ),
     GalleryPlacement(id: 'p4', mediaId: 'm4', order: 3),
   ];
+  final storyPlacements = List.generate(
+    8,
+    (index) => GalleryPlacement(
+      id: 'story-$index',
+      mediaId: 'story-media-$index',
+      order: index,
+      size: GallerySize.values[index % GallerySize.values.length],
+    ),
+  );
 
   GalleryChapter chapter(GalleryLayout layout) => GalleryChapter(
     id: 'chapter-1',
@@ -113,6 +122,131 @@ void main() {
       final large = areaFor(GallerySize.large);
       expect(small, lessThan(medium), reason: '${layout.name} small');
       expect(medium, lessThan(large), reason: '${layout.name} medium');
+    }
+  });
+
+  test('portrait story path advances monotonically down the world', () {
+    final scene = LayoutResolver.resolve(
+      chapter: chapter(
+        GalleryLayout.storyPath,
+      ).copyWith(placements: storyPlacements),
+      viewport: const Size(390, 844),
+    );
+
+    expect(scene.primaryAxis, Axis.vertical);
+    expect(scene.nodes, hasLength(8));
+    expect(
+      scene.nodes.map((node) => node.placementId),
+      storyPlacements.map((placement) => placement.id),
+    );
+    expect(scene.nodes.map((node) => node.depth), const [
+      .42,
+      1.0,
+      .72,
+      .56,
+      .42,
+      1.0,
+      .72,
+      .56,
+    ]);
+    expect(scene.nodes.map((node) => node.rotation), const [
+      -.035,
+      .022,
+      -.018,
+      .038,
+      -.035,
+      .022,
+      -.018,
+      .038,
+    ]);
+    expect(scene.nodes[0].rect.center.dx, closeTo(390 * .35, 1e-9));
+    expect(scene.nodes[0].rect.width, closeTo(390 * .58 * .76, 1e-9));
+    expect(scene.nodes[0].rect.height, closeTo(844 * .29 * .76, 1e-9));
+    expect(scene.nodes[5].rect.center.dx, closeTo(390 * .64, 1e-9));
+    expect(scene.nodes[5].rect.width, closeTo(390 * .58, 1e-9));
+    expect(scene.nodes[5].rect.height, closeTo(844 * .29, 1e-9));
+    for (var index = 1; index < scene.nodes.length; index++) {
+      expect(
+        scene.nodes[index].rect.top - scene.nodes[index - 1].rect.bottom,
+        greaterThanOrEqualTo(24),
+        reason: 'gap before story node $index',
+      );
+    }
+    expect(scene.contentExtent, greaterThan(844));
+  });
+
+  test('landscape story path advances monotonically across the world', () {
+    final scene = LayoutResolver.resolve(
+      chapter: chapter(
+        GalleryLayout.storyPath,
+      ).copyWith(placements: storyPlacements),
+      viewport: const Size(844, 390),
+    );
+
+    expect(scene.primaryAxis, Axis.horizontal);
+    expect(scene.nodes, hasLength(8));
+    expect(
+      scene.nodes.map((node) => node.placementId),
+      storyPlacements.map((placement) => placement.id),
+    );
+    expect(scene.nodes.map((node) => node.depth), const [
+      .42,
+      1.0,
+      .72,
+      .56,
+      .42,
+      1.0,
+      .72,
+      .56,
+    ]);
+    expect(scene.nodes.map((node) => node.rotation), const [
+      -.035,
+      .022,
+      -.018,
+      .038,
+      -.035,
+      .022,
+      -.018,
+      .038,
+    ]);
+    expect(scene.nodes[0].rect.center.dy, closeTo(390 * .37, 1e-9));
+    expect(scene.nodes[0].rect.width, closeTo(844 * .34 * .76, 1e-9));
+    expect(scene.nodes[0].rect.height, closeTo(390 * .64 * .76, 1e-9));
+    expect(scene.nodes[5].rect.center.dy, closeTo(390 * .62, 1e-9));
+    expect(scene.nodes[5].rect.width, closeTo(844 * .34, 1e-9));
+    expect(scene.nodes[5].rect.height, closeTo(390 * .64, 1e-9));
+    for (var index = 1; index < scene.nodes.length; index++) {
+      expect(
+        scene.nodes[index].rect.left - scene.nodes[index - 1].rect.right,
+        greaterThanOrEqualTo(24),
+        reason: 'gap before story node $index',
+      );
+    }
+    expect(scene.contentExtent, greaterThan(844));
+  });
+
+  test('zero viewport resolves to a stable empty story scene', () {
+    final scene = LayoutResolver.resolve(
+      chapter: chapter(GalleryLayout.storyPath),
+      viewport: Size.zero,
+    );
+
+    expect(scene.nodes, isEmpty);
+    expect(scene.contentExtent, 0);
+  });
+
+  test('non-finite viewport resolves to a stable empty story scene', () {
+    for (final viewport in const [
+      Size(double.infinity, 390),
+      Size(844, double.infinity),
+    ]) {
+      final scene = LayoutResolver.resolve(
+        chapter: chapter(GalleryLayout.storyPath),
+        viewport: viewport,
+      );
+
+      expect(scene.nodes, isEmpty, reason: '$viewport nodes');
+      expect(scene.contentExtent, 0, reason: '$viewport extent');
     }
   });
 }
