@@ -1,4 +1,4 @@
-enum GalleryLayout { hero, filmstrip, diptych, collage, storyPath }
+enum GalleryLayout { hero, filmstrip, diptych, collage, storyPath, depthWall }
 
 enum GalleryMotion { pan, push, focus, unfold }
 

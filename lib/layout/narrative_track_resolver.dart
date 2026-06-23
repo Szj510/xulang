@@ -19,7 +19,8 @@ class NarrativeTrackResolver {
         : NarrativeAxis.vertical;
     final sharedCamera =
         chapter.layout == GalleryLayout.storyPath ||
-        chapter.layout == GalleryLayout.filmstrip;
+        chapter.layout == GalleryLayout.filmstrip ||
+        chapter.layout == GalleryLayout.depthWall;
     final itemCount = chapter.placements.length;
     if (itemCount == 0) {
       return ResolvedNarrativeTrack(
@@ -41,7 +42,8 @@ class NarrativeTrackResolver {
       sharedCamera: sharedCamera,
       keyframes: [
         for (var index = 0; index < scene.nodes.length; index++)
-          chapter.layout == GalleryLayout.storyPath
+          chapter.layout == GalleryLayout.storyPath ||
+                  chapter.layout == GalleryLayout.depthWall
               ? _storyKeyframe(
                   node: scene.nodes[index],
                   focusProgress: itemCount == 1
