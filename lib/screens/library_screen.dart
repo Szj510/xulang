@@ -1,6 +1,4 @@
-import 'dart:io';
-
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xulang/data/gallery_database.dart';
@@ -75,12 +73,16 @@ class LibraryScreen extends ConsumerWidget {
 
   Future<void> _importTemplate(BuildContext context, WidgetRef ref) async {
     try {
-      final picked = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: const ['json'],
+      final picked = await openFile(
+        acceptedTypeGroups: const [
+          XTypeGroup(
+            label: '叙廊模板',
+            extensions: ['json'],
+            mimeTypes: ['application/json'],
+          ),
+        ],
       );
-      final path = picked?.files.single.path;
-      if (path == null || !context.mounted) return;
+      if (picked == null || !context.mounted) return;
       final repository = ref.read(galleryRepositoryProvider);
       final id = repository.createId();
       final now = DateTime.now();
@@ -91,7 +93,7 @@ class LibraryScreen extends ConsumerWidget {
       );
       final document = const ExhibitionTemplateCodec().applyToDocument(
         base: base,
-        templateJson: await File(path).readAsString(),
+        templateJson: await picked.readAsString(),
         createId: repository.createId,
         now: now,
       );

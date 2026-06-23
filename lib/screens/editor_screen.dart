@@ -1,6 +1,6 @@
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -319,13 +319,17 @@ class _EditorBodyState extends State<_EditorBody> {
             _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
           }
         case _EditorExportAction.importTemplate:
-          final file = await FilePicker.platform.pickFiles(
-            type: FileType.custom,
-            allowedExtensions: const ['json'],
+          final file = await openFile(
+            acceptedTypeGroups: const [
+              XTypeGroup(
+                label: '叙廊模板',
+                extensions: ['json'],
+                mimeTypes: ['application/json'],
+              ),
+            ],
           );
-          final path = file?.files.single.path;
-          if (path == null) return;
-          await session.applyTemplateJson(await File(path).readAsString());
+          if (file == null) return;
+          await session.applyTemplateJson(await file.readAsString());
           if (context.mounted) _showSnack(context, '已套用模板');
       }
     } catch (caught) {
