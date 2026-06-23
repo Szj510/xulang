@@ -118,6 +118,7 @@ class GalleryRepository {
                   scale: placement.scale,
                   offsetX: placement.offsetX,
                   offsetY: placement.offsetY,
+                  rotation: placement.rotation,
                   caption: placement.caption,
                 ),
             ],

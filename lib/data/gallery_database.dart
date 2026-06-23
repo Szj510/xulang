@@ -67,6 +67,7 @@ class Placements extends Table {
   RealColumn get scale => real().withDefault(const Constant(1.0))();
   RealColumn get offsetX => real().withDefault(const Constant(0.0))();
   RealColumn get offsetY => real().withDefault(const Constant(0.0))();
+  RealColumn get rotation => real().withDefault(const Constant(0.0))();
   TextColumn get caption => text()();
 
   @override
@@ -80,7 +81,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 3;
+  int get schemaVersion => 4;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -95,6 +96,9 @@ class GalleryDatabase extends _$GalleryDatabase {
         await m.addColumn(exhibitions, exhibitions.musicTitle);
         await m.addColumn(exhibitions, exhibitions.showChapterTitleInPlayback);
         await m.addColumn(chapters, chapters.pathStyle);
+      }
+      if (from < 4) {
+        await m.addColumn(placements, placements.rotation);
       }
     },
   );
@@ -250,6 +254,8 @@ class GalleryDatabase extends _$GalleryDatabase {
                 offsetX: item.offsetX,
                 offsetY: item.offsetY,
                 caption: item.caption,
+                rotation: item.rotation,
+                rotation: Value(item.rotation),
               ),
           ],
         ),

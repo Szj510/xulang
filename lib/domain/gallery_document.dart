@@ -171,6 +171,7 @@ class GalleryPlacement {
     this.scale = 1,
     this.offsetX = 0,
     this.offsetY = 0,
+    this.rotation = 0.0,
     this.caption = '',
   });
 
@@ -185,6 +186,7 @@ class GalleryPlacement {
   final double scale;
   final double offsetX;
   final double offsetY;
+  final double rotation;
   final String caption;
 
   GalleryPlacement copyWith({
@@ -197,6 +199,7 @@ class GalleryPlacement {
     double? scale,
     double? offsetX,
     double? offsetY,
+    double? rotation,
     String? caption,
   }) {
     return GalleryPlacement(
@@ -211,6 +214,7 @@ class GalleryPlacement {
       scale: scale ?? this.scale,
       offsetX: offsetX ?? this.offsetX,
       offsetY: offsetY ?? this.offsetY,
+      rotation: rotation ?? this.rotation,
       caption: caption ?? this.caption,
     );
   }

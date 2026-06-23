@@ -33,6 +33,7 @@ class ExhibitionTemplateCodec {
                   'scale': placement.scale,
                   'offsetX': placement.offsetX,
                   'offsetY': placement.offsetY,
+                  'rotation': placement.rotation,
                   'caption': placement.caption,
                 },
             ],
@@ -86,6 +87,7 @@ class ExhibitionTemplateCodec {
             scale: (slot['scale'] as num?)?.toDouble() ?? 1,
             offsetX: (slot['offsetX'] as num?)?.toDouble() ?? 0,
             offsetY: (slot['offsetY'] as num?)?.toDouble() ?? 0,
+            rotation: (slot['rotation'] as num?)?.toDouble() ?? 0,
             caption: slot['caption'] as String? ?? '',
           ),
         );

@@ -238,6 +238,7 @@ class EditorSession extends ChangeNotifier {
     double? scale,
     double? offsetX,
     double? offsetY,
+    double? rotation,
     String? caption,
   }) async {
     final current = bundle;
@@ -257,6 +258,7 @@ class EditorSession extends ChangeNotifier {
               scale: scale?.clamp(.45, 1.9),
               offsetX: offsetX?.clamp(-.45, .45),
               offsetY: offsetY?.clamp(-.45, .45),
+              rotation: rotation,
               caption: caption,
             )
           else
