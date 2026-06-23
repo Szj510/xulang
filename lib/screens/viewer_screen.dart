@@ -291,24 +291,6 @@ class _ViewerChapterState extends State<_ViewerChapter>
     _navigation.end();
   }
 
-  void _animateToNeighbor(int delta) {
-    if (scale > 1.01 || widget.chapter.placements.length < 2) return;
-    final last = widget.chapter.placements.length - 1;
-    final rawIndex = _camera.progress * last;
-    final targetIndex = delta > 0
-        ? (rawIndex.floor() + 1).clamp(0, last)
-        : (rawIndex.ceil() - 1).clamp(0, last);
-    final target = targetIndex / last;
-    _inertia.value = _camera.progress;
-    _inertia.animateTo(
-      target,
-      duration: widget.reduceMotion
-          ? const Duration(milliseconds: 100)
-          : const Duration(milliseconds: 360),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
   void _rebaseTransform(Size nextViewport) {
     final previous = _lastViewport;
     _lastViewport = nextViewport;
@@ -343,13 +325,6 @@ class _ViewerChapterState extends State<_ViewerChapter>
 
   @override
   Widget build(BuildContext context) {
-    final axis = NarrativeAxis.fromViewport(MediaQuery.sizeOf(context));
-    final previousItemIcon = axis == NarrativeAxis.vertical
-        ? Icons.keyboard_arrow_up
-        : Icons.arrow_back;
-    final nextItemIcon = axis == NarrativeAxis.vertical
-        ? Icons.keyboard_arrow_down
-        : Icons.arrow_forward;
     return Stack(
       children: [
         Positioned.fill(
@@ -388,29 +363,18 @@ class _ViewerChapterState extends State<_ViewerChapter>
           Positioned(
             left: 0,
             right: 0,
-            bottom: MediaQuery.paddingOf(context).bottom + 78,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                if (widget.chapter.layout == GalleryLayout.storyPath) ...[
-                  IconButton.filledTonal(
-                    tooltip: '回到全景',
-                    onPressed: _camera.progress <= .001
-                        ? null
-                        : _camera.resetOverview,
-                    icon: const Icon(Icons.fit_screen_outlined),
-                  ),
-                  const SizedBox(width: 10),
-                ],
-                IconButton.filledTonal(
-                  tooltip: '上一项',
-                  onPressed: _camera.progress <= .001
-                      ? null
-                      : () => _animateToNeighbor(-1),
-                  icon: Icon(previousItemIcon),
+            bottom: MediaQuery.paddingOf(context).bottom + 22,
+            child: Center(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: .42),
+                  borderRadius: BorderRadius.circular(999),
                 ),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 5,
+                  ),
                   child: Text(
                     '进度 ${(_camera.progress * 100).round()}%',
                     key: const Key('viewer-track-progress'),
@@ -420,14 +384,7 @@ class _ViewerChapterState extends State<_ViewerChapter>
                     ),
                   ),
                 ),
-                IconButton.filledTonal(
-                  tooltip: '下一项',
-                  onPressed: _camera.progress >= .999
-                      ? null
-                      : () => _animateToNeighbor(1),
-                  icon: Icon(nextItemIcon),
-                ),
-              ],
+              ),
             ),
           ),
       ],
