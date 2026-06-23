@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
@@ -56,8 +57,24 @@ class _EditorBody extends StatefulWidget {
 
 class _EditorBodyState extends State<_EditorBody> {
   bool _showChapters = false;
+  _EditorPanelMode _panelMode = _EditorPanelMode.canvas;
+  String? _selectedPlacementId;
 
   EditorSession get session => widget.session;
+
+  void _focusCanvas() {
+    setState(() {
+      _panelMode = _EditorPanelMode.canvas;
+      _selectedPlacementId = null;
+    });
+  }
+
+  void _focusPlacement(String placementId) {
+    setState(() {
+      _panelMode = _EditorPanelMode.placement;
+      _selectedPlacementId = placementId;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -153,12 +170,25 @@ class _EditorBodyState extends State<_EditorBody> {
                         Expanded(
                           child: _Preview(
                             session: session,
-                            onCanvasTap: _hideChapters,
+                            onCanvasTap: () {
+                              _hideChapters();
+                              _focusCanvas();
+                            },
+                            onPlacementTap: (placementId) {
+                              _hideChapters();
+                              _focusPlacement(placementId);
+                            },
                           ),
                         ),
                         SizedBox(
                           width: inspectorWidth,
-                          child: _Inspector(session: session),
+                          child: _Inspector(
+                            session: session,
+                            panelMode: _panelMode,
+                            selectedPlacementId: _selectedPlacementId,
+                            onFocusCanvas: _focusCanvas,
+                            onFocusPlacement: _focusPlacement,
+                          ),
                         ),
                       ],
                     ),
@@ -267,8 +297,23 @@ class _EditorBodyState extends State<_EditorBody> {
                     key: const Key('editor-chapter-rail'),
                     session: session,
                   ),
-                  Expanded(child: _Preview(session: session)),
-                  SizedBox(height: 214, child: _Inspector(session: session)),
+                  Expanded(
+                    child: _Preview(
+                      session: session,
+                      onCanvasTap: _focusCanvas,
+                      onPlacementTap: _focusPlacement,
+                    ),
+                  ),
+                  SizedBox(
+                    height: 214,
+                    child: _Inspector(
+                      session: session,
+                      panelMode: _panelMode,
+                      selectedPlacementId: _selectedPlacementId,
+                      onFocusCanvas: _focusCanvas,
+                      onFocusPlacement: _focusPlacement,
+                    ),
+                  ),
                 ],
               );
             },
@@ -427,10 +472,15 @@ class _ChapterRail extends StatelessWidget {
 }
 
 class _Preview extends StatefulWidget {
-  const _Preview({required this.session, this.onCanvasTap});
+  const _Preview({
+    required this.session,
+    this.onCanvasTap,
+    this.onPlacementTap,
+  });
 
   final EditorSession session;
   final VoidCallback? onCanvasTap;
+  final ValueChanged<String>? onPlacementTap;
 
   @override
   State<_Preview> createState() => _PreviewState();
@@ -553,6 +603,7 @@ class _PreviewState extends State<_Preview> {
                   media: session.bundle!.media,
                   cameraProgress: progress,
                   sceneTheme: session.bundle!.document.theme,
+                  onPlacementTap: widget.onPlacementTap,
                   onPlacementTransformStart: _startPlacementTransform,
                   onPlacementTransformUpdate:
                       (placementId, scaleDelta, delta) =>
@@ -709,18 +760,267 @@ class _ProgressText extends StatelessWidget {
 }
 
 class _Inspector extends StatefulWidget {
-  const _Inspector({required this.session});
+  const _Inspector({
+    required this.session,
+    required this.panelMode,
+    required this.selectedPlacementId,
+    required this.onFocusCanvas,
+    required this.onFocusPlacement,
+  });
 
   final EditorSession session;
+  final _EditorPanelMode panelMode;
+  final String? selectedPlacementId;
+  final VoidCallback onFocusCanvas;
+  final ValueChanged<String> onFocusPlacement;
 
   @override
   State<_Inspector> createState() => _InspectorState();
 }
 
 class _InspectorState extends State<_Inspector> {
-  int selectedPlacement = 0;
-
   EditorSession get session => widget.session;
+
+  Widget _buildCanvasPanel(BuildContext context, GalleryChapter chapter) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Row(
+          children: [
+            PopupMenuButton<GalleryTheme>(
+              tooltip: '画布主题',
+              initialValue: session.bundle!.document.theme,
+              onSelected: session.updateTheme,
+              icon: const Icon(Icons.palette_outlined, size: 19),
+              itemBuilder: (context) => const [
+                PopupMenuItem(value: GalleryTheme.ink, child: Text('墨色画布')),
+                PopupMenuItem(value: GalleryTheme.paper, child: Text('纸张画布')),
+                PopupMenuItem(
+                  value: GalleryTheme.graphite,
+                  child: Text('石墨画布'),
+                ),
+                PopupMenuItem(value: GalleryTheme.mist, child: Text('雾蓝画布')),
+                PopupMenuItem(value: GalleryTheme.warm, child: Text('暖沙画布')),
+              ],
+            ),
+            const SizedBox(width: 8),
+            TextButton.icon(
+              onPressed: () => _editChapterText(context),
+              icon: const Icon(Icons.short_text, size: 17),
+              label: const Text('标题与短注释'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 8,
+          runSpacing: 7,
+          children: [
+            for (final layout in GalleryLayout.values)
+              ChoiceChip(
+                selected: chapter.layout == layout,
+                onSelected: (_) => session.updateChapter(layout: layout),
+                label: Text(_layoutLabel(layout)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(right: 5),
+              child: Text(
+                '路径线条',
+                style: TextStyle(color: XulangColors.muted, fontSize: 12),
+              ),
+            ),
+            for (final style in StoryPathStyle.values)
+              ChoiceChip(
+                selected: chapter.pathStyle == style,
+                onSelected: (_) => session.updateChapter(pathStyle: style),
+                label: Text(_pathStyleLabel(style)),
+              ),
+          ],
+        ),
+        SwitchListTile.adaptive(
+          key: const Key('editor-show-chapter-title-playback'),
+          contentPadding: EdgeInsets.zero,
+          title: const Text('录屏时显示章节名'),
+          value: session.bundle!.document.showChapterTitleInPlayback,
+          onChanged: session.updateShowChapterTitleInPlayback,
+        ),
+        ListTile(
+          key: const Key('editor-background-music'),
+          contentPadding: EdgeInsets.zero,
+          dense: true,
+          leading: const Icon(Icons.music_note_outlined),
+          title: Text(
+            session.bundle!.document.musicTitle ?? '未添加背景音乐',
+            overflow: TextOverflow.ellipsis,
+          ),
+          subtitle: const Text('播放和录屏模式可使用本地音乐'),
+          trailing: Wrap(
+            spacing: 4,
+            children: [
+              TextButton(
+                onPressed: () => _pickBackgroundMusic(context),
+                child: const Text('选择'),
+              ),
+              if (session.bundle!.document.musicPath != null)
+                TextButton(
+                  onPressed: session.clearBackgroundMusic,
+                  child: const Text('清除'),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildPlacementPanel(
+    BuildContext context,
+    GalleryChapter chapter,
+    GalleryPlacement? placement,
+  ) {
+    if (placement == null) {
+      return const Text(
+        '点击一张图片后，这里会显示图片大小、画框、裁切和旋转。',
+        style: TextStyle(color: XulangColors.muted),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        SizedBox(
+          height: 54,
+          child: ReorderableListView.builder(
+            scrollDirection: Axis.horizontal,
+            buildDefaultDragHandles: false,
+            itemCount: chapter.placements.length,
+            onReorder: (oldIndex, newIndex) async {
+              final movedId = chapter.placements[oldIndex].id;
+              await session.movePlacement(oldIndex, newIndex);
+              widget.onFocusPlacement(movedId);
+            },
+            itemBuilder: (context, index) {
+              final item = chapter.placements[index];
+              final media = session.bundle!.media
+                  .where((m) => m.id == item.mediaId)
+                  .isEmpty
+                  ? null
+                  : session.bundle!.media
+                        .where((m) => m.id == item.mediaId)
+                        .first;
+              final selected = item.id == placement.id;
+              return Padding(
+                key: ValueKey(item.id),
+                padding: const EdgeInsets.only(right: 8),
+                child: ReorderableDragStartListener(
+                  index: index,
+                  child: InkWell(
+                    onTap: () => widget.onFocusPlacement(item.id),
+                    child: Container(
+                      width: 48,
+                      decoration: BoxDecoration(
+                        border: Border.all(
+                          color: selected ? XulangColors.accent : XulangColors.line,
+                          width: selected ? 2 : 1,
+                        ),
+                      ),
+                      child: media == null
+                          ? const Icon(Icons.broken_image_outlined)
+                          : GalleryImage(path: media.thumbnailPath, cacheWidth: 160),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final size in GallerySize.values)
+              ChoiceChip(
+                selected: placement.size == size,
+                onSelected: (_) => session.updatePlacement(placement.id, size: size),
+                label: Text(_sizeLabel(size)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 6,
+          runSpacing: 6,
+          children: [
+            for (final frame in GalleryFrame.values)
+              ChoiceChip(
+                selected: placement.frame == frame,
+                onSelected: (_) =>
+                    session.updatePlacement(placement.id, frame: frame),
+                label: Text(_frameLabel(frame)),
+              ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        _CropSlider(
+          label: '水平焦点',
+          value: placement.focalX,
+          min: 0,
+          max: 1,
+          onChanged: (value) =>
+              session.updatePlacement(placement.id, focalX: value),
+        ),
+        _CropSlider(
+          label: '垂直焦点',
+          value: placement.focalY,
+          min: 0,
+          max: 1,
+          onChanged: (value) =>
+              session.updatePlacement(placement.id, focalY: value),
+        ),
+        _CropSlider(
+          label: '裁切缩放',
+          value: placement.zoom,
+          min: 1,
+          max: 3,
+          onChanged: (value) =>
+              session.updatePlacement(placement.id, zoom: value),
+        ),
+        _CropSlider(
+          label: '旋转角度',
+          value: placement.rotation,
+          min: -180,
+          max: 180,
+          onChanged: (value) =>
+              session.updatePlacement(placement.id, rotation: value),
+        ),
+        TextFormField(
+          initialValue: placement.caption,
+          maxLength: 60,
+          decoration: const InputDecoration(labelText: '单图短注释'),
+          onChanged: (value) =>
+              session.updatePlacement(placement.id, caption: value),
+        ),
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            onPressed: () => _editPlacement(context, placement),
+            icon: const Icon(Icons.tune, size: 17),
+            label: const Text('高级编辑'),
+          ),
+        ),
+      ],
+    );
+  }
 
   Future<void> _pickBackgroundMusic(BuildContext context) async {
     final file = await openFile(
@@ -744,249 +1044,74 @@ class _InspectorState extends State<_Inspector> {
   @override
   Widget build(BuildContext context) {
     final chapter = session.selectedChapter!;
-    final placement = chapter.placements.isEmpty
+    final placement = widget.selectedPlacementId == null
         ? null
-        : chapter.placements[selectedPlacement.clamp(
-            0,
-            chapter.placements.length - 1,
-          )];
-    return ColoredBox(
-      color: XulangColors.surface,
-      child: SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          key: const Key('editor-inspector-scroll'),
-          padding: EdgeInsets.fromLTRB(
-            16,
-            13,
-            16,
-            20 + MediaQuery.viewPaddingOf(context).bottom,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  const Text(
-                    '章节版式',
-                    style: TextStyle(color: XulangColors.muted, fontSize: 12),
-                  ),
-                  const Spacer(),
-                  PopupMenuButton<GalleryTheme>(
-                    tooltip: '画布主题',
-                    initialValue: session.bundle!.document.theme,
-                    onSelected: session.updateTheme,
-                    icon: const Icon(Icons.palette_outlined, size: 19),
-                    itemBuilder: (context) => const [
-                      PopupMenuItem(
-                        value: GalleryTheme.ink,
-                        child: Text('墨色画布'),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.paper,
-                        child: Text('纸张画布'),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.graphite,
-                        child: Text('石墨画布'),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.mist,
-                        child: Text('雾蓝画布'),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.warm,
-                        child: Text('暖沙画布'),
-                      ),
-                    ],
-                  ),
-                  TextButton.icon(
-                    onPressed: () => _editChapterText(context),
-                    icon: const Icon(Icons.short_text, size: 17),
-                    label: const Text('标题与短注释'),
-                  ),
-                ],
+        : chapter.placements.cast<GalleryPlacement?>().firstWhere(
+            (item) => item?.id == widget.selectedPlacementId,
+            orElse: () => null,
+          );
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .52),
+                border: Border.all(color: Colors.white12),
+                borderRadius: BorderRadius.circular(24),
               ),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 7,
-                children: [
-                  for (final layout in GalleryLayout.values)
-                    ChoiceChip(
-                      selected: chapter.layout == layout,
-                      onSelected: (_) => session.updateChapter(layout: layout),
-                      label: Text(_layoutLabel(layout)),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 10),
-              Wrap(
-                spacing: 7,
-                runSpacing: 7,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.only(right: 5),
-                    child: Text(
-                      '路径线条',
-                      style: TextStyle(color: XulangColors.muted, fontSize: 12),
-                    ),
-                  ),
-                  for (final style in StoryPathStyle.values)
-                    ChoiceChip(
-                      selected: chapter.pathStyle == style,
-                      onSelected: (_) =>
-                          session.updateChapter(pathStyle: style),
-                      label: Text(_pathStyleLabel(style)),
-                    ),
-                ],
-              ),
-              SwitchListTile.adaptive(
-                key: const Key('editor-show-chapter-title-playback'),
-                contentPadding: EdgeInsets.zero,
-                title: const Text('录屏时显示章节名'),
-                value: session.bundle!.document.showChapterTitleInPlayback,
-                onChanged: session.updateShowChapterTitleInPlayback,
-              ),
-              ListTile(
-                key: const Key('editor-background-music'),
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.music_note_outlined),
-                title: Text(
-                  session.bundle!.document.musicTitle ?? '未添加背景音乐',
-                  overflow: TextOverflow.ellipsis,
-                ),
-                subtitle: const Text('播放和录屏模式可使用本地音乐'),
-                trailing: Wrap(
-                  spacing: 4,
+              child: SingleChildScrollView(
+                key: const Key('editor-inspector-scroll'),
+                padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    TextButton(
-                      onPressed: () => _pickBackgroundMusic(context),
-                      child: const Text('选择'),
-                    ),
-                    if (session.bundle!.document.musicPath != null)
-                      TextButton(
-                        onPressed: session.clearBackgroundMusic,
-                        child: const Text('清除'),
-                      ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              SizedBox(
-                height: chapter.placements.isEmpty ? 0 : 56,
-                child: ReorderableListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  buildDefaultDragHandles: false,
-                  itemCount: chapter.placements.length,
-                  onReorder: (oldIndex, newIndex) async {
-                    final destination = oldIndex < newIndex
-                        ? newIndex - 1
-                        : newIndex;
-                    setState(() {
-                      if (selectedPlacement == oldIndex) {
-                        selectedPlacement = destination;
-                      } else if (oldIndex < selectedPlacement &&
-                          destination >= selectedPlacement) {
-                        selectedPlacement -= 1;
-                      } else if (oldIndex > selectedPlacement &&
-                          destination <= selectedPlacement) {
-                        selectedPlacement += 1;
-                      }
-                    });
-                    await session.movePlacement(oldIndex, newIndex);
-                  },
-                  itemBuilder: (context, index) {
-                    final item = chapter.placements[index];
-                    final media = session.bundle!.media
-                        .where((m) => m.id == item.mediaId)
-                        .firstOrNull;
-                    return Padding(
-                      key: ValueKey(item.id),
-                      padding: const EdgeInsets.only(right: 8),
-                      child: ReorderableDragStartListener(
-                        index: index,
-                        child: InkWell(
-                          onTap: () =>
-                              setState(() => selectedPlacement = index),
-                          child: Container(
-                            width: 48,
-                            decoration: BoxDecoration(
-                              border: Border.all(
-                                color: index == selectedPlacement
-                                    ? XulangColors.accent
-                                    : XulangColors.line,
-                                width: index == selectedPlacement ? 2 : 1,
-                              ),
+                    Row(
+                      children: [
+                        const Expanded(
+                          child: Text(
+                            '悬浮操作板',
+                            style: TextStyle(
+                              color: XulangColors.paper,
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
                             ),
-                            child: media == null
-                                ? const Icon(Icons.broken_image_outlined)
-                                : GalleryImage(
-                                    path: media.thumbnailPath,
-                                    cacheWidth: 160,
-                                  ),
                           ),
                         ),
-                      ),
-                    );
-                  },
+                        ChoiceChip(
+                          selected:
+                              widget.panelMode == _EditorPanelMode.canvas,
+                          onSelected: (_) => widget.onFocusCanvas(),
+                          label: const Text('画布'),
+                        ),
+                        const SizedBox(width: 6),
+                        ChoiceChip(
+                          selected:
+                              widget.panelMode == _EditorPanelMode.placement &&
+                              placement != null,
+                          onSelected: (_) {
+                            if (placement != null) {
+                              widget.onFocusPlacement(placement.id);
+                            }
+                          },
+                          label: const Text('图片'),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    if (widget.panelMode == _EditorPanelMode.canvas)
+                      _buildCanvasPanel(context, chapter)
+                    else
+                      _buildPlacementPanel(context, chapter, placement),
+                  ],
                 ),
               ),
-              if (placement != null) ...[
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    const Text(
-                      '画面大小',
-                      style: TextStyle(color: XulangColors.muted, fontSize: 12),
-                    ),
-                    const SizedBox(width: 12),
-                    for (final size in GallerySize.values)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 6),
-                        child: ChoiceChip(
-                          selected: placement.size == size,
-                          onSelected: (_) =>
-                              session.updatePlacement(placement.id, size: size),
-                          label: Text(_sizeLabel(size)),
-                        ),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    const Padding(
-                      padding: EdgeInsets.only(right: 6),
-                      child: Text(
-                        '画框',
-                        style: TextStyle(
-                          color: XulangColors.muted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ),
-                    for (final frame in GalleryFrame.values)
-                      ChoiceChip(
-                        selected: placement.frame == frame,
-                        onSelected: (_) =>
-                            session.updatePlacement(placement.id, frame: frame),
-                        label: Text(_frameLabel(frame)),
-                      ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                TextButton.icon(
-                  onPressed: () => _editPlacement(context, placement),
-                  icon: const Icon(Icons.crop_free, size: 17),
-                  label: const Text('裁切焦点与短注释'),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),
@@ -1120,6 +1245,8 @@ class _InspectorState extends State<_Inspector> {
     }
   }
 }
+
+enum _EditorPanelMode { canvas, placement }
 
 class _CropSlider extends StatelessWidget {
   const _CropSlider({
