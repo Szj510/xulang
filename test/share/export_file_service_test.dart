@@ -31,12 +31,15 @@ void main() {
     );
 
     final html = await writer.writeHtml(bundle);
+    final gif = await writer.writeGif(bundle);
     final template = await writer.writeTemplate(bundle.document);
 
     expect(html.path, endsWith('.html'));
+    expect(gif.path, endsWith('.gif'));
     expect(template.path, endsWith('.xulang-template.json'));
     expect(html.path, contains('夏日_散步'));
     expect(await html.readAsString(), contains('<!doctype html>'));
+    expect(await gif.readAsBytes(), isNotEmpty);
     expect(
       await template.readAsString(),
       contains('"kind": "xulang-template"'),

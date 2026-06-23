@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:image/image.dart' as img;
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/share/exhibition_exporter.dart';
@@ -125,4 +126,62 @@ void main() {
     expect(placements.first.size, GallerySize.large);
     expect(placements.first.focalX, .25);
   });
+
+  test(
+    'gif export builds compact animated preview and skips missing files',
+    () async {
+      final temp = await Directory.systemTemp.createTemp('xulang-gif-test-');
+      addTearDown(() => temp.delete(recursive: true));
+      final imageFile = File('${temp.path}/photo.png');
+      final source = img.Image(width: 48, height: 32);
+      img.fill(source, color: img.ColorRgb8(220, 160, 90));
+      await imageFile.writeAsBytes(img.encodePng(source));
+
+      final bundle = GalleryBundle(
+        document: GalleryDocument(
+          id: 'exhibition',
+          title: 'GIF',
+          createdAt: DateTime(2026, 6, 23),
+          updatedAt: DateTime(2026, 6, 23),
+          chapters: const [
+            GalleryChapter(
+              id: 'chapter',
+              title: 'chapter',
+              order: 0,
+              layout: GalleryLayout.storyPath,
+              motion: GalleryMotion.pan,
+              placements: [
+                GalleryPlacement(id: 'p1', mediaId: 'm1', order: 0),
+                GalleryPlacement(id: 'p2', mediaId: 'missing', order: 1),
+              ],
+            ),
+          ],
+        ),
+        media: [
+          GalleryMedia(
+            id: 'm1',
+            originalPath: imageFile.path,
+            thumbnailPath: imageFile.path,
+            width: 48,
+            height: 32,
+            contentHash: 'hash',
+          ),
+          const GalleryMedia(
+            id: 'missing',
+            originalPath: 'missing.png',
+            thumbnailPath: 'missing.png',
+            width: 48,
+            height: 32,
+            contentHash: 'missing',
+          ),
+        ],
+      );
+
+      final bytes = await ExhibitionGifExporter().buildGif(bundle);
+
+      expect(ascii.decode(bytes.take(6).toList()), anyOf('GIF89a', 'GIF87a'));
+      expect(bytes.length, greaterThan(200));
+      expect(bytes.length, lessThan(300000));
+    },
+  );
 }

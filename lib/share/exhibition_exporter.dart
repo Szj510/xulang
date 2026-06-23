@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math' as math;
+import 'dart:typed_data';
 
+import 'package:image/image.dart' as img;
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
 
@@ -99,6 +102,225 @@ h1{font-size:36px;margin:18px 0 40px}
 .stamp{border:8px dotted #171a19}.mat{padding:16px 16px 34px}.wood{border:14px solid #7a5030}.darkWood{border:14px solid #2c1b12}.metal{border:5px solid #aaa7a0}.vintage{border:18px double #8a724e}.film{border-top:16px dashed #171a19;border-bottom:16px dashed #171a19}
 figcaption{font-size:13px;text-align:center;margin-top:8px}
 ''';
+}
+
+class ExhibitionGifExporter {
+  const ExhibitionGifExporter({
+    this.width = 540,
+    this.height = 960,
+    this.maxFrames = 12,
+    this.frameDurationCentiseconds = 70,
+  });
+
+  final int width;
+  final int height;
+  final int maxFrames;
+  final int frameDurationCentiseconds;
+
+  Future<Uint8List> buildGif(GalleryBundle bundle) async {
+    final encoder = img.GifEncoder(
+      repeat: 0,
+      delay: frameDurationCentiseconds,
+      samplingFactor: 20,
+    );
+    final mediaById = {for (final media in bundle.media) media.id: media};
+    var added = 0;
+    for (final chapter in bundle.document.chapters) {
+      for (final placement in chapter.placements) {
+        if (added >= maxFrames) break;
+        final media = mediaById[placement.mediaId];
+        if (media == null) continue;
+        final source = await _decodeBestAvailable(media);
+        if (source == null) continue;
+        encoder.addFrame(
+          _composeFrame(
+            source: source,
+            placement: placement,
+            chapterIndex: chapter.order,
+            itemIndex: added,
+          ),
+          duration: frameDurationCentiseconds,
+        );
+        added += 1;
+      }
+      if (added >= maxFrames) break;
+    }
+    if (added == 0) {
+      encoder.addFrame(_emptyFrame(), duration: frameDurationCentiseconds);
+    }
+    return encoder.finish()!;
+  }
+
+  Future<img.Image?> _decodeBestAvailable(GalleryMedia media) async {
+    for (final path in [media.thumbnailPath, media.originalPath]) {
+      if (path.startsWith('asset://')) continue;
+      final file = File(path);
+      if (!await file.exists()) continue;
+      try {
+        return img.decodeImage(await file.readAsBytes());
+      } catch (_) {
+        continue;
+      }
+    }
+    return null;
+  }
+
+  img.Image _composeFrame({
+    required img.Image source,
+    required GalleryPlacement placement,
+    required int chapterIndex,
+    required int itemIndex,
+  }) {
+    final canvas = _emptyFrame();
+    final scale = switch (placement.size) {
+      GallerySize.small => .64,
+      GallerySize.medium => .74,
+      GallerySize.large => .84,
+    };
+    final photoWidth = (width * scale).round();
+    final photoHeight =
+        (height * (placement.size == GallerySize.large ? .58 : .50)).round();
+    final resized = _cover(source, photoWidth, photoHeight);
+    final drift = ((itemIndex % 3) - 1) * 18;
+    final x = ((width - photoWidth) / 2 + drift).round();
+    final y = (height * .17 + itemIndex % 4 * 28).round();
+    final framePad = switch (placement.frame) {
+      GalleryFrame.none => 8,
+      GalleryFrame.hairline => 10,
+      GalleryFrame.mat => 26,
+      GalleryFrame.stamp => 20,
+      GalleryFrame.wood || GalleryFrame.darkWood => 24,
+      GalleryFrame.metal => 16,
+      GalleryFrame.vintage => 28,
+      GalleryFrame.film => 18,
+    };
+    final frameRect = RectInt(
+      x - framePad,
+      y - framePad,
+      photoWidth + framePad * 2,
+      photoHeight + framePad * 2,
+    );
+    _drawGifFrame(canvas, frameRect, placement.frame);
+    img.compositeImage(canvas, resized, dstX: x, dstY: y);
+    img.drawRect(
+      canvas,
+      x1: x,
+      y1: y,
+      x2: x + photoWidth,
+      y2: y + photoHeight,
+      color: img.ColorRgb8(24, 24, 22),
+      thickness: 2,
+    );
+    _drawProgressDots(canvas, itemIndex);
+    return canvas;
+  }
+
+  img.Image _emptyFrame() {
+    final canvas = img.Image(width: width, height: height);
+    img.fill(canvas, color: img.ColorRgb8(22, 24, 23));
+    for (var y = 0; y < height; y += 3) {
+      final shade = 22 + (y * 10 ~/ height);
+      img.drawLine(
+        canvas,
+        x1: 0,
+        y1: y,
+        x2: width,
+        y2: y,
+        color: img.ColorRgb8(shade, shade + 2, shade + 1),
+      );
+    }
+    return canvas;
+  }
+
+  img.Image _cover(img.Image source, int targetWidth, int targetHeight) {
+    final sourceRatio = source.width / source.height;
+    final targetRatio = targetWidth / targetHeight;
+    late final img.Image cropped;
+    if (sourceRatio > targetRatio) {
+      final cropWidth = (source.height * targetRatio).round();
+      cropped = img.copyCrop(
+        source,
+        x: ((source.width - cropWidth) / 2).round(),
+        y: 0,
+        width: cropWidth,
+        height: source.height,
+      );
+    } else {
+      final cropHeight = (source.width / targetRatio).round();
+      cropped = img.copyCrop(
+        source,
+        x: 0,
+        y: ((source.height - cropHeight) / 2).round(),
+        width: source.width,
+        height: cropHeight,
+      );
+    }
+    return img.copyResize(cropped, width: targetWidth, height: targetHeight);
+  }
+
+  void _drawGifFrame(img.Image canvas, RectInt rect, GalleryFrame frame) {
+    final base = switch (frame) {
+      GalleryFrame.wood => img.ColorRgb8(132, 82, 43),
+      GalleryFrame.darkWood => img.ColorRgb8(45, 28, 18),
+      GalleryFrame.metal => img.ColorRgb8(184, 181, 172),
+      GalleryFrame.vintage => img.ColorRgb8(214, 188, 136),
+      GalleryFrame.film => img.ColorRgb8(9, 9, 8),
+      GalleryFrame.stamp || GalleryFrame.mat => img.ColorRgb8(236, 225, 202),
+      _ => img.ColorRgb8(238, 226, 205),
+    };
+    img.drawRect(
+      canvas,
+      x1: rect.x,
+      y1: rect.y,
+      x2: rect.x + rect.width,
+      y2: rect.y + rect.height,
+      color: base,
+      thickness: math.max(10, rect.width ~/ 24),
+    );
+    for (var i = 0; i < 18; i++) {
+      final offset = ((i * 17) % math.max(1, rect.width)).toInt();
+      final color = frame == GalleryFrame.metal
+          ? img.ColorRgb8(230, 227, 218)
+          : img.ColorRgb8(
+              math.min(255, base.r.toInt() + 18),
+              math.min(255, base.g.toInt() + 12),
+              math.min(255, base.b.toInt() + 8),
+            );
+      img.drawLine(
+        canvas,
+        x1: rect.x + offset,
+        y1: rect.y,
+        x2: rect.x + ((offset + rect.width ~/ 3) % rect.width).toInt(),
+        y2: rect.y + rect.height,
+        color: color,
+      );
+    }
+  }
+
+  void _drawProgressDots(img.Image canvas, int active) {
+    final start = width ~/ 2 - 42;
+    for (var i = 0; i < 6; i++) {
+      final color = i == active % 6
+          ? img.ColorRgb8(235, 214, 174)
+          : img.ColorRgb8(96, 96, 92);
+      img.fillCircle(
+        canvas,
+        x: start + i * 17,
+        y: height - 66,
+        radius: 4,
+        color: color,
+      );
+    }
+  }
+}
+
+class RectInt {
+  const RectInt(this.x, this.y, this.width, this.height);
+
+  final int x;
+  final int y;
+  final int width;
+  final int height;
 }
 
 class ExhibitionTemplateCodec {
