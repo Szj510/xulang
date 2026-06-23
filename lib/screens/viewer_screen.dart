@@ -30,6 +30,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   int _chapterIndex = 0;
   bool _showChrome = true;
   bool _recordingMode = false;
+  double _recordingSpeed = 6.0; // seconds for full scroll (user-adjustable)
   bool _musicPlaying = false;
   bool _changingChapter = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -89,13 +90,15 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     duration: MediaQuery.disableAnimationsOf(context)
                         ? const Duration(milliseconds: 120)
                         : const Duration(milliseconds: 240),
-                    child: _ViewerChapter(
+                      child: _ViewerChapter(
                       key: ValueKey(chapter.id),
                       chapter: chapter,
                       media: bundle.media,
                       sceneTheme: bundle.document.theme,
                       reduceMotion: MediaQuery.disableAnimationsOf(context),
                       showControls: _showChrome && !_recordingMode,
+                      recordingMode: _recordingMode,
+                      recordingSpeed: _recordingSpeed,
                       initialProgress: _chapterProgress[chapter.id] ?? 0,
                       hasPreviousChapter: chapterIndex > 0,
                       hasNextChapter: chapterIndex < chapters.length - 1,
@@ -112,7 +115,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     child: AnimatedOpacity(
                       opacity: _showChrome ? 1 : 0,
                       duration: const Duration(milliseconds: 180),
-                      child: _ViewerChrome(
+                        child: _ViewerChrome(
                         document: bundle.document,
                         chapter: chapter,
                         chapterIndex: chapterIndex,
@@ -135,6 +138,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                         onToggleMusic: bundle.document.musicPath == null
                             ? null
                             : () => _toggleMusic(bundle.document),
+                        onRecordingSpeedChanged: (v) => setState(() => _recordingSpeed = v),
                         musicPlaying: _musicPlaying,
                       ),
                     ),
@@ -234,12 +238,17 @@ class _ViewerChapter extends StatefulWidget {
     required this.sceneTheme,
     required this.reduceMotion,
     required this.showControls,
+    this.recordingMode = false,
+    this.recordingSpeed = 6.0,
     required this.initialProgress,
     required this.hasPreviousChapter,
     required this.hasNextChapter,
     required this.onProgressChanged,
     required this.onChapterIntent,
   });
+
+    final bool recordingMode;
+    final double recordingSpeed;
 
   final GalleryChapter chapter;
   final List<GalleryMedia> media;
@@ -260,6 +269,7 @@ class _ViewerChapterState extends State<_ViewerChapter>
     with TickerProviderStateMixin {
   late final AnimationController _entry;
   late final AnimationController _inertia;
+  late final AnimationController _recorder;
   final TransformationController _transform = TransformationController();
   final NarrativeCameraController _camera = NarrativeCameraController();
   final NarrativeNavigationCoordinator _navigation =
@@ -279,9 +289,30 @@ class _ViewerChapterState extends State<_ViewerChapter>
     )..forward();
     _inertia = AnimationController.unbounded(vsync: this)
       ..addListener(_applyInertia);
+    _recorder = AnimationController(vsync: this)
+      ..addListener(() {
+        final v = _recorder.value.clamp(0.0, 1.0);
+        _camera.setProgress(v);
+        widget.onProgressChanged(_camera.progress);
+      });
     _transform.addListener(_readScale);
     _camera.addListener(_rebuild);
     _camera.setProgress(widget.initialProgress);
+  }
+
+  @override
+  void didUpdateWidget(covariant _ViewerChapter oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // start/stop recording animation when recordingMode toggles
+    if (!oldWidget.recordingMode && widget.recordingMode) {
+      // start from beginning
+      _recorder.stop();
+      _recorder.reset();
+      final durationMs = (widget.recordingSpeed * 1000).round();
+      _recorder.animateTo(1.0, duration: Duration(milliseconds: durationMs), curve: Curves.linear);
+    } else if (oldWidget.recordingMode && !widget.recordingMode) {
+      _recorder.stop();
+    }
   }
 
   @override
@@ -397,6 +428,7 @@ class _ViewerChapterState extends State<_ViewerChapter>
     _camera.dispose();
     _transform.dispose();
     _inertia.dispose();
+    _recorder.dispose();
     _entry.dispose();
     super.dispose();
   }
@@ -481,9 +513,10 @@ class _ViewerChrome extends StatelessWidget {
     required this.onNextChapter,
     required this.onStartRecording,
     required this.onToggleMusic,
-    required this.musicPlaying,
+  this.onRecordingSpeedChanged,
+  required this.musicPlaying,
   });
-
+ 
   final GalleryDocument document;
   final GalleryChapter chapter;
   final int chapterIndex;
@@ -493,6 +526,7 @@ class _ViewerChrome extends StatelessWidget {
   final VoidCallback? onNextChapter;
   final VoidCallback onStartRecording;
   final VoidCallback? onToggleMusic;
+  final ValueChanged<double>? onRecordingSpeedChanged;
   final bool musicPlaying;
 
   @override
@@ -562,21 +596,36 @@ class _ViewerChrome extends StatelessWidget {
                     ],
                   ),
                 ),
-                IconButton.filledTonal(
-                  key: const Key('viewer-recording-mode'),
-                  onPressed: onStartRecording,
-                  tooltip: '录屏模式',
-                  icon: const Icon(Icons.videocam_outlined),
-                ),
-                IconButton.filledTonal(
-                  key: const Key('viewer-music-toggle'),
-                  onPressed: onToggleMusic,
-                  tooltip: musicPlaying ? '暂停音乐' : '播放音乐',
-                  icon: Icon(
-                    musicPlaying
-                        ? Icons.music_off_outlined
-                        : Icons.music_note_outlined,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton.filledTonal(
+                      key: const Key('viewer-recording-mode'),
+                      onPressed: onStartRecording,
+                      tooltip: '录屏模式',
+                      icon: const Icon(Icons.videocam_outlined),
+                    ),
+                    PopupMenuButton<double>(
+                      tooltip: '录屏速度',
+                      icon: const Icon(Icons.speed),
+                      onSelected: (v) => onRecordingSpeedChanged?.call(v),
+                      itemBuilder: (context) => [
+                        const PopupMenuItem(value: 3.0, child: Text('快 (3s)')),
+                        const PopupMenuItem(value: 6.0, child: Text('中 (6s)')),
+                        const PopupMenuItem(value: 10.0, child: Text('慢 (10s)')),
+                      ],
+                    ),
+                    IconButton.filledTonal(
+                      key: const Key('viewer-music-toggle'),
+                      onPressed: onToggleMusic,
+                      tooltip: musicPlaying ? '暂停音乐' : '播放音乐',
+                      icon: Icon(
+                        musicPlaying
+                            ? Icons.music_off_outlined
+                            : Icons.music_note_outlined,
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

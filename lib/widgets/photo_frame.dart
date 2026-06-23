@@ -132,16 +132,19 @@ class PhotoFrame extends StatelessWidget {
               color: XulangColors.elevated,
               child: Center(child: Icon(Icons.broken_image_outlined)),
             )
-          : GalleryImage(
-              path: useOriginals ? media!.originalPath : media!.thumbnailPath,
-              alignment: Alignment(
-                placement.focalX * 2 - 1,
-                placement.focalY * 2 - 1,
-              ),
-              scale: placement.zoom,
-              cacheWidth: math.max(
-                320,
-                (MediaQuery.sizeOf(context).width * 2).round(),
+          : Transform.rotate(
+              angle: placement.rotation * math.pi / 180.0,
+              child: GalleryImage(
+                path: useOriginals ? media!.originalPath : media!.thumbnailPath,
+                alignment: Alignment(
+                  placement.focalX * 2 - 1,
+                  placement.focalY * 2 - 1,
+                ),
+                scale: placement.zoom,
+                cacheWidth: math.max(
+                  320,
+                  (MediaQuery.sizeOf(context).width * 2).round(),
+                ),
               ),
             ),
     );
