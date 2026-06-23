@@ -13,6 +13,10 @@ class Exhibitions extends Table {
   TextColumn get title => text()();
   TextColumn get coverMediaId => text().nullable()();
   TextColumn get theme => text()();
+  TextColumn get musicPath => text().nullable()();
+  TextColumn get musicTitle => text().nullable()();
+  BoolColumn get showChapterTitleInPlayback =>
+      boolean().withDefault(const Constant(true))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -29,6 +33,7 @@ class Chapters extends Table {
   IntColumn get sortOrder => integer()();
   TextColumn get layout => text()();
   TextColumn get motion => text()();
+  TextColumn get pathStyle => text().withDefault(const Constant('solid'))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -75,7 +80,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -84,6 +89,12 @@ class GalleryDatabase extends _$GalleryDatabase {
         await m.addColumn(placements, placements.scale);
         await m.addColumn(placements, placements.offsetX);
         await m.addColumn(placements, placements.offsetY);
+      }
+      if (from < 3) {
+        await m.addColumn(exhibitions, exhibitions.musicPath);
+        await m.addColumn(exhibitions, exhibitions.musicTitle);
+        await m.addColumn(exhibitions, exhibitions.showChapterTitleInPlayback);
+        await m.addColumn(chapters, chapters.pathStyle);
       }
     },
   );
@@ -99,6 +110,11 @@ class GalleryDatabase extends _$GalleryDatabase {
           title: document.title,
           coverMediaId: Value(document.coverMediaId),
           theme: document.theme.name,
+          musicPath: Value(document.musicPath),
+          musicTitle: Value(document.musicTitle),
+          showChapterTitleInPlayback: Value(
+            document.showChapterTitleInPlayback,
+          ),
           createdAt: document.createdAt,
           updatedAt: document.updatedAt,
         ),
@@ -145,6 +161,7 @@ class GalleryDatabase extends _$GalleryDatabase {
               sortOrder: chapter.order,
               layout: chapter.layout.name,
               motion: chapter.motion.name,
+              pathStyle: Value(chapter.pathStyle.name),
             ),
         ]);
         batch.insertAll(placements, [
@@ -213,6 +230,11 @@ class GalleryDatabase extends _$GalleryDatabase {
           order: chapter.sortOrder,
           layout: GalleryLayout.values.byName(chapter.layout),
           motion: GalleryMotion.values.byName(chapter.motion),
+          pathStyle: _enumByName(
+            StoryPathStyle.values,
+            chapter.pathStyle,
+            StoryPathStyle.solid,
+          ),
           placements: [
             for (final item in placementRows)
               GalleryPlacement(
@@ -238,6 +260,9 @@ class GalleryDatabase extends _$GalleryDatabase {
       title: exhibition.title,
       coverMediaId: exhibition.coverMediaId,
       theme: GalleryTheme.values.byName(exhibition.theme),
+      musicPath: exhibition.musicPath,
+      musicTitle: exhibition.musicTitle,
+      showChapterTitleInPlayback: exhibition.showChapterTitleInPlayback,
       createdAt: exhibition.createdAt,
       updatedAt: exhibition.updatedAt,
       chapters: restoredChapters,
@@ -285,6 +310,13 @@ class GalleryDatabase extends _$GalleryDatabase {
       )..where((row) => row.id.equals(exhibitionId))).go();
     });
   }
+}
+
+T _enumByName<T extends Enum>(List<T> values, String name, T fallback) {
+  for (final value in values) {
+    if (value.name == name) return value;
+  }
+  return fallback;
 }
 
 class ExhibitionSummary {

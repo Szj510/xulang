@@ -21,6 +21,9 @@ void main() {
       title: '山海之间',
       theme: GalleryTheme.paper,
       coverMediaId: 'media-1',
+      musicPath: '/music/theme.mp3',
+      musicTitle: 'theme.mp3',
+      showChapterTitleInPlayback: false,
       createdAt: createdAt,
       updatedAt: createdAt.add(const Duration(minutes: 3)),
       chapters: const [
@@ -31,6 +34,7 @@ void main() {
           order: 0,
           layout: GalleryLayout.collage,
           motion: GalleryMotion.unfold,
+          pathStyle: StoryPathStyle.glow,
           placements: [
             GalleryPlacement(
               id: 'placement-1',
@@ -66,7 +70,11 @@ void main() {
     expect(restored, isNotNull);
     expect(restored!.title, '山海之间');
     expect(restored.theme, GalleryTheme.paper);
+    expect(restored.musicPath, '/music/theme.mp3');
+    expect(restored.musicTitle, 'theme.mp3');
+    expect(restored.showChapterTitleInPlayback, isFalse);
     expect(restored.chapters.single.layout, GalleryLayout.collage);
+    expect(restored.chapters.single.pathStyle, StoryPathStyle.glow);
     expect(
       restored.chapters.single.placements.single.frame,
       GalleryFrame.stamp,

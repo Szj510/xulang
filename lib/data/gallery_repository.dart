@@ -67,6 +67,7 @@ class GalleryRepository {
     final destinationRoot = Directory(p.join(mediaRoot.path, newId));
     final mediaIdMap = <String, String>{};
     final copiedMedia = <GalleryMedia>[];
+    String? copiedMusicPath;
     try {
       for (final media in source.media) {
         final newMediaId = createId();
@@ -102,6 +103,7 @@ class GalleryRepository {
             order: chapter.order,
             layout: chapter.layout,
             motion: chapter.motion,
+            pathStyle: chapter.pathStyle,
             placements: [
               for (final placement in chapter.placements)
                 GalleryPlacement(
@@ -113,11 +115,22 @@ class GalleryRepository {
                   focalX: placement.focalX,
                   focalY: placement.focalY,
                   zoom: placement.zoom,
+                  scale: placement.scale,
+                  offsetX: placement.offsetX,
+                  offsetY: placement.offsetY,
                   caption: placement.caption,
                 ),
             ],
           ),
         );
+      }
+      final musicPath = source.document.musicPath;
+      if (musicPath != null && await File(musicPath).exists()) {
+        final musicDirectory = Directory(p.join(destinationRoot.path, 'music'));
+        await musicDirectory.create(recursive: true);
+        copiedMusicPath = (await File(
+          musicPath,
+        ).copy(p.join(musicDirectory.path, p.basename(musicPath)))).path;
       }
       final copiedDocument = GalleryDocument(
         id: newId,
@@ -126,6 +139,9 @@ class GalleryRepository {
             ? null
             : mediaIdMap[source.document.coverMediaId!],
         theme: source.document.theme,
+        musicPath: copiedMusicPath,
+        musicTitle: source.document.musicTitle,
+        showChapterTitleInPlayback: source.document.showChapterTitleInPlayback,
         createdAt: now,
         updatedAt: now,
         chapters: copiedChapters,
