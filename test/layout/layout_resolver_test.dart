@@ -162,6 +162,28 @@ void main() {
     }
   });
 
+  test('manual placement scale and offset adjust resolved node geometry', () {
+    final base = LayoutResolver.resolve(
+      chapter: chapter(
+        GalleryLayout.hero,
+      ).copyWith(placements: [placements.first]),
+      viewport: const Size(400, 800),
+    ).nodes.single;
+    final adjusted = LayoutResolver.resolve(
+      chapter: chapter(GalleryLayout.hero).copyWith(
+        placements: [
+          placements.first.copyWith(scale: 1.4, offsetX: .10, offsetY: -.05),
+        ],
+      ),
+      viewport: const Size(400, 800),
+    ).nodes.single;
+
+    expect(adjusted.rect.width, closeTo(base.rect.width * 1.4, 1e-9));
+    expect(adjusted.rect.height, closeTo(base.rect.height * 1.4, 1e-9));
+    expect(adjusted.rect.center.dx, closeTo(base.rect.center.dx + 40, 1e-9));
+    expect(adjusted.rect.center.dy, closeTo(base.rect.center.dy - 40, 1e-9));
+  });
+
   test('portrait story path advances monotonically down the world', () {
     final scene = LayoutResolver.resolve(
       chapter: chapter(

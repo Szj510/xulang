@@ -79,6 +79,20 @@ void main() {
     );
   }
 
+  Future<void> dragCanvasTrack(
+    WidgetTester tester,
+    Offset delta, {
+    Offset? startOffset,
+  }) async {
+    final rect = tester.getRect(
+      find.byKey(const Key('editor-preview-gesture-surface')),
+    );
+    await tester.dragFrom(
+      rect.topLeft + (startOffset ?? const Offset(24, 24)),
+      delta,
+    );
+  }
+
   testWidgets('landscape chrome overlays chapters without resizing preview', (
     tester,
   ) async {
@@ -131,23 +145,23 @@ void main() {
     expect(find.byKey(const Key('landscape-editor-toolbar')), findsNothing);
     expect(progress(tester), 0);
 
-    await tester.drag(
-      find.byKey(const Key('editor-preview-gesture-surface')),
-      const Offset(0, -160),
-    );
+    await dragCanvasTrack(tester, const Offset(0, -160));
     await tester.pump();
     expect(progress(tester), greaterThan(0));
   });
 
   testWidgets('landscape locks navigation to horizontal drags', (tester) async {
     await pumpEditor(tester);
-    final surface = find.byKey(const Key('editor-preview-gesture-surface'));
 
-    await tester.drag(surface, const Offset(0, -160));
+    await dragCanvasTrack(tester, const Offset(0, -160));
     await tester.pump();
     expect(progress(tester), 0);
 
-    await tester.drag(surface, const Offset(-160, 0));
+    await dragCanvasTrack(
+      tester,
+      const Offset(-160, 0),
+      startOffset: const Offset(24, 300),
+    );
     await tester.pump();
     expect(progress(tester), greaterThan(0));
   });
@@ -156,11 +170,10 @@ void main() {
     tester,
   ) async {
     await pumpEditor(tester, size: const Size(390, 844));
-    final surface = find.byKey(const Key('editor-preview-gesture-surface'));
 
     await tester.tap(find.textContaining('夏日散步'));
     await tester.pumpAndSettle();
-    await tester.drag(surface, const Offset(0, -180));
+    await dragCanvasTrack(tester, const Offset(0, -180));
     await tester.pump();
     final secondProgress = progress(tester);
     expect(secondProgress, greaterThan(0));

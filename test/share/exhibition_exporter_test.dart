@@ -180,6 +180,7 @@ void main() {
       final bytes = await ExhibitionGifExporter().buildGif(bundle);
 
       expect(ascii.decode(bytes.take(6).toList()), anyOf('GIF89a', 'GIF87a'));
+      expect(img.GifDecoder(bytes).numFrames(), greaterThan(1));
       expect(bytes.length, greaterThan(200));
       expect(bytes.length, lessThan(300000));
     },

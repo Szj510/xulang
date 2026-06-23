@@ -16,7 +16,7 @@ enum GalleryFrame {
 
 enum GallerySize { small, medium, large }
 
-enum GalleryTheme { ink, paper }
+enum GalleryTheme { ink, paper, graphite, mist, warm }
 
 class GalleryDocument {
   const GalleryDocument({
@@ -143,6 +143,9 @@ class GalleryPlacement {
     this.focalX = 0.5,
     this.focalY = 0.5,
     this.zoom = 1,
+    this.scale = 1,
+    this.offsetX = 0,
+    this.offsetY = 0,
     this.caption = '',
   });
 
@@ -154,6 +157,9 @@ class GalleryPlacement {
   final double focalX;
   final double focalY;
   final double zoom;
+  final double scale;
+  final double offsetX;
+  final double offsetY;
   final String caption;
 
   GalleryPlacement copyWith({
@@ -163,6 +169,9 @@ class GalleryPlacement {
     double? focalX,
     double? focalY,
     double? zoom,
+    double? scale,
+    double? offsetX,
+    double? offsetY,
     String? caption,
   }) {
     return GalleryPlacement(
@@ -174,6 +183,9 @@ class GalleryPlacement {
       focalX: focalX ?? this.focalX,
       focalY: focalY ?? this.focalY,
       zoom: zoom ?? this.zoom,
+      scale: scale ?? this.scale,
+      offsetX: offsetX ?? this.offsetX,
+      offsetY: offsetY ?? this.offsetY,
       caption: caption ?? this.caption,
     );
   }

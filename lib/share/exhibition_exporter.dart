@@ -2,10 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' show Size;
 
 import 'package:image/image.dart' as img;
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/layout/narrative_track_resolver.dart';
 
 class ExhibitionHtmlExporter {
   const ExhibitionHtmlExporter();
@@ -117,36 +119,46 @@ class ExhibitionGifExporter {
   final int maxFrames;
   final int frameDurationCentiseconds;
 
-  Future<Uint8List> buildGif(GalleryBundle bundle) async {
+  Future<Uint8List> buildGif(
+    GalleryBundle bundle, {
+    int chapterIndex = 0,
+  }) async {
     final encoder = img.GifEncoder(
       repeat: 0,
       delay: frameDurationCentiseconds,
       samplingFactor: 20,
     );
     final mediaById = {for (final media in bundle.media) media.id: media};
-    var added = 0;
-    for (final chapter in bundle.document.chapters) {
-      for (final placement in chapter.placements) {
-        if (added >= maxFrames) break;
-        final media = mediaById[placement.mediaId];
-        if (media == null) continue;
-        final source = await _decodeBestAvailable(media);
-        if (source == null) continue;
-        encoder.addFrame(
-          _composeFrame(
-            source: source,
-            placement: placement,
-            chapterIndex: chapter.order,
-            itemIndex: added,
-          ),
-          duration: frameDurationCentiseconds,
-        );
-        added += 1;
-      }
-      if (added >= maxFrames) break;
-    }
-    if (added == 0) {
+    final chapters = bundle.document.chapters
+        .where((chapter) => chapter.placements.isNotEmpty)
+        .toList(growable: false);
+    if (chapters.isEmpty) {
       encoder.addFrame(_emptyFrame(), duration: frameDurationCentiseconds);
+      return encoder.finish()!;
+    }
+    final chapter = chapters[chapterIndex.clamp(0, chapters.length - 1)];
+    final decoded = <String, img.Image>{};
+    for (final placement in chapter.placements) {
+      final media = mediaById[placement.mediaId];
+      if (media == null) continue;
+      final source = await _decodeBestAvailable(media);
+      if (source != null) decoded[placement.mediaId] = source;
+    }
+    if (decoded.isEmpty) {
+      encoder.addFrame(_emptyFrame(), duration: frameDurationCentiseconds);
+      return encoder.finish()!;
+    }
+    for (var index = 0; index < maxFrames; index++) {
+      final progress = maxFrames == 1 ? 0.0 : index / (maxFrames - 1);
+      encoder.addFrame(
+        _composeSceneFrame(
+          chapter: chapter,
+          mediaById: decoded,
+          progress: progress,
+          itemIndex: index,
+        ),
+        duration: frameDurationCentiseconds,
+      );
     }
     return encoder.finish()!;
   }
@@ -165,54 +177,78 @@ class ExhibitionGifExporter {
     return null;
   }
 
-  img.Image _composeFrame({
-    required img.Image source,
-    required GalleryPlacement placement,
-    required int chapterIndex,
+  img.Image _composeSceneFrame({
+    required GalleryChapter chapter,
+    required Map<String, img.Image> mediaById,
+    required double progress,
     required int itemIndex,
   }) {
     final canvas = _emptyFrame();
-    final scale = switch (placement.size) {
-      GallerySize.small => .64,
-      GallerySize.medium => .74,
-      GallerySize.large => .84,
-    };
-    final photoWidth = (width * scale).round();
-    final photoHeight =
-        (height * (placement.size == GallerySize.large ? .58 : .50)).round();
-    final resized = _cover(source, photoWidth, photoHeight);
-    final drift = ((itemIndex % 3) - 1) * 18;
-    final x = ((width - photoWidth) / 2 + drift).round();
-    final y = (height * .17 + itemIndex % 4 * 28).round();
-    final framePad = switch (placement.frame) {
-      GalleryFrame.none => 8,
-      GalleryFrame.hairline => 10,
-      GalleryFrame.mat => 26,
-      GalleryFrame.stamp => 20,
-      GalleryFrame.wood || GalleryFrame.darkWood => 24,
-      GalleryFrame.metal => 16,
-      GalleryFrame.vintage => 28,
-      GalleryFrame.film => 18,
-    };
-    final frameRect = RectInt(
-      x - framePad,
-      y - framePad,
-      photoWidth + framePad * 2,
-      photoHeight + framePad * 2,
+    final track = NarrativeTrackResolver.resolve(
+      chapter: chapter,
+      viewport: Size(width.toDouble(), height.toDouble()),
     );
-    _drawGifFrame(canvas, frameRect, placement.frame);
-    img.compositeImage(canvas, resized, dstX: x, dstY: y);
-    img.drawRect(
-      canvas,
-      x1: x,
-      y1: y,
-      x2: x + photoWidth,
-      y2: y + photoHeight,
-      color: img.ColorRgb8(24, 24, 22),
-      thickness: 2,
-    );
+    final frame = track.resolve(progress);
+    final placementsById = {
+      for (final placement in chapter.placements) placement.id: placement,
+    };
+    final nodes = [...frame.nodes]..sort((a, b) => a.depth.compareTo(b.depth));
+    for (final node in nodes) {
+      final placement = placementsById[node.placementId];
+      if (placement == null || node.opacity < .06) continue;
+      final source = mediaById[placement.mediaId];
+      if (source == null) continue;
+      final rect = node.rect;
+      final photoWidth = math.max(20, rect.width.round());
+      final photoHeight = math.max(20, rect.height.round());
+      final resized = _cover(source, photoWidth, photoHeight);
+      final framePad = (8 + node.depth * 14).round();
+      final x = rect.left.round();
+      final y = rect.top.round();
+      _drawSoftShadow(canvas, x, y, photoWidth, photoHeight, node.depth);
+      _drawGifFrame(
+        canvas,
+        RectInt(
+          x - framePad,
+          y - framePad,
+          photoWidth + framePad * 2,
+          photoHeight + framePad * 2,
+        ),
+        placement.frame,
+      );
+      img.compositeImage(canvas, resized, dstX: x, dstY: y);
+      img.drawRect(
+        canvas,
+        x1: x,
+        y1: y,
+        x2: x + photoWidth,
+        y2: y + photoHeight,
+        color: img.ColorRgb8(24, 24, 22),
+        thickness: 2,
+      );
+    }
     _drawProgressDots(canvas, itemIndex);
     return canvas;
+  }
+
+  void _drawSoftShadow(
+    img.Image canvas,
+    int x,
+    int y,
+    int photoWidth,
+    int photoHeight,
+    double depth,
+  ) {
+    final pad = (10 + depth * 18).round();
+    img.drawRect(
+      canvas,
+      x1: x - pad,
+      y1: y + pad,
+      x2: x + photoWidth + pad,
+      y2: y + photoHeight + pad * 2,
+      color: img.ColorRgba8(0, 0, 0, (32 + depth * 70).round()),
+      radius: 6,
+    );
   }
 
   img.Image _emptyFrame() {
@@ -349,6 +385,9 @@ class ExhibitionTemplateCodec {
                   'focalX': placement.focalX,
                   'focalY': placement.focalY,
                   'zoom': placement.zoom,
+                  'scale': placement.scale,
+                  'offsetX': placement.offsetX,
+                  'offsetY': placement.offsetY,
                   'caption': placement.caption,
                 },
             ],
@@ -399,6 +438,9 @@ class ExhibitionTemplateCodec {
             focalX: (slot['focalX'] as num?)?.toDouble() ?? .5,
             focalY: (slot['focalY'] as num?)?.toDouble() ?? .5,
             zoom: (slot['zoom'] as num?)?.toDouble() ?? 1,
+            scale: (slot['scale'] as num?)?.toDouble() ?? 1,
+            offsetX: (slot['offsetX'] as num?)?.toDouble() ?? 0,
+            offsetY: (slot['offsetY'] as num?)?.toDouble() ?? 0,
             caption: slot['caption'] as String? ?? '',
           ),
         );
@@ -455,6 +497,9 @@ Map<String, Object?> _documentToJson(
                 'order': placement.order,
                 'size': placement.size.name,
                 'frame': placement.frame.name,
+                'scale': placement.scale,
+                'offsetX': placement.offsetX,
+                'offsetY': placement.offsetY,
                 'caption': placement.caption,
               },
           ],

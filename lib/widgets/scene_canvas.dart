@@ -20,6 +20,9 @@ class SceneCanvas extends StatelessWidget {
     this.showStoryPath = true,
     this.useOriginals = false,
     this.sceneTheme = GalleryTheme.ink,
+    this.onPlacementTransformStart,
+    this.onPlacementTransformUpdate,
+    this.onPlacementTransformEnd,
   });
 
   final GalleryChapter chapter;
@@ -30,6 +33,10 @@ class SceneCanvas extends StatelessWidget {
   final bool showStoryPath;
   final bool useOriginals;
   final GalleryTheme sceneTheme;
+  final void Function(String placementId)? onPlacementTransformStart;
+  final void Function(String placementId, double scaleDelta, Offset delta)?
+  onPlacementTransformUpdate;
+  final void Function(String placementId)? onPlacementTransformEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -67,11 +74,13 @@ class SceneCanvas extends StatelessWidget {
         };
         final nodes = [...frame.nodes]
           ..sort((a, b) => a.depth.compareTo(b.depth));
-        final paper = sceneTheme == GalleryTheme.paper;
         return ClipRect(
-          child: ColoredBox(
+          child: CustomPaint(
             key: const Key('scene-background'),
-            color: paper ? XulangColors.paper : XulangColors.ink,
+            painter: SceneBackgroundPainter(
+              sceneTheme,
+              room: chapter.layout == GalleryLayout.depthWall,
+            ),
             child: Stack(
               children: [
                 if (showStoryPath && chapter.layout == GalleryLayout.storyPath)
@@ -101,6 +110,9 @@ class SceneCanvas extends StatelessWidget {
                       useOriginals: useOriginals,
                       sceneTheme: sceneTheme,
                       depthWall: chapter.layout == GalleryLayout.depthWall,
+                      onTransformStart: onPlacementTransformStart,
+                      onTransformUpdate: onPlacementTransformUpdate,
+                      onTransformEnd: onPlacementTransformEnd,
                     ),
                 if (chapter.layout == GalleryLayout.storyPath)
                   for (
@@ -140,6 +152,9 @@ class _SceneNodeWidget extends StatelessWidget {
     required this.useOriginals,
     required this.sceneTheme,
     required this.depthWall,
+    this.onTransformStart,
+    this.onTransformUpdate,
+    this.onTransformEnd,
   });
 
   final NarrativeNodeFrame node;
@@ -150,6 +165,10 @@ class _SceneNodeWidget extends StatelessWidget {
   final bool useOriginals;
   final GalleryTheme sceneTheme;
   final bool depthWall;
+  final void Function(String placementId)? onTransformStart;
+  final void Function(String placementId, double scaleDelta, Offset delta)?
+  onTransformUpdate;
+  final void Function(String placementId)? onTransformEnd;
 
   @override
   Widget build(BuildContext context) {
@@ -172,12 +191,29 @@ class _SceneNodeWidget extends StatelessWidget {
           key: Key('scene-node-${placement.id}'),
           alignment: Alignment.center,
           transform: matrix,
-          child: PhotoFrame(
-            placement: placement,
-            media: media,
-            depth: node.depth,
-            useOriginals: useOriginals,
-            sceneTheme: sceneTheme,
+          child: GestureDetector(
+            key: Key('scene-node-gesture-${placement.id}'),
+            behavior: HitTestBehavior.opaque,
+            onScaleStart: onTransformUpdate == null
+                ? null
+                : (_) => onTransformStart?.call(placement.id),
+            onScaleUpdate: onTransformUpdate == null
+                ? null
+                : (details) => onTransformUpdate!(
+                    placement.id,
+                    details.scale,
+                    details.focalPointDelta,
+                  ),
+            onScaleEnd: onTransformUpdate == null
+                ? null
+                : (_) => onTransformEnd?.call(placement.id),
+            child: PhotoFrame(
+              placement: placement,
+              media: media,
+              depth: node.depth,
+              useOriginals: useOriginals,
+              sceneTheme: sceneTheme,
+            ),
           ),
         ),
       ),
@@ -238,10 +274,9 @@ class _EmptyScene extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final paper = sceneTheme == GalleryTheme.paper;
-    return ColoredBox(
+    return CustomPaint(
       key: const Key('scene-background'),
-      color: paper ? XulangColors.paper : XulangColors.ink,
+      painter: SceneBackgroundPainter(sceneTheme),
       child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -254,9 +289,7 @@ class _EmptyScene extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               '这一章还没有照片',
-              style: TextStyle(
-                color: paper ? XulangColors.ink : XulangColors.paper,
-              ),
+              style: TextStyle(color: sceneForegroundColor(sceneTheme)),
             ),
             const SizedBox(height: 6),
             const Text(
@@ -302,8 +335,116 @@ Rect resolveStoryLabelRect({
 }
 
 Color storyPathDotColor(GalleryTheme sceneTheme) =>
-    (sceneTheme == GalleryTheme.paper ? XulangColors.ink : XulangColors.paper)
-        .withValues(alpha: .85);
+    sceneForegroundColor(sceneTheme).withValues(alpha: .85);
+
+Color sceneForegroundColor(GalleryTheme sceneTheme) => switch (sceneTheme) {
+  GalleryTheme.paper || GalleryTheme.warm => XulangColors.ink,
+  GalleryTheme.ink ||
+  GalleryTheme.graphite ||
+  GalleryTheme.mist => XulangColors.paper,
+};
+
+class SceneBackgroundPainter extends CustomPainter {
+  const SceneBackgroundPainter(this.sceneTheme, {this.room = false});
+
+  final GalleryTheme sceneTheme;
+  final bool room;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final rect = Offset.zero & size;
+    final colors = switch (sceneTheme) {
+      GalleryTheme.ink => const [Color(0xFF08090A), Color(0xFF191B1C)],
+      GalleryTheme.paper => const [Color(0xFFECE4D6), Color(0xFFD9CCB7)],
+      GalleryTheme.graphite => const [Color(0xFF111417), Color(0xFF2B3033)],
+      GalleryTheme.mist => const [Color(0xFF101820), Color(0xFF263944)],
+      GalleryTheme.warm => const [Color(0xFFF0DDC0), Color(0xFFB88F62)],
+    };
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = RadialGradient(
+          center: const Alignment(.05, -.22),
+          radius: 1.15,
+          colors: colors,
+        ).createShader(rect),
+    );
+    if (room) _paintRoom(canvas, size);
+    final vignette =
+        sceneTheme == GalleryTheme.paper || sceneTheme == GalleryTheme.warm
+        ? Colors.white.withValues(alpha: .10)
+        : Colors.black.withValues(alpha: .28);
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, vignette],
+        ).createShader(rect),
+    );
+  }
+
+  void _paintRoom(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height * .47);
+    final floorTop = size.height * .58;
+    final wallPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.white.withValues(alpha: .06),
+          Colors.black.withValues(alpha: .08),
+        ],
+      ).createShader(Offset.zero & size);
+    final leftWall = Path()
+      ..moveTo(0, size.height * .24)
+      ..lineTo(center.dx - size.width * .18, center.dy)
+      ..lineTo(center.dx - size.width * .22, floorTop)
+      ..lineTo(0, size.height * .74)
+      ..close();
+    final rightWall = Path()
+      ..moveTo(size.width, size.height * .24)
+      ..lineTo(center.dx + size.width * .18, center.dy)
+      ..lineTo(center.dx + size.width * .22, floorTop)
+      ..lineTo(size.width, size.height * .74)
+      ..close();
+    canvas.drawPath(leftWall, wallPaint);
+    canvas.drawPath(rightWall, wallPaint);
+    canvas.drawPath(
+      Path()
+        ..moveTo(0, size.height)
+        ..lineTo(center.dx - size.width * .22, floorTop)
+        ..lineTo(center.dx + size.width * .22, floorTop)
+        ..lineTo(size.width, size.height)
+        ..close(),
+      Paint()
+        ..shader =
+            LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                Colors.white.withValues(alpha: .13),
+                Colors.black.withValues(alpha: .33),
+              ],
+            ).createShader(
+              Rect.fromLTWH(0, floorTop, size.width, size.height - floorTop),
+            ),
+    );
+    final beamPaint = Paint()
+      ..color = Colors.white.withValues(alpha: .045)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1;
+    for (final dx in [-.30, 0, .30]) {
+      canvas.drawLine(Offset(size.width * (.5 + dx), 0), center, beamPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant SceneBackgroundPainter oldDelegate) =>
+      sceneTheme != oldDelegate.sceneTheme || room != oldDelegate.room;
+}
 
 StoryPathGeometry transformStoryPathGeometry({
   required StoryPathGeometry geometry,
