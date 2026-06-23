@@ -6,6 +6,30 @@
 - viewport: source 852×1853；implementation Android API 36 emulator 1080×2400，按内容区等比比较
 - state: 「夏日散步」故事路径模板，全景 `cameraProgress = 0%`；附加 9% 连续拖动状态
 
+**Responsive story path v3 verification — 2026-06-23**
+
+- Reference image remained the selected visual target above.
+- Tested viewports in automated coverage:
+  - Portrait: `390×844` for vertical story ordering, portrait editor chrome, portrait viewer vertical progression and fresh-boundary chapter handoff.
+  - Landscape: `844×390` for horizontal story ordering, hidden persistent editor chrome, overlay chapter rail and viewer horizontal progression / vertical chapter switching.
+- Golden evidence refreshed:
+  - `test/goldens/storyPath_portrait_ink_p0.png`
+  - `test/goldens/storyPath_portrait_ink_p35.png`
+  - `test/goldens/storyPath_portrait_ink_p70.png`
+  - `test/goldens/storyPath_landscape_paper_p0.png`
+  - `test/goldens/storyPath_landscape_paper_p35.png`
+  - `test/goldens/storyPath_landscape_paper_p70.png`
+- Direction assertions now run before each story-path golden: portrait resolves `Axis.vertical`; landscape resolves `Axis.horizontal`.
+- Observed ordering is deterministic: story nodes advance down in portrait and right in landscape; path segments are generated from resolved anchors and remain behind photos, with label placement clamped away from frame overlap.
+- Exact verification commands and outcomes:
+  - `flutter test test/goldens/scene_templates_golden_test.dart --update-goldens`: 30/30 passed; only six storyPath golden PNGs changed.
+  - `dart format lib test`: 50 files checked, 0 changed on final run.
+  - `dart format --output=none --set-exit-if-changed lib test`: exit 0.
+  - `flutter analyze`: No issues found.
+  - `flutter test`: 137/137 passed.
+  - `flutter build apk --debug`: built `build/app/outputs/flutter-apk/app-debug.apk`.
+- Manual device note: no physical API 29/API 36 device pass was executed in this run; coverage is automated widget/golden/unit verification plus successful Android debug APK build.
+
 **Full-view comparison evidence**
 
 - 两张图已在同一次视觉检查中打开并对照。实现保留了参考图的黑色纵向空间、左上远景、右上邮票主图、左下相纸图、右下前景图、弯曲路径、编号短标题、顶部章节标题与底部叙事文字。

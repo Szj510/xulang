@@ -30,7 +30,18 @@ void main() {
     if (await mediaRoot.exists()) await mediaRoot.delete(recursive: true);
   });
 
-  Future<void> pumpApp(WidgetTester tester) async {
+  void setViewport(WidgetTester tester, Size size) {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = size;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
+  Future<void> pumpApp(
+    WidgetTester tester, {
+    Size size = const Size(390, 844),
+  }) async {
+    setViewport(tester, size);
     await tester.pumpWidget(
       ProviderScope(
         overrides: [
