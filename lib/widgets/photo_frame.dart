@@ -69,35 +69,39 @@ class PhotoFrame extends StatelessWidget {
             ),
           ),
         ),
-        GalleryFrame.wood => _SimpleFrame(
+        GalleryFrame.wood => _TexturedFrame(
           key: const Key('frame-wood'),
-          borderWidth: 9,
-          borderColor: const Color(0xFF7A4E2D),
-          color: const Color(0xFFB98555),
+          painterKey: const Key('wood-grain-painter'),
+          painter: const _WoodGrainPainter(
+            base: Color(0xFF9B6538),
+            vein: Color(0xFF5C351D),
+            highlight: Color(0xFFC08A54),
+          ),
           padding: const EdgeInsets.all(8),
           child: _image(context),
         ),
-        GalleryFrame.darkWood => _SimpleFrame(
+        GalleryFrame.darkWood => _TexturedFrame(
           key: const Key('frame-darkWood'),
-          borderWidth: 10,
-          borderColor: const Color(0xFF24150E),
-          color: const Color(0xFF3B2518),
+          painterKey: const Key('dark-wood-grain-painter'),
+          painter: const _WoodGrainPainter(
+            base: Color(0xFF3B2518),
+            vein: Color(0xFF120906),
+            highlight: Color(0xFF6C4228),
+          ),
           padding: const EdgeInsets.all(7),
           child: _image(context),
         ),
-        GalleryFrame.metal => _SimpleFrame(
+        GalleryFrame.metal => _TexturedFrame(
           key: const Key('frame-metal'),
-          borderWidth: 4,
-          borderColor: const Color(0xFFA8A39A),
-          color: const Color(0xFFD8D2C6),
+          painterKey: const Key('metal-texture-painter'),
+          painter: const _MetalTexturePainter(),
           padding: const EdgeInsets.all(5),
           child: _image(context),
         ),
-        GalleryFrame.vintage => _SimpleFrame(
+        GalleryFrame.vintage => _TexturedFrame(
           key: const Key('frame-vintage'),
-          borderWidth: 7,
-          borderColor: const Color(0xFF8D7650),
-          color: const Color(0xFFE7D4AF),
+          painterKey: const Key('vintage-paper-painter'),
+          painter: const _VintagePaperPainter(),
           padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
           child: _image(context),
         ),
@@ -173,6 +177,30 @@ class _SimpleFrame extends StatelessWidget {
   }
 }
 
+class _TexturedFrame extends StatelessWidget {
+  const _TexturedFrame({
+    super.key,
+    required this.painterKey,
+    required this.painter,
+    required this.padding,
+    required this.child,
+  });
+
+  final Key painterKey;
+  final CustomPainter painter;
+  final EdgeInsets padding;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      key: painterKey,
+      painter: painter,
+      child: Padding(padding: padding, child: child),
+    );
+  }
+}
+
 class _StampEdgePainter extends CustomPainter {
   const _StampEdgePainter({required this.color});
 
@@ -231,4 +259,166 @@ class _FilmEdgePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _FilmEdgePainter oldDelegate) => false;
+}
+
+class _WoodGrainPainter extends CustomPainter {
+  const _WoodGrainPainter({
+    required this.base,
+    required this.vein,
+    required this.highlight,
+  });
+
+  final Color base;
+  final Color vein;
+  final Color highlight;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [highlight, base, vein],
+          stops: const [0, .48, 1],
+        ).createShader(rect),
+    );
+    final veinPaint = Paint()
+      ..color = vein.withValues(alpha: .36)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.1;
+    final glowPaint = Paint()
+      ..color = highlight.withValues(alpha: .32)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = .8;
+    for (var i = -2; i < 13; i++) {
+      final y = size.height * (i / 11);
+      final path = Path()
+        ..moveTo(-8, y)
+        ..cubicTo(
+          size.width * .22,
+          y + math.sin(i * 1.7) * 13,
+          size.width * .70,
+          y + math.cos(i * 1.3) * 18,
+          size.width + 8,
+          y + math.sin(i * .9) * 10,
+        );
+      canvas.drawPath(path, i.isEven ? veinPaint : glowPaint);
+    }
+    final bevel = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 5
+      ..color = Colors.black.withValues(alpha: .20);
+    canvas.drawRect(rect.deflate(2.5), bevel);
+    canvas.drawRect(
+      rect.deflate(6),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.white.withValues(alpha: .18),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _WoodGrainPainter oldDelegate) =>
+      base != oldDelegate.base ||
+      vein != oldDelegate.vein ||
+      highlight != oldDelegate.highlight;
+}
+
+class _MetalTexturePainter extends CustomPainter {
+  const _MetalTexturePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const LinearGradient(
+          colors: [
+            Color(0xFF7D7A73),
+            Color(0xFFE2DED3),
+            Color(0xFF9B968B),
+            Color(0xFFF0ECE0),
+          ],
+          stops: [0, .28, .62, 1],
+        ).createShader(rect),
+    );
+    final scratch = Paint()
+      ..color = Colors.white.withValues(alpha: .28)
+      ..strokeWidth = .7;
+    final darkScratch = Paint()
+      ..color = Colors.black.withValues(alpha: .18)
+      ..strokeWidth = .6;
+    for (var i = 0; i < 32; i++) {
+      final x = (i * 37) % (size.width + 30) - 15;
+      final y = (i * 19) % (size.height + 20) - 10;
+      canvas.drawLine(
+        Offset(x.toDouble(), y.toDouble()),
+        Offset(x + 34, y + 7),
+        i.isEven ? scratch : darkScratch,
+      );
+    }
+    canvas.drawRect(
+      rect.deflate(2),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = Colors.black.withValues(alpha: .24),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _MetalTexturePainter oldDelegate) => false;
+}
+
+class _VintagePaperPainter extends CustomPainter {
+  const _VintagePaperPainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final rect = Offset.zero & size;
+    canvas.drawRect(
+      rect,
+      Paint()
+        ..shader = const RadialGradient(
+          center: Alignment(.18, -.28),
+          radius: 1.1,
+          colors: [Color(0xFFF1DCAC), Color(0xFFD0AD6F), Color(0xFF816338)],
+        ).createShader(rect),
+    );
+    for (var i = 0; i < 22; i++) {
+      final cx = ((i * 53) % math.max(1, size.width.toInt())).toDouble();
+      final cy = ((i * 31) % math.max(1, size.height.toInt())).toDouble();
+      final radius = 3.0 + (i % 5) * 2.4;
+      canvas.drawCircle(
+        Offset(cx, cy),
+        radius,
+        Paint()..color = const Color(0xFF6F4D26).withValues(alpha: .08),
+      );
+    }
+    canvas.drawRect(
+      rect.deflate(4),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 2
+        ..color = const Color(0xFF6E522C).withValues(alpha: .42),
+    );
+    canvas.drawRect(
+      rect.deflate(10),
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.white.withValues(alpha: .22),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _VintagePaperPainter oldDelegate) => false;
 }
