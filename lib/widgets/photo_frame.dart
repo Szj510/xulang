@@ -69,6 +69,49 @@ class PhotoFrame extends StatelessWidget {
             ),
           ),
         ),
+        GalleryFrame.wood => _SimpleFrame(
+          key: const Key('frame-wood'),
+          borderWidth: 9,
+          borderColor: const Color(0xFF7A4E2D),
+          color: const Color(0xFFB98555),
+          padding: const EdgeInsets.all(8),
+          child: _image(context),
+        ),
+        GalleryFrame.darkWood => _SimpleFrame(
+          key: const Key('frame-darkWood'),
+          borderWidth: 10,
+          borderColor: const Color(0xFF24150E),
+          color: const Color(0xFF3B2518),
+          padding: const EdgeInsets.all(7),
+          child: _image(context),
+        ),
+        GalleryFrame.metal => _SimpleFrame(
+          key: const Key('frame-metal'),
+          borderWidth: 4,
+          borderColor: const Color(0xFFA8A39A),
+          color: const Color(0xFFD8D2C6),
+          padding: const EdgeInsets.all(5),
+          child: _image(context),
+        ),
+        GalleryFrame.vintage => _SimpleFrame(
+          key: const Key('frame-vintage'),
+          borderWidth: 7,
+          borderColor: const Color(0xFF8D7650),
+          color: const Color(0xFFE7D4AF),
+          padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
+          child: _image(context),
+        ),
+        GalleryFrame.film => KeyedSubtree(
+          key: const Key('frame-film'),
+          child: CustomPaint(
+            key: const Key('film-edge-painter'),
+            painter: const _FilmEdgePainter(),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
+              child: _image(context),
+            ),
+          ),
+        ),
       },
     );
   }
@@ -157,4 +200,35 @@ class _StampEdgePainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant _StampEdgePainter oldDelegate) =>
       color != oldDelegate.color;
+}
+
+class _FilmEdgePainter extends CustomPainter {
+  const _FilmEdgePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    canvas.drawRect(Offset.zero & size, Paint()..color = Colors.black);
+    final holePaint = Paint()..color = const Color(0xFFECE2CF);
+    const hole = Size(6, 8);
+    for (var x = 8.0; x < size.width - 8; x += 16) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, 5, hole.width, hole.height),
+          const Radius.circular(1.5),
+        ),
+        holePaint,
+      );
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(x, size.height - 13, hole.width, hole.height),
+          const Radius.circular(1.5),
+        ),
+        holePaint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _FilmEdgePainter oldDelegate) => false;
 }

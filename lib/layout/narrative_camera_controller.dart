@@ -9,6 +9,8 @@ class NarrativeCameraController extends ChangeNotifier {
   NarrativeCameraController({double initialProgress = 0})
     : progress = initialProgress.clamp(0, 1);
 
+  static const double sensitivity = 2;
+
   final GestureDirectionLock _directionLock = GestureDirectionLock();
 
   double progress;
@@ -39,7 +41,9 @@ class NarrativeCameraController extends ChangeNotifier {
       return gesture;
     }
     final dragSpan = math.max(1, itemCount - 1).toDouble();
-    setProgress(progress - axis.primaryOffset(delta) / extent / dragSpan);
+    setProgress(
+      progress - axis.primaryOffset(delta) * sensitivity / extent / dragSpan,
+    );
     return gesture;
   }
 
@@ -70,7 +74,7 @@ class NarrativeCameraController extends ChangeNotifier {
     final extent = axis.primaryExtent(viewport);
     final progressVelocity = extent <= 0
         ? 0.0
-        : -pixelsPerSecond / extent / dragSpan;
+        : -pixelsPerSecond * sensitivity / extent / dragSpan;
     return FrictionSimulation(.135, progress, progressVelocity);
   }
 

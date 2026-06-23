@@ -1,11 +1,17 @@
+import 'dart:io';
+
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/editor/editor_session.dart';
 import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/viewer_screen.dart';
+import 'package:xulang/share/export_file_service.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/gallery_image.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
@@ -114,6 +120,25 @@ class _EditorBodyState extends State<_EditorBody> {
                             ),
                       icon: const Icon(Icons.play_arrow_rounded),
                     ),
+                    PopupMenuButton<_EditorExportAction>(
+                      tooltip: '导出与分享',
+                      onSelected: (action) =>
+                          _handleExportAction(context, action),
+                      itemBuilder: (context) => const [
+                        PopupMenuItem(
+                          value: _EditorExportAction.html,
+                          child: Text('导出 HTML'),
+                        ),
+                        PopupMenuItem(
+                          value: _EditorExportAction.template,
+                          child: Text('分享模板'),
+                        ),
+                        PopupMenuItem(
+                          value: _EditorExportAction.importTemplate,
+                          child: Text('导入模板'),
+                        ),
+                      ],
+                    ),
                     const SizedBox(width: 6),
                   ],
                 ),
@@ -196,6 +221,25 @@ class _EditorBodyState extends State<_EditorBody> {
                                     : () => _play(context),
                                 icon: const Icon(Icons.play_arrow_rounded),
                               ),
+                              PopupMenuButton<_EditorExportAction>(
+                                tooltip: '导出与分享',
+                                onSelected: (action) =>
+                                    _handleExportAction(context, action),
+                                itemBuilder: (context) => const [
+                                  PopupMenuItem(
+                                    value: _EditorExportAction.html,
+                                    child: Text('导出 HTML'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: _EditorExportAction.template,
+                                    child: Text('分享模板'),
+                                  ),
+                                  PopupMenuItem(
+                                    value: _EditorExportAction.importTemplate,
+                                    child: Text('导入模板'),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
                         ),
@@ -253,6 +297,53 @@ class _EditorBodyState extends State<_EditorBody> {
     );
   }
 
+  Future<void> _handleExportAction(
+    BuildContext context,
+    _EditorExportAction action,
+  ) async {
+    final bundle = session.bundle;
+    if (bundle == null) return;
+    try {
+      final service = await _exportFileService();
+      switch (action) {
+        case _EditorExportAction.html:
+          final file = await service.writeHtml(bundle);
+          await service.shareFile(file, title: '${bundle.document.title} HTML');
+          if (context.mounted) {
+            _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
+          }
+        case _EditorExportAction.template:
+          final file = await service.writeTemplate(bundle.document);
+          await service.shareFile(file, title: '${bundle.document.title} 模板');
+          if (context.mounted) {
+            _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
+          }
+        case _EditorExportAction.importTemplate:
+          final file = await FilePicker.platform.pickFiles(
+            type: FileType.custom,
+            allowedExtensions: const ['json'],
+          );
+          final path = file?.files.single.path;
+          if (path == null) return;
+          await session.applyTemplateJson(await File(path).readAsString());
+          if (context.mounted) _showSnack(context, '已套用模板');
+      }
+    } catch (caught) {
+      if (context.mounted) _showSnack(context, '操作失败：$caught');
+    }
+  }
+
+  Future<ExportFileService> _exportFileService() async {
+    final root = await getApplicationDocumentsDirectory();
+    return ExportFileService(
+      outputDirectory: Directory(p.join(root.path, 'exports')),
+    );
+  }
+
+  void _showSnack(BuildContext context, String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
   Future<void> _rename(BuildContext context) async {
     var title = session.bundle!.document.title;
     final value = await showDialog<String>(
@@ -279,6 +370,8 @@ class _EditorBodyState extends State<_EditorBody> {
     if (value != null) await session.rename(value);
   }
 }
+
+enum _EditorExportAction { html, template, importTemplate }
 
 class _ChapterRail extends StatelessWidget {
   const _ChapterRail({
@@ -961,4 +1054,9 @@ String _frameLabel(GalleryFrame frame) => switch (frame) {
   GalleryFrame.hairline => '细线',
   GalleryFrame.mat => '相纸',
   GalleryFrame.stamp => '邮票边',
+  GalleryFrame.wood => '木制',
+  GalleryFrame.darkWood => '深木',
+  GalleryFrame.metal => '金属',
+  GalleryFrame.vintage => '复古',
+  GalleryFrame.film => '胶片孔',
 };

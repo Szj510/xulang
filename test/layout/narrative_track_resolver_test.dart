@@ -13,6 +13,11 @@ void main() {
     GalleryPlacement(id: 'p3', mediaId: 'm3', order: 2),
     GalleryPlacement(id: 'p4', mediaId: 'm4', order: 3),
   ];
+  final sixPlacements = List.generate(
+    6,
+    (index) =>
+        GalleryPlacement(id: 'film-$index', mediaId: 'm$index', order: index),
+  );
 
   GalleryChapter chapter(GalleryLayout layout) => GalleryChapter(
     id: 'chapter',
@@ -21,6 +26,28 @@ void main() {
     layout: layout,
     motion: GalleryMotion.push,
     placements: placements,
+  );
+
+  test(
+    'filmstrip uses a shared horizontal camera that reaches the sixth image',
+    () {
+      final track = NarrativeTrackResolver.resolve(
+        chapter: chapter(
+          GalleryLayout.filmstrip,
+        ).copyWith(placements: sixPlacements),
+        viewport: const Size(390, 844),
+      );
+
+      final end = track.resolve(1);
+      final last = end.nodes.singleWhere(
+        (node) => node.placementId == 'film-5',
+      );
+
+      expect(track.sharedCamera, isTrue);
+      expect(track.axis, NarrativeAxis.horizontal);
+      expect(last.opacity, greaterThan(.45));
+      expect(last.rect.center.dx, inInclusiveRange(0, 390));
+    },
   );
 
   test('three neighboring photos remain visible between focal points', () {

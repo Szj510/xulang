@@ -17,7 +17,7 @@ void main() {
       axis: NarrativeAxis.vertical,
     );
 
-    expect(controller.progress, closeTo(.425, .000001));
+    expect(controller.progress, closeTo(.45, .000001));
     expect(controller.direction, GalleryGesture.vertical);
   });
 
@@ -33,7 +33,7 @@ void main() {
       axis: NarrativeAxis.horizontal,
     );
 
-    expect(controller.progress, closeTo(.425, .000001));
+    expect(controller.progress, closeTo(.45, .000001));
     expect(controller.direction, GalleryGesture.horizontal);
   });
 
