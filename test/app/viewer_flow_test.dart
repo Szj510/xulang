@@ -31,6 +31,13 @@ void main() {
     if (await mediaRoot.exists()) await mediaRoot.delete(recursive: true);
   });
 
+  void setViewport(WidgetTester tester, Size size) {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = size;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+  }
+
   Future<void> pumpViewer(WidgetTester tester) async {
     await tester.pumpWidget(
       ProviderScope(
@@ -67,30 +74,57 @@ void main() {
   testWidgets('keeps camera progress through orientation changes', (
     tester,
   ) async {
-    await tester.binding.setSurfaceSize(const Size(390, 844));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
+    setViewport(tester, const Size(390, 844));
     await pumpViewer(tester);
 
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.byKey(const Key('narrative-gesture-surface'))),
+    await tester.drag(
+      find.byKey(const Key('narrative-gesture-surface')),
+      const Offset(0, -220),
     );
-    for (var step = 0; step < 5; step += 1) {
-      await gesture.moveBy(const Offset(-22, 0));
-      await tester.pump(const Duration(milliseconds: 16));
-    }
     await tester.pump(const Duration(milliseconds: 16));
     final progressBefore = tester
         .widget<Text>(find.byKey(const Key('viewer-track-progress')))
         .data;
     expect(progressBefore, isNot('进度 0%'));
-    await gesture.up();
 
-    await tester.binding.setSurfaceSize(const Size(844, 390));
+    setViewport(tester, const Size(844, 390));
     await tester.pumpAndSettle();
     final progressAfter = tester
         .widget<Text>(find.byKey(const Key('viewer-track-progress')))
         .data;
     expect(progressAfter, progressBefore);
     expect(find.textContaining('潮汐的方向'), findsOneWidget);
+  });
+
+  testWidgets('portrait needs a new boundary gesture to change chapter', (
+    tester,
+  ) async {
+    setViewport(tester, const Size(390, 844));
+    await pumpViewer(tester);
+
+    final surface = find.byKey(const Key('narrative-gesture-surface'));
+    await tester.drag(surface, const Offset(0, -700));
+    await tester.pumpAndSettle();
+    await tester.drag(surface, const Offset(0, -700));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('潮汐的方向'), findsOneWidget);
+
+    await tester.drag(surface, const Offset(0, -80));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('夏日散步'), findsOneWidget);
+  });
+
+  testWidgets('landscape separates track and chapter axes', (tester) async {
+    setViewport(tester, const Size(844, 390));
+    await pumpViewer(tester);
+
+    final surface = find.byKey(const Key('narrative-gesture-surface'));
+    await tester.drag(surface, const Offset(-200, 0));
+    await tester.pump();
+    expect(find.text('进度 0%'), findsNothing);
+
+    await tester.drag(surface, const Offset(0, -80));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('夏日散步'), findsOneWidget);
   });
 }
