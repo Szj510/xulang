@@ -14,7 +14,12 @@ class NarrativeTrackResolver {
     required Size viewport,
   }) {
     final scene = LayoutResolver.resolve(chapter: chapter, viewport: viewport);
-    final axis = NarrativeAxis.fromViewport(viewport);
+    final axis = scene.primaryAxis == Axis.horizontal
+        ? NarrativeAxis.horizontal
+        : NarrativeAxis.vertical;
+    final sharedCamera =
+        chapter.layout == GalleryLayout.storyPath ||
+        chapter.layout == GalleryLayout.filmstrip;
     final itemCount = chapter.placements.length;
     if (itemCount == 0) {
       return ResolvedNarrativeTrack(
@@ -23,7 +28,7 @@ class NarrativeTrackResolver {
         axis: axis,
         viewport: viewport,
         contentExtent: scene.contentExtent,
-        sharedCamera: chapter.layout == GalleryLayout.storyPath,
+        sharedCamera: sharedCamera,
       );
     }
     final spacing = itemCount == 1 ? 1.0 : 1 / (itemCount - 1);
@@ -33,7 +38,7 @@ class NarrativeTrackResolver {
       axis: axis,
       viewport: viewport,
       contentExtent: scene.contentExtent,
-      sharedCamera: chapter.layout == GalleryLayout.storyPath,
+      sharedCamera: sharedCamera,
       keyframes: [
         for (var index = 0; index < scene.nodes.length; index++)
           chapter.layout == GalleryLayout.storyPath

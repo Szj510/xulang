@@ -6,6 +6,7 @@ import 'package:xulang/data/image_selection_service.dart';
 import 'package:xulang/data/media_import_service.dart';
 import 'package:xulang/domain/editor_history.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/share/exhibition_exporter.dart';
 
 class EditorSession extends ChangeNotifier {
   EditorSession({
@@ -85,6 +86,19 @@ class EditorSession extends ChangeNotifier {
         ),
       ),
     );
+  }
+
+  Future<void> applyTemplateJson(String templateJson) async {
+    final current = bundle;
+    if (current == null) return;
+    final document = const ExhibitionTemplateCodec().applyToDocument(
+      base: current.document,
+      templateJson: templateJson,
+      createId: repository.createId,
+      now: DateTime.now(),
+    );
+    selectedChapterIndex = 0;
+    await _commit(current.copyWith(document: document));
   }
 
   Future<void> addChapter() async {

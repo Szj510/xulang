@@ -9,6 +9,7 @@ import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/data/sample_gallery.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/viewer_screen.dart';
+import 'package:xulang/widgets/scene_canvas.dart';
 
 void main() {
   late GalleryDatabase database;
@@ -58,7 +59,9 @@ void main() {
     expect(find.text('山海之间'), findsOneWidget);
     expect(find.textContaining('潮汐的方向'), findsOneWidget);
     expect(find.textContaining('进度 0%'), findsOneWidget);
-    expect(find.byTooltip('下一项'), findsOneWidget);
+    expect(find.byTooltip('下一项'), findsNothing);
+    expect(find.byTooltip('上一项'), findsNothing);
+    expect(find.byTooltip('回到全景'), findsNothing);
     expect(find.byTooltip('下一章'), findsOneWidget);
     expect(find.byKey(const Key('viewer-top-scrim')), findsOneWidget);
     expect(find.byKey(const Key('viewer-caption-scrim')), findsOneWidget);
@@ -83,15 +86,15 @@ void main() {
     );
     await tester.pump(const Duration(milliseconds: 16));
     final progressBefore = tester
-        .widget<Text>(find.byKey(const Key('viewer-track-progress')))
-        .data;
-    expect(progressBefore, isNot('进度 0%'));
+        .widget<SceneCanvas>(find.byType(SceneCanvas))
+        .cameraProgress;
+    expect(progressBefore, greaterThan(0));
 
     setViewport(tester, const Size(844, 390));
     await tester.pumpAndSettle();
     final progressAfter = tester
-        .widget<Text>(find.byKey(const Key('viewer-track-progress')))
-        .data;
+        .widget<SceneCanvas>(find.byType(SceneCanvas))
+        .cameraProgress;
     expect(progressAfter, progressBefore);
     expect(find.textContaining('潮汐的方向'), findsOneWidget);
   });
@@ -103,8 +106,6 @@ void main() {
     await pumpViewer(tester);
 
     final surface = find.byKey(const Key('narrative-gesture-surface'));
-    await tester.drag(surface, const Offset(0, -700));
-    await tester.pumpAndSettle();
     await tester.drag(surface, const Offset(0, -700));
     await tester.pumpAndSettle();
     expect(find.textContaining('潮汐的方向'), findsOneWidget);
