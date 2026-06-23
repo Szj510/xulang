@@ -17,6 +17,7 @@ class LayoutResolver {
       GalleryLayout.diptych => _diptych(chapter.placements, viewport),
       GalleryLayout.collage => _collage(chapter.placements, viewport),
       GalleryLayout.storyPath => _storyPath(chapter.placements, viewport),
+      GalleryLayout.depthWall => _depthWall(chapter.placements, viewport),
     };
   }
 
@@ -301,6 +302,68 @@ class LayoutResolver {
       nodes: nodes,
       primaryAxis: primaryAxis,
       contentExtent: math.max(primarySize, cursor + primarySize * .10),
+    );
+  }
+
+  static ResolvedScene _depthWall(List<GalleryPlacement> items, Size size) {
+    final axis = NarrativeAxis.fromViewport(size);
+    final primaryAxis = axis == NarrativeAxis.horizontal
+        ? Axis.horizontal
+        : Axis.vertical;
+    if (!size.width.isFinite ||
+        !size.height.isFinite ||
+        size.width <= 0 ||
+        size.height <= 0) {
+      return ResolvedScene(
+        nodes: const [],
+        primaryAxis: primaryAxis,
+        contentExtent: 0,
+      );
+    }
+
+    final portrait = axis == NarrativeAxis.vertical;
+    final primarySize = axis.primaryExtent(size);
+    final crossSize = axis.crossExtent(size);
+    final nodes = <SceneNode>[];
+    const depthCycle = [.28, .52, .82, 1.08, .70, .42];
+    const rotationCycle = [-.055, .035, -.018, .044, -.032, .022];
+    var cursor = primarySize * .12;
+
+    for (var index = 0; index < items.length; index++) {
+      final item = items[index];
+      final depth = depthCycle[index % depthCycle.length];
+      final scale = _sizeScale(item.size) * (.84 + depth * .18);
+      final width = size.width * (portrait ? .60 : .38) * scale;
+      final height = size.height * (portrait ? .34 : .64) * scale;
+      final crossCenterFraction =
+          .5 + (index.isEven ? -.18 : .18) * (1 - depth * .25);
+      final crossNodeExtent = axis.crossExtent(Size(width, height));
+      final desiredCrossStart =
+          crossSize * crossCenterFraction - crossNodeExtent / 2;
+      final crossStart = desiredCrossStart
+          .clamp(12.0, math.max(12.0, crossSize - crossNodeExtent - 12.0))
+          .toDouble();
+      final rect = axis.shiftPrimary(
+        portrait
+            ? Rect.fromLTWH(crossStart, 0, width, height)
+            : Rect.fromLTWH(0, crossStart, width, height),
+        cursor,
+      );
+      nodes.add(
+        SceneNode(
+          placementId: item.id,
+          rect: rect,
+          depth: depth.clamp(0.0, 1.15),
+          rotation: rotationCycle[index % rotationCycle.length],
+        ),
+      );
+      cursor = axis.primaryOffset(rect.bottomRight) + primarySize * .10;
+    }
+
+    return ResolvedScene(
+      nodes: nodes,
+      primaryAxis: primaryAxis,
+      contentExtent: math.max(primarySize, cursor + primarySize * .18),
     );
   }
 

@@ -100,6 +100,7 @@ class SceneCanvas extends StatelessWidget {
                       viewport: viewport,
                       useOriginals: useOriginals,
                       sceneTheme: sceneTheme,
+                      depthWall: chapter.layout == GalleryLayout.depthWall,
                     ),
                 if (chapter.layout == GalleryLayout.storyPath)
                   for (
@@ -138,6 +139,7 @@ class _SceneNodeWidget extends StatelessWidget {
     required this.viewport,
     required this.useOriginals,
     required this.sceneTheme,
+    required this.depthWall,
   });
 
   final NarrativeNodeFrame node;
@@ -147,15 +149,19 @@ class _SceneNodeWidget extends StatelessWidget {
   final Size viewport;
   final bool useOriginals;
   final GalleryTheme sceneTheme;
+  final bool depthWall;
 
   @override
   Widget build(BuildContext context) {
     final dx = motion.offset.dx * viewport.width;
     final dy = motion.offset.dy * viewport.height;
+    final perspective = depthWall ? .00235 : .00135;
+    final zLift = depthWall ? 28.0 : 10.0;
+    final yRotation = depthWall ? node.rotateY * 2.2 : node.rotateY;
     final matrix = Matrix4.identity()
-      ..setEntry(3, 2, .00135)
-      ..translateByDouble(dx, dy, node.depth * 10, 1)
-      ..rotateY(node.rotateY)
+      ..setEntry(3, 2, perspective)
+      ..translateByDouble(dx, dy, node.depth * zLift, 1)
+      ..rotateY(yRotation)
       ..rotateZ(node.rotation + motion.rotation)
       ..scaleByDouble(motion.scale, motion.scale, 1, 1);
     return Positioned.fromRect(

@@ -104,6 +104,43 @@ void main() {
     expect(scene.nodes[0].rect.overlaps(scene.nodes[1].rect), isTrue);
   });
 
+  test('depth wall creates a sequential 2.5D corridor', () {
+    final portrait = LayoutResolver.resolve(
+      chapter: chapter(
+        GalleryLayout.depthWall,
+      ).copyWith(placements: storyPlacements.take(6).toList()),
+      viewport: const Size(390, 844),
+    );
+    final landscape = LayoutResolver.resolve(
+      chapter: chapter(
+        GalleryLayout.depthWall,
+      ).copyWith(placements: storyPlacements.take(6).toList()),
+      viewport: const Size(844, 390),
+    );
+
+    expect(portrait.primaryAxis, Axis.vertical);
+    expect(landscape.primaryAxis, Axis.horizontal);
+    expect(portrait.nodes.map((node) => node.placementId), [
+      'story-0',
+      'story-1',
+      'story-2',
+      'story-3',
+      'story-4',
+      'story-5',
+    ]);
+    expect(
+      portrait.nodes.map((node) => node.depth).toSet().length,
+      greaterThan(3),
+    );
+    expect(portrait.nodes[1].rect.top, greaterThan(portrait.nodes[0].rect.top));
+    expect(
+      landscape.nodes[1].rect.left,
+      greaterThan(landscape.nodes[0].rect.left),
+    );
+    expect(portrait.contentExtent, greaterThan(844));
+    expect(landscape.contentExtent, greaterThan(844));
+  });
+
   test('small medium and large change node area in every layout', () {
     for (final layout in GalleryLayout.values) {
       double areaFor(GallerySize size) {

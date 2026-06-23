@@ -1052,6 +1052,7 @@ String _layoutLabel(GalleryLayout layout) => switch (layout) {
   GalleryLayout.diptych => '双联画',
   GalleryLayout.collage => '叙事拼贴',
   GalleryLayout.storyPath => '故事路径',
+  GalleryLayout.depthWall => '立体展墙',
 };
 
 String _sizeLabel(GallerySize size) => switch (size) {
