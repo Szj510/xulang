@@ -20,7 +20,7 @@ class LibraryScreen extends ConsumerWidget {
     return Scaffold(
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 16, 22, 0),
+          padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -29,7 +29,7 @@ class LibraryScreen extends ConsumerWidget {
                 onImportTemplate: () => _importTemplate(context, ref),
                 onInfo: () => _showLocalInfo(context),
               ),
-              const SizedBox(height: 26),
+              const SizedBox(height: 28),
               Expanded(
                 child: exhibitions.when(
                   data: (items) => items.isEmpty
@@ -125,6 +125,7 @@ class _LibraryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         const Expanded(
           child: Column(
@@ -134,36 +135,80 @@ class _LibraryHeader extends StatelessWidget {
                 '叙廊',
                 style: TextStyle(
                   color: XulangColors.paper,
-                  fontFamily: 'serif',
-                  fontSize: 30,
-                  letterSpacing: 4,
+                  fontFamily: 'Noto Serif SC',
+                  fontFamilyFallback: ['Noto Sans SC', 'PingFang SC', 'Microsoft YaHei'],
+                  fontSize: 32,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 5,
+                  height: 1.1,
                 ),
               ),
-              SizedBox(height: 5),
+              SizedBox(height: 6),
               Text(
                 '你的本地展览',
-                style: TextStyle(color: XulangColors.muted, fontSize: 12),
+                style: TextStyle(
+                  color: XulangColors.muted,
+                  fontSize: 12,
+                  letterSpacing: 0.8,
+                  height: 1.4,
+                ),
               ),
             ],
           ),
         ),
-        IconButton(
+        _HeaderIconButton(
           tooltip: '本地存储说明',
           onPressed: onInfo,
-          icon: const Icon(Icons.info_outline),
-        ),
-        IconButton(
-          tooltip: '导入模板',
-          onPressed: onImportTemplate,
-          icon: const Icon(Icons.file_open_outlined),
+          icon: const Icon(Icons.info_outline, size: 20),
         ),
         const SizedBox(width: 4),
+        _HeaderIconButton(
+          tooltip: '导入模板',
+          onPressed: onImportTemplate,
+          icon: const Icon(Icons.file_open_outlined, size: 20),
+        ),
+        const SizedBox(width: 10),
         FilledButton.icon(
           onPressed: onCreate,
-          icon: const Icon(Icons.add, size: 19),
+          icon: const Icon(Icons.add, size: 18),
           label: const Text('新建'),
         ),
       ],
+    );
+  }
+}
+
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final String tooltip;
+  final VoidCallback onPressed;
+  final Widget icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            child: IconTheme(
+              data: const IconThemeData(color: XulangColors.muted, size: 20),
+              child: icon,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -180,44 +225,45 @@ class _EmptyLibrary extends StatelessWidget {
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 42),
+          padding: const EdgeInsets.only(bottom: 48),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 112,
-                height: 132,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: XulangColors.paper.withValues(alpha: .35),
-                  ),
-                ),
+              _EmptyGalleryFrame(
                 child: const Icon(
                   Icons.auto_stories_outlined,
-                  size: 38,
+                  size: 36,
                   color: XulangColors.paper,
                 ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 32),
               const Text(
                 '让照片沿着故事展开',
                 style: TextStyle(
-                  fontFamily: 'serif',
+                  fontFamily: 'Noto Serif SC',
+                  fontFamilyFallback: ['Noto Sans SC', 'PingFang SC', 'Microsoft YaHei'],
                   color: XulangColors.paper,
-                  fontSize: 23,
-                  letterSpacing: 1.5,
+                  fontSize: 24,
+                  fontWeight: FontWeight.w400,
+                  letterSpacing: 2,
+                  height: 1.3,
                 ),
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 14),
               const Text(
                 '用章节、方向和远近组织记忆。\n所有图片只保存在这台设备。',
                 textAlign: TextAlign.center,
-                style: TextStyle(color: XulangColors.muted, height: 1.7),
+                style: TextStyle(
+                  color: XulangColors.muted,
+                  fontSize: 13,
+                  height: 1.75,
+                  letterSpacing: 0.3,
+                ),
               ),
-              const SizedBox(height: 26),
+              const SizedBox(height: 28),
               Wrap(
-                spacing: 10,
-                runSpacing: 10,
+                spacing: 12,
+                runSpacing: 12,
                 alignment: WrapAlignment.center,
                 children: [
                   FilledButton(
@@ -231,14 +277,62 @@ class _EmptyLibrary extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 20),
               const Text(
                 '卸载应用会删除全部展览，请谨慎操作。',
-                style: TextStyle(color: XulangColors.muted, fontSize: 11),
+                style: TextStyle(
+                  color: XulangColors.muted,
+                  fontSize: 11,
+                  letterSpacing: 0.2,
+                ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _EmptyGalleryFrame extends StatelessWidget {
+  const _EmptyGalleryFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 120,
+      height: 140,
+      decoration: BoxDecoration(
+        color: XulangColors.surface,
+        border: Border.all(
+          color: XulangColors.paper.withValues(alpha: .20),
+          width: 0.5,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: .35),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                border: Border.all(
+                  color: XulangColors.paper.withValues(alpha: .08),
+                  width: 0.5,
+                ),
+              ),
+            ),
+          ),
+          child,
+        ],
       ),
     );
   }
@@ -253,18 +347,18 @@ class _ExhibitionGrid extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth > 760
+        final columns = constraints.maxWidth > 820
             ? 3
-            : constraints.maxWidth > 500
+            : constraints.maxWidth > 520
             ? 2
             : 1;
         return GridView.builder(
-          padding: const EdgeInsets.only(bottom: 24),
+          padding: const EdgeInsets.only(bottom: 28),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            mainAxisSpacing: 18,
-            crossAxisSpacing: 18,
-            childAspectRatio: columns == 1 ? 1.42 : .82,
+            mainAxisSpacing: 20,
+            crossAxisSpacing: 20,
+            childAspectRatio: columns == 1 ? 1.45 : .86,
           ),
           itemCount: items.length,
           itemBuilder: (context, index) =>
@@ -298,92 +392,37 @@ class _ExhibitionCard extends ConsumerWidget {
               (count, chapter) => count + chapter.placements.length,
             ) ??
             0;
-        return Material(
-          color: XulangColors.surface,
-          borderRadius: BorderRadius.circular(2),
-          clipBehavior: Clip.antiAlias,
-          child: InkWell(
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute<void>(
-                builder: (_) => EditorScreen(exhibitionId: summary.id),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Expanded(
-                  child: cover == null
-                      ? const _CoverFallback()
-                      : GalleryImage(
-                          path: cover.thumbnailPath,
-                          cacheWidth: 900,
-                        ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 14, 8, 14),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              summary.title,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                fontFamily: 'serif',
-                                color: XulangColors.paper,
-                                fontSize: 18,
-                              ),
-                            ),
-                            const SizedBox(height: 5),
-                            Text(
-                              '$imageCount 张照片 · ${_formatDate(summary.updatedAt)}',
-                              style: const TextStyle(
-                                color: XulangColors.muted,
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      if (imageCount > 0)
-                        IconButton(
-                          tooltip: '沉浸观看',
-                          onPressed: () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              builder: (_) =>
-                                  ViewerScreen(exhibitionId: summary.id),
-                            ),
-                          ),
-                          icon: const Icon(Icons.play_arrow_rounded),
-                        ),
-                      PopupMenuButton<_CardAction>(
-                        tooltip: '更多操作',
-                        onSelected: (action) =>
-                            _handleAction(context, ref, action),
-                        itemBuilder: (context) => const [
-                          PopupMenuItem(
-                            value: _CardAction.rename,
-                            child: Text('重命名'),
-                          ),
-                          PopupMenuItem(
-                            value: _CardAction.duplicate,
-                            child: Text('复制展览'),
-                          ),
-                          PopupMenuItem(
-                            value: _CardAction.delete,
-                            child: Text('删除'),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+        return _MountedCard(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => EditorScreen(exhibitionId: summary.id),
             ),
           ),
+          cover: cover == null
+              ? const _CoverFallback()
+              : GalleryImage(
+                  path: cover.thumbnailPath,
+                  cacheWidth: 900,
+                ),
+          title: summary.title,
+          meta: '$imageCount 张照片 · ${_formatDate(summary.updatedAt)}',
+          actions: [
+            if (imageCount > 0)
+              _CardIconButton(
+                tooltip: '沉浸观看',
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute<void>(
+                    builder: (_) =>
+                        ViewerScreen(exhibitionId: summary.id),
+                  ),
+                ),
+                icon: Icons.play_arrow_rounded,
+              ),
+            _CardMenuButton(
+              onSelected: (action) =>
+                  _handleAction(context, ref, action),
+            ),
+          ],
         );
       },
     );
@@ -422,13 +461,20 @@ class _ExhibitionCard extends ConsumerWidget {
           context: context,
           builder: (context) => AlertDialog(
             title: const Text('删除展览？'),
-            content: Text('“${summary.title}”及复制到应用中的图片会被永久删除。'),
+            content: Text(
+              '“${summary.title}”及复制到应用中的图片会被永久删除。',
+              style: Theme.of(context).dialogTheme.contentTextStyle,
+            ),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
                 child: const Text('取消'),
               ),
               FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: XulangColors.danger,
+                  foregroundColor: XulangColors.paper,
+                ),
                 onPressed: () => Navigator.pop(context, true),
                 child: const Text('删除'),
               ),
@@ -440,6 +486,126 @@ class _ExhibitionCard extends ConsumerWidget {
   }
 }
 
+/// The signature "mounted print" aesthetic.
+class _MountedCard extends StatelessWidget {
+  const _MountedCard({
+    required this.onTap,
+    required this.cover,
+    required this.title,
+    required this.meta,
+    required this.actions,
+  });
+
+  final VoidCallback onTap;
+  final Widget cover;
+  final String title;
+  final String meta;
+  final List<Widget> actions;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: XulangColors.surface,
+      borderRadius: BorderRadius.circular(2),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        splashColor: XulangColors.accent.withValues(alpha: .08),
+        highlightColor: XulangColors.paper.withValues(alpha: .04),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(10),
+                child: _PrintMount(child: cover),
+              ),
+            ),
+            Container(
+              height: 0.5,
+              color: XulangColors.line,
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontFamily: 'Noto Serif SC',
+                            fontFamilyFallback: [
+                              'Noto Sans SC',
+                              'PingFang SC',
+                              'Microsoft YaHei',
+                            ],
+                            color: XulangColors.paper,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w400,
+                            letterSpacing: 0.6,
+                            height: 1.35,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          meta,
+                          style: const TextStyle(
+                            color: XulangColors.muted,
+                            fontSize: 11,
+                            letterSpacing: 0.2,
+                            height: 1.4,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  ...actions,
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PrintMount extends StatelessWidget {
+  const _PrintMount({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: XulangColors.elevated,
+        border: Border.all(
+          color: XulangColors.paper.withValues(alpha: .12),
+          width: 0.5,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(8),
+        child: Container(
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: XulangColors.paper.withValues(alpha: .06),
+              width: 0.5,
+            ),
+          ),
+          child: ClipRect(child: child),
+        ),
+      ),
+    );
+  }
+}
+
 class _CoverFallback extends StatelessWidget {
   const _CoverFallback();
 
@@ -448,8 +614,95 @@ class _CoverFallback extends StatelessWidget {
     return const ColoredBox(
       color: XulangColors.elevated,
       child: Center(
-        child: Icon(Icons.photo_size_select_actual_outlined, size: 34),
+        child: Icon(
+          Icons.photo_size_select_actual_outlined,
+          size: 32,
+          color: XulangColors.muted,
+        ),
       ),
+    );
+  }
+}
+
+class _CardIconButton extends StatelessWidget {
+  const _CardIconButton({
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final String tooltip;
+  final VoidCallback onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(8),
+          child: Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 20,
+              color: XulangColors.muted,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _CardMenuButton extends StatelessWidget {
+  const _CardMenuButton({required this.onSelected});
+
+  final ValueChanged<_CardAction> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return PopupMenuButton<_CardAction>(
+      tooltip: '更多操作',
+      onSelected: onSelected,
+      icon: const Icon(Icons.more_vert, size: 18, color: XulangColors.muted),
+      itemBuilder: (context) => const [
+        PopupMenuItem(
+          value: _CardAction.rename,
+          child: Row(
+            children: [
+              Icon(Icons.edit_outlined, size: 18),
+              SizedBox(width: 12),
+              Text('重命名'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: _CardAction.duplicate,
+          child: Row(
+            children: [
+              Icon(Icons.copy_outlined, size: 18),
+              SizedBox(width: 12),
+              Text('复制展览'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
+          value: _CardAction.delete,
+          child: Row(
+            children: [
+              Icon(Icons.delete_outline, size: 18, color: XulangColors.danger),
+              SizedBox(width: 12),
+              Text('删除', style: TextStyle(color: XulangColors.danger)),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }
@@ -460,7 +713,32 @@ class _LibraryError extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Center(child: Text('无法读取展览\n$error', textAlign: TextAlign.center));
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 320),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.error_outline,
+              size: 32,
+              color: XulangColors.muted,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '无法读取展览',
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$error',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -504,14 +782,34 @@ void _showLocalInfo(BuildContext context) {
     context: context,
     showDragHandle: true,
     builder: (context) => const Padding(
-      padding: EdgeInsets.fromLTRB(24, 8, 24, 32),
+      padding: EdgeInsets.fromLTRB(24, 8, 24, 36),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('只属于这台设备', style: TextStyle(fontFamily: 'serif', fontSize: 22)),
-          SizedBox(height: 12),
-          Text('叙廊不上传图片，也不申请网络权限。导入内容会复制到应用私有空间；卸载应用会永久删除这些展览。'),
+          Text(
+            '只属于这台设备',
+            style: TextStyle(
+              fontFamily: 'Noto Serif SC',
+              fontFamilyFallback: [
+                'Noto Sans SC',
+                'PingFang SC',
+                'Microsoft YaHei',
+              ],
+              fontSize: 22,
+              letterSpacing: 1.5,
+              color: XulangColors.paper,
+            ),
+          ),
+          SizedBox(height: 14),
+          Text(
+            '叙廊不上传图片，也不申请网络权限。导入内容会复制到应用私有空间；卸载应用会永久删除这些展览。',
+            style: TextStyle(
+              fontSize: 14,
+              height: 1.7,
+              color: XulangColors.muted,
+            ),
+          ),
         ],
       ),
     ),

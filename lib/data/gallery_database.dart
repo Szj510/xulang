@@ -184,6 +184,7 @@ class GalleryDatabase extends _$GalleryDatabase {
                 scale: Value(item.scale),
                 offsetX: Value(item.offsetX),
                 offsetY: Value(item.offsetY),
+                rotation: Value(item.rotation),
                 caption: item.caption,
               ),
         ]);

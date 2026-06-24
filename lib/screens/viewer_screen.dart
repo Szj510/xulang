@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
@@ -28,9 +29,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   late Future<GalleryBundle?> _bundle;
   final Map<String, double> _chapterProgress = {};
   int _chapterIndex = 0;
+  int _slideDirection = 1;
   bool _showChrome = true;
   bool _recordingMode = false;
-  double _recordingSpeed = 6.0; // seconds for full scroll (user-adjustable)
+  double _recordingSpeed = 6.0;
   bool _musicPlaying = false;
   bool _changingChapter = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -89,8 +91,50 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   child: AnimatedSwitcher(
                     duration: MediaQuery.disableAnimationsOf(context)
                         ? const Duration(milliseconds: 120)
-                        : const Duration(milliseconds: 240),
-                      child: _ViewerChapter(
+                        : const Duration(milliseconds: 320),
+                    transitionBuilder: (Widget child, Animation<double> animation) {
+                      final isNewWidget = child.key == ValueKey(chapter.id);
+                      final axis = NarrativeAxis.fromViewport(MediaQuery.sizeOf(context));
+                      final direction = _slideDirection;
+                      
+                      final Offset beginOffset;
+                      final Offset endOffset;
+                      
+                      if (axis == NarrativeAxis.vertical) {
+                        if (isNewWidget) {
+                          beginOffset = Offset(0.0, direction * 0.15);
+                          endOffset = Offset.zero;
+                        } else {
+                          beginOffset = Offset.zero;
+                          endOffset = Offset(0.0, -direction * 0.15);
+                        }
+                      } else {
+                        if (isNewWidget) {
+                          beginOffset = Offset(direction * 0.15, 0.0);
+                          endOffset = Offset.zero;
+                        } else {
+                          beginOffset = Offset.zero;
+                          endOffset = Offset(-direction * 0.15, 0.0);
+                        }
+                      }
+
+                      final curve = CurvedAnimation(
+                        parent: animation,
+                        curve: Curves.easeOutCubic,
+                      );
+
+                      return FadeTransition(
+                        opacity: curve,
+                        child: SlideTransition(
+                          position: Tween<Offset>(
+                            begin: beginOffset,
+                            end: endOffset,
+                          ).animate(curve),
+                          child: child,
+                        ),
+                      );
+                    },
+                    child: _ViewerChapter(
                       key: ValueKey(chapter.id),
                       chapter: chapter,
                       media: bundle.media,
@@ -115,7 +159,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     child: AnimatedOpacity(
                       opacity: _showChrome ? 1 : 0,
                       duration: const Duration(milliseconds: 180),
-                        child: _ViewerChrome(
+                      child: _ViewerChrome(
                         document: bundle.document,
                         chapter: chapter,
                         chapterIndex: chapterIndex,
@@ -138,7 +182,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                         onToggleMusic: bundle.document.musicPath == null
                             ? null
                             : () => _toggleMusic(bundle.document),
-                        onRecordingSpeedChanged: (v) => setState(() => _recordingSpeed = v),
+                        onRecordingSpeedChanged: (v) =>
+                            setState(() => _recordingSpeed = v),
                         musicPlaying: _musicPlaying,
                       ),
                     ),
@@ -156,9 +201,22 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: XulangColors.paper,
-                          fontFamily: 'serif',
+                          fontFamily: 'Noto Serif SC',
+                          fontFamilyFallback: [
+                            'Noto Sans SC',
+                            'PingFang SC',
+                            'Microsoft YaHei',
+                          ],
                           fontSize: 18,
-                          letterSpacing: 2,
+                          letterSpacing: 2.5,
+                          fontWeight: FontWeight.w400,
+                          shadows: [
+                            Shadow(
+                              color: Colors.black54,
+                              blurRadius: 8,
+                              offset: Offset(0, 2),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -181,6 +239,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (target < 0 || target >= chapters.length) return;
     setState(() {
       _changingChapter = true;
+      _slideDirection = delta;
       _chapterIndex = target;
     });
     await Future<void>.delayed(
@@ -191,7 +250,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (mounted) setState(() => _changingChapter = false);
   }
 
-  Future<void> _setRecordingMode(GalleryDocument document, bool enabled) async {
+  Future<void> _setRecordingMode(
+    GalleryDocument document,
+    bool enabled,
+  ) async {
     if (mounted) {
       setState(() {
         _recordingMode = enabled;
@@ -247,8 +309,8 @@ class _ViewerChapter extends StatefulWidget {
     required this.onChapterIntent,
   });
 
-    final bool recordingMode;
-    final double recordingSpeed;
+  final bool recordingMode;
+  final double recordingSpeed;
 
   final GalleryChapter chapter;
   final List<GalleryMedia> media;
@@ -303,13 +365,15 @@ class _ViewerChapterState extends State<_ViewerChapter>
   @override
   void didUpdateWidget(covariant _ViewerChapter oldWidget) {
     super.didUpdateWidget(oldWidget);
-    // start/stop recording animation when recordingMode toggles
     if (!oldWidget.recordingMode && widget.recordingMode) {
-      // start from beginning
       _recorder.stop();
       _recorder.reset();
       final durationMs = (widget.recordingSpeed * 1000).round();
-      _recorder.animateTo(1.0, duration: Duration(milliseconds: durationMs), curve: Curves.linear);
+      _recorder.animateTo(
+        1.0,
+        duration: Duration(milliseconds: durationMs),
+        curve: Curves.linear,
+      );
     } else if (oldWidget.recordingMode && !widget.recordingMode) {
       _recorder.stop();
     }
@@ -473,24 +537,36 @@ class _ViewerChapterState extends State<_ViewerChapter>
           Positioned(
             left: 0,
             right: 0,
-            bottom: MediaQuery.paddingOf(context).bottom + 22,
+            bottom: widget.chapter.caption.isNotEmpty
+                ? MediaQuery.paddingOf(context).bottom + 84
+                : MediaQuery.paddingOf(context).bottom + 22,
             child: Center(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: Colors.black.withValues(alpha: .42),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 5,
-                  ),
-                  child: Text(
-                    '进度 ${(_camera.progress * 100).round()}%',
-                    key: const Key('viewer-track-progress'),
-                    style: const TextStyle(
-                      color: XulangColors.paper,
-                      fontSize: 12,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: .45),
+                      borderRadius: BorderRadius.circular(999),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .08),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Text(
+                      '进度 ${(_camera.progress * 100).round()}%',
+                      key: const Key('viewer-track-progress'),
+                      style: const TextStyle(
+                        color: XulangColors.paper,
+                        fontSize: 11,
+                        letterSpacing: 0.5,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ),
@@ -513,10 +589,10 @@ class _ViewerChrome extends StatelessWidget {
     required this.onNextChapter,
     required this.onStartRecording,
     required this.onToggleMusic,
-  this.onRecordingSpeedChanged,
-  required this.musicPlaying,
+    this.onRecordingSpeedChanged,
+    required this.musicPlaying,
   });
- 
+
   final GalleryDocument document;
   final GalleryChapter chapter;
   final int chapterIndex;
@@ -546,7 +622,7 @@ class _ViewerChrome extends StatelessWidget {
             top: 0,
             left: 0,
             right: 0,
-            height: 112,
+            height: 90,
             child: IgnorePointer(
               child: DecoratedBox(
                 decoration: BoxDecoration(
@@ -554,7 +630,7 @@ class _ViewerChrome extends StatelessWidget {
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Colors.black.withValues(alpha: .78),
+                      Colors.black.withValues(alpha: .50),
                       Colors.transparent,
                     ],
                   ),
@@ -564,68 +640,110 @@ class _ViewerChrome extends StatelessWidget {
           ),
           Positioned(
             top: 12,
-            left: 18,
-            right: 18,
+            left: 16,
+            right: 16,
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                IconButton.filledTonal(
-                  onPressed: onClose,
-                  tooltip: '退出观看',
-                  icon: const Icon(Icons.close),
-                ),
-                Expanded(
-                  child: Column(
-                    children: [
-                      Text(
-                        document.title,
-                        style: const TextStyle(
-                          color: XulangColors.paper,
-                          fontFamily: 'serif',
-                          fontSize: 18,
-                          letterSpacing: 2,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        '${chapterIndex + 1} / $chapterCount · ${chapter.title}',
-                        style: const TextStyle(
-                          color: XulangColors.muted,
-                          fontSize: 11,
-                        ),
-                      ),
-                    ],
+                _ChromeGlassCircle(
+                  child: _ChromeIconButton(
+                    onPressed: onClose,
+                    tooltip: '退出观看',
+                    icon: Icons.close,
                   ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    IconButton.filledTonal(
-                      key: const Key('viewer-recording-mode'),
-                      onPressed: onStartRecording,
-                      tooltip: '录屏模式',
-                      icon: const Icon(Icons.videocam_outlined),
-                    ),
-                    PopupMenuButton<double>(
-                      tooltip: '录屏速度',
-                      icon: const Icon(Icons.speed),
-                      onSelected: (v) => onRecordingSpeedChanged?.call(v),
-                      itemBuilder: (context) => [
-                        const PopupMenuItem(value: 3.0, child: Text('快 (3s)')),
-                        const PopupMenuItem(value: 6.0, child: Text('中 (6s)')),
-                        const PopupMenuItem(value: 10.0, child: Text('慢 (10s)')),
-                      ],
-                    ),
-                    IconButton.filledTonal(
-                      key: const Key('viewer-music-toggle'),
-                      onPressed: onToggleMusic,
-                      tooltip: musicPlaying ? '暂停音乐' : '播放音乐',
-                      icon: Icon(
-                        musicPlaying
-                            ? Icons.music_off_outlined
-                            : Icons.music_note_outlined,
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    child: _ChromeGlassPill(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            document.title,
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: XulangColors.paper,
+                              fontFamily: 'Noto Serif SC',
+                              fontFamilyFallback: [
+                                'Noto Sans SC',
+                                'PingFang SC',
+                                'Microsoft YaHei',
+                              ],
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 1.5,
+                              height: 1.25,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${chapterIndex + 1} / $chapterCount · ${chapter.title}',
+                            textAlign: TextAlign.center,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(
+                              color: XulangColors.muted,
+                              fontSize: 10,
+                              letterSpacing: 0.3,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
+                  ),
+                ),
+                _ChromeGlassPill(
+                  padding: EdgeInsets.zero,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _ChromeIconButton(
+                        key: const Key('viewer-recording-mode'),
+                        onPressed: onStartRecording,
+                        tooltip: '录屏模式',
+                        icon: Icons.videocam_outlined,
+                      ),
+                      PopupMenuButton<double>(
+                        tooltip: '录屏速度',
+                        icon: const Icon(
+                          Icons.speed,
+                          size: 18,
+                          color: XulangColors.paper,
+                        ),
+                        onSelected: (v) => onRecordingSpeedChanged?.call(v),
+                        itemBuilder: (context) => [
+                          const PopupMenuItem(
+                            value: 3.0,
+                            child: Text('快 (3s)'),
+                          ),
+                          const PopupMenuItem(
+                            value: 6.0,
+                            child: Text('中 (6s)'),
+                          ),
+                          const PopupMenuItem(
+                            value: 10.0,
+                            child: Text('慢 (10s)'),
+                          ),
+                        ],
+                      ),
+                      if (onToggleMusic != null)
+                        _ChromeIconButton(
+                          key: const Key('viewer-music-toggle'),
+                          onPressed: onToggleMusic,
+                          tooltip: musicPlaying ? '暂停音乐' : '播放音乐',
+                          icon: musicPlaying
+                              ? Icons.music_off_outlined
+                              : Icons.music_note_outlined,
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -639,25 +757,40 @@ class _ViewerChrome extends StatelessWidget {
                 alignment: Alignment.bottomCenter,
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 680),
-                  child: DecoratedBox(
-                    key: const Key('viewer-caption-scrim'),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: .62),
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 18,
-                        vertical: 10,
-                      ),
-                      child: Text(
-                        chapter.caption,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          color: XulangColors.paper,
-                          fontFamily: 'serif',
-                          fontSize: 14,
-                          letterSpacing: 1,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(18),
+                    child: BackdropFilter(
+                      filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                      child: Container(
+                        key: const Key('viewer-caption-scrim'),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: .50),
+                          borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: .08),
+                            width: 0.5,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 20,
+                          vertical: 12,
+                        ),
+                        child: Text(
+                          chapter.caption,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            color: XulangColors.paper,
+                            fontFamily: 'Noto Serif SC',
+                            fontFamilyFallback: [
+                              'Noto Sans SC',
+                              'PingFang SC',
+                              'Microsoft YaHei',
+                            ],
+                            fontSize: 13.5,
+                            letterSpacing: 0.8,
+                            height: 1.55,
+                            fontWeight: FontWeight.w400,
+                          ),
                         ),
                       ),
                     ),
@@ -666,24 +799,181 @@ class _ViewerChrome extends StatelessWidget {
               ),
             ),
           Positioned(
-            left: 10,
-            top: MediaQuery.sizeOf(context).height * .45,
-            child: IconButton(
+            left: 8,
+            top: MediaQuery.sizeOf(context).height * .44,
+            child: _ChromeNavButton(
               tooltip: '上一章',
               onPressed: onPreviousChapter,
-              icon: Icon(previousChapterIcon),
+              icon: previousChapterIcon,
             ),
           ),
           Positioned(
-            left: 10,
-            top: MediaQuery.sizeOf(context).height * .53,
-            child: IconButton(
+            left: 8,
+            top: MediaQuery.sizeOf(context).height * .52,
+            child: _ChromeNavButton(
               tooltip: '下一章',
               onPressed: onNextChapter,
-              icon: Icon(nextChapterIcon),
+              icon: nextChapterIcon,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _ChromeGlassCircle extends StatelessWidget {
+  const _ChromeGlassCircle({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipOval(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          width: 40,
+          height: 40,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .5),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: .08),
+              width: 0.5,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _ChromeGlassPill extends StatelessWidget {
+  const _ChromeGlassPill({
+    required this.child,
+    this.padding = const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+  });
+
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+        child: Container(
+          padding: padding,
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .5),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: .08),
+              width: 0.5,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class _ChromeIconButton extends StatelessWidget {
+  const _ChromeIconButton({
+    super.key,
+    required this.onPressed,
+    required this.tooltip,
+    required this.icon,
+  });
+
+  final VoidCallback? onPressed;
+  final String tooltip;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: 36,
+            height: 36,
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 18,
+              color: onPressed == null
+                  ? XulangColors.muted.withValues(alpha: .35)
+                  : XulangColors.paper,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ChromeNavButton extends StatelessWidget {
+  const _ChromeNavButton({
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedOpacity(
+      opacity: onPressed == null ? 0 : 1,
+      duration: const Duration(milliseconds: 200),
+      child: IgnorePointer(
+        ignoring: onPressed == null,
+        child: Tooltip(
+          message: tooltip,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: onPressed,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: .45),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .08),
+                        width: 0.5,
+                      ),
+                    ),
+                    child: Icon(
+                      icon,
+                      size: 22,
+                      color: XulangColors.paper,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }
@@ -703,12 +993,33 @@ class _ViewerMessage extends StatelessWidget {
           Positioned(
             top: 8,
             left: 8,
-            child: IconButton(onPressed: onBack, icon: const Icon(Icons.close)),
+            child: _ChromeIconButton(
+              onPressed: onBack,
+              tooltip: '返回',
+              icon: Icons.close,
+            ),
           ),
           Center(
-            child: Text(
-              text,
-              style: const TextStyle(color: XulangColors.paper),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.auto_stories_outlined,
+                  size: 32,
+                  color: XulangColors.muted,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  text,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: XulangColors.paper,
+                    fontSize: 15,
+                    height: 1.6,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

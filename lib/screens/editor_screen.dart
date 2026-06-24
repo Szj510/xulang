@@ -48,7 +48,6 @@ class EditorScreen extends ConsumerWidget {
 
 class _EditorBody extends StatefulWidget {
   const _EditorBody({required this.session});
-
   final EditorSession session;
 
   @override
@@ -57,8 +56,10 @@ class _EditorBody extends StatefulWidget {
 
 class _EditorBodyState extends State<_EditorBody> {
   bool _showChapters = false;
+  bool _showPanel = false;  // 默认隐藏浮动面板
   _EditorPanelMode _panelMode = _EditorPanelMode.canvas;
   String? _selectedPlacementId;
+  Offset _floatingBallOffset = const Offset(16, -80); // relative to bottom-right
 
   EditorSession get session => widget.session;
 
@@ -66,6 +67,7 @@ class _EditorBodyState extends State<_EditorBody> {
     setState(() {
       _panelMode = _EditorPanelMode.canvas;
       _selectedPlacementId = null;
+      _showPanel = true;
     });
   }
 
@@ -73,7 +75,16 @@ class _EditorBodyState extends State<_EditorBody> {
     setState(() {
       _panelMode = _EditorPanelMode.placement;
       _selectedPlacementId = placementId;
+      _showPanel = true;
     });
+  }
+
+  void _dismissPanel() {
+    setState(() => _showPanel = false);
+  }
+
+  void _togglePanel() {
+    setState(() => _showPanel = !_showPanel);
   }
 
   @override
@@ -93,105 +104,107 @@ class _EditorBodyState extends State<_EditorBody> {
                   titleSpacing: 4,
                   title: InkWell(
                     onTap: () => _rename(context),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Flexible(
-                          child: Text(
-                            document.title,
-                            overflow: TextOverflow.ellipsis,
-                            style: const TextStyle(
-                              fontFamily: 'serif',
-                              letterSpacing: 1,
+                    borderRadius: BorderRadius.circular(8),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              document.title,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                fontFamily: 'Noto Serif SC',
+                                fontFamilyFallback: [
+                                  'Noto Sans SC',
+                                  'PingFang SC',
+                                  'Microsoft YaHei',
+                                ],
+                                fontSize: 17,
+                                letterSpacing: 0.8,
+                                color: XulangColors.paper,
+                              ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 6),
-                        const Icon(
-                          Icons.edit_outlined,
-                          size: 15,
-                          color: XulangColors.muted,
-                        ),
-                      ],
+                          const SizedBox(width: 4),
+                          const Icon(
+                            Icons.edit_outlined,
+                            size: 14,
+                            color: XulangColors.muted,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   actions: [
-                    IconButton(
+                    _EditorIconButton(
+                      key: const Key('portrait-editor-undo'),
                       tooltip: '撤销',
                       onPressed: session.canUndo ? session.undo : null,
-                      icon: const Icon(Icons.undo),
+                      icon: Icons.undo,
                     ),
-                    IconButton(
+                    _EditorIconButton(
+                      key: const Key('portrait-editor-redo'),
                       tooltip: '重做',
                       onPressed: session.canRedo ? session.redo : null,
-                      icon: const Icon(Icons.redo),
+                      icon: Icons.redo,
                     ),
-                    IconButton(
+                    _EditorIconButton(
+                      key: const Key('portrait-editor-play'),
                       tooltip: '沉浸观看',
                       onPressed: chapter.placements.isEmpty
                           ? null
-                          : () => Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) =>
-                                    ViewerScreen(exhibitionId: document.id),
-                              ),
-                            ),
-                      icon: const Icon(Icons.play_arrow_rounded),
+                          : () => _play(context),
+                      icon: Icons.play_arrow_rounded,
                     ),
                     PopupMenuButton<_EditorExportAction>(
                       tooltip: '导出与分享',
                       onSelected: (action) =>
                           _handleExportAction(context, action),
+                      icon: const Icon(Icons.share_outlined, size: 20),
                       itemBuilder: (context) => const [
                         PopupMenuItem(
                           value: _EditorExportAction.template,
-                          child: Text('分享模板'),
+                          child: Row(
+                            children: [
+                              Icon(Icons.ios_share_outlined, size: 18),
+                              SizedBox(width: 12),
+                              Text('分享模板'),
+                            ],
+                          ),
                         ),
                         PopupMenuItem(
                           value: _EditorExportAction.importTemplate,
-                          child: Text('导入模板'),
+                          child: Row(
+                            children: [
+                              Icon(Icons.file_open_outlined, size: 18),
+                              SizedBox(width: 12),
+                              Text('导入模板'),
+                            ],
+                          ),
                         ),
                       ],
                     ),
-                    const SizedBox(width: 6),
                   ],
                 ),
           body: LayoutBuilder(
             builder: (context, constraints) {
               if (landscape) {
-                final inspectorWidth = (constraints.maxWidth * .36).clamp(
-                  280.0,
-                  340.0,
-                );
                 return Stack(
                   children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _Preview(
-                            session: session,
-                            onCanvasTap: () {
-                              _hideChapters();
-                              _focusCanvas();
-                            },
-                            onPlacementTap: (placementId) {
-                              _hideChapters();
-                              _focusPlacement(placementId);
-                            },
-                          ),
-                        ),
-                        SizedBox(
-                          width: inspectorWidth,
-                          child: _Inspector(
-                            session: session,
-                            panelMode: _panelMode,
-                            selectedPlacementId: _selectedPlacementId,
-                            onFocusCanvas: _focusCanvas,
-                            onFocusPlacement: _focusPlacement,
-                          ),
-                        ),
-                      ],
+                    // Full-screen preview
+                    Positioned.fill(
+                      child: _Preview(
+                        session: session,
+                        onCanvasTap: _dismissPanel,
+                        onPlacementTap: _focusPlacement,
+                      ),
                     ),
+                    // Back button
                     Positioned(
                       left: 0,
                       top: 0,
@@ -206,68 +219,92 @@ class _EditorBodyState extends State<_EditorBody> {
                         ),
                       ),
                     ),
+                    // Toolbar
                     Positioned(
                       right: 8,
                       top: 0,
                       child: SafeArea(
                         child: Material(
                           key: const Key('landscape-editor-toolbar'),
-                          color: XulangColors.ink.withValues(alpha: .9),
+                          color: XulangColors.ink.withValues(alpha: .88),
                           borderRadius: BorderRadius.circular(24),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                tooltip: '章节',
-                                onPressed: () => setState(
-                                  () => _showChapters = !_showChapters,
+                          child: Container(
+                            decoration: BoxDecoration(
+                              border: Border.all(
+                                color: XulangColors.line,
+                                width: 0.5,
+                              ),
+                              borderRadius: BorderRadius.circular(24),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                _EditorIconButton(
+                                  tooltip: '章节',
+                                  onPressed: () => setState(
+                                    () => _showChapters = !_showChapters,
+                                  ),
+                                  icon: Icons.view_carousel_outlined,
                                 ),
-                                icon: const Icon(Icons.view_carousel_outlined),
-                              ),
-                              IconButton(
-                                key: const Key('landscape-editor-undo'),
-                                tooltip: '撤销',
-                                onPressed: session.canUndo
-                                    ? session.undo
-                                    : null,
-                                icon: const Icon(Icons.undo),
-                              ),
-                              IconButton(
-                                key: const Key('landscape-editor-redo'),
-                                tooltip: '重做',
-                                onPressed: session.canRedo
-                                    ? session.redo
-                                    : null,
-                                icon: const Icon(Icons.redo),
-                              ),
-                              IconButton(
-                                key: const Key('landscape-editor-play'),
-                                tooltip: '沉浸观看',
-                                onPressed: chapter.placements.isEmpty
-                                    ? null
-                                    : () => _play(context),
-                                icon: const Icon(Icons.play_arrow_rounded),
-                              ),
-                              PopupMenuButton<_EditorExportAction>(
-                                tooltip: '导出与分享',
-                                onSelected: (action) =>
-                                    _handleExportAction(context, action),
-                                itemBuilder: (context) => const [
-                                  PopupMenuItem(
-                                    value: _EditorExportAction.template,
-                                    child: Text('分享模板'),
-                                  ),
-                                  PopupMenuItem(
-                                    value: _EditorExportAction.importTemplate,
-                                    child: Text('导入模板'),
-                                  ),
-                                ],
-                              ),
-                            ],
+                                _EditorIconButton(
+                                  key: const Key('landscape-editor-undo'),
+                                  tooltip: '撤销',
+                                  onPressed: session.canUndo
+                                      ? session.undo
+                                      : null,
+                                  icon: Icons.undo,
+                                ),
+                                _EditorIconButton(
+                                  key: const Key('landscape-editor-redo'),
+                                  tooltip: '重做',
+                                  onPressed: session.canRedo
+                                      ? session.redo
+                                      : null,
+                                  icon: Icons.redo,
+                                ),
+                                _EditorIconButton(
+                                  key: const Key('landscape-editor-play'),
+                                  tooltip: '沉浸观看',
+                                  onPressed: chapter.placements.isEmpty
+                                      ? null
+                                      : () => _play(context),
+                                  icon: Icons.play_arrow_rounded,
+                                ),
+                                PopupMenuButton<_EditorExportAction>(
+                                  tooltip: '导出与分享',
+                                  onSelected: (action) =>
+                                      _handleExportAction(context, action),
+                                  icon: const Icon(Icons.share_outlined, size: 20),
+                                  itemBuilder: (context) => const [
+                                    PopupMenuItem(
+                                      value: _EditorExportAction.template,
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.ios_share_outlined, size: 18),
+                                          SizedBox(width: 12),
+                                          Text('分享模板'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: _EditorExportAction.importTemplate,
+                                      child: Row(
+                                        children: [
+                                          Icon(Icons.file_open_outlined, size: 18),
+                                          SizedBox(width: 12),
+                                          Text('导入模板'),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ),
                     ),
+                    // Chapter rail overlay
                     if (_showChapters)
                       Positioned(
                         left: 48,
@@ -281,38 +318,73 @@ class _EditorBodyState extends State<_EditorBody> {
                               session: session,
                               onSelected: (index) {
                                 session.selectChapter(index);
-                                _hideChapters();
+                                setState(() => _showChapters = false);
                               },
                               onRename: () => _rename(context),
                             ),
                           ),
                         ),
                       ),
+                    // Floating panel overlay
+                    if (_showPanel)
+                      _FloatingPanel(
+                        session: session,
+                        panelMode: _panelMode,
+                        selectedPlacementId: _selectedPlacementId,
+                        onFocusCanvas: _focusCanvas,
+                        onFocusPlacement: _focusPlacement,
+                        onDismiss: _dismissPanel,
+                        landscape: true,
+                      ),
+                    // Floating ball
+                    _FloatingBall(
+                      offset: _floatingBallOffset,
+                      isActive: _showPanel,
+                      onTap: _togglePanel,
+                      onOffsetChanged: (offset) {
+                        setState(() => _floatingBallOffset = offset);
+                      },
+                    ),
                   ],
                 );
               }
-              return Column(
+              // Portrait mode
+              return Stack(
                 children: [
-                  _ChapterRail(
-                    key: const Key('editor-chapter-rail'),
-                    session: session,
+                  Column(
+                    children: [
+                      _ChapterRail(
+                        key: const Key('editor-chapter-rail'),
+                        session: session,
+                      ),
+                      Expanded(
+                        child: _Preview(
+                          session: session,
+                          onCanvasTap: _dismissPanel,
+                          onPlacementTap: _focusPlacement,
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: _Preview(
-                      session: session,
-                      onCanvasTap: _focusCanvas,
-                      onPlacementTap: _focusPlacement,
-                    ),
-                  ),
-                  SizedBox(
-                    height: 214,
-                    child: _Inspector(
+                  // Floating panel overlay
+                  if (_showPanel)
+                    _FloatingPanel(
                       session: session,
                       panelMode: _panelMode,
                       selectedPlacementId: _selectedPlacementId,
                       onFocusCanvas: _focusCanvas,
                       onFocusPlacement: _focusPlacement,
+                      onDismiss: _dismissPanel,
+                      landscape: false,
                     ),
+                  // Floating ball
+                  _FloatingBall(
+                    offset: _floatingBallOffset,
+                    isActive: _showPanel,
+                    onTap: _togglePanel,
+                    onOffsetChanged: (offset) {
+                      setState(() => _floatingBallOffset = offset);
+                    },
                   ),
                 ],
               );
@@ -409,6 +481,241 @@ class _EditorBodyState extends State<_EditorBody> {
 
 enum _EditorExportAction { template, importTemplate }
 
+class _EditorIconButton extends StatelessWidget {
+  const _EditorIconButton({
+    super.key,
+    required this.tooltip,
+    required this.onPressed,
+    required this.icon,
+  });
+
+  final String tooltip;
+  final VoidCallback? onPressed;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onPressed,
+          borderRadius: BorderRadius.circular(10),
+          child: Container(
+            width: 40,
+            height: 40,
+            alignment: Alignment.center,
+            child: Icon(
+              icon,
+              size: 20,
+              color: onPressed == null
+                  ? XulangColors.muted.withValues(alpha: .4)
+                  : XulangColors.paper,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingBall extends StatelessWidget {
+  const _FloatingBall({
+    required this.offset,
+    required this.isActive,
+    required this.onTap,
+    required this.onOffsetChanged,
+  });
+
+  final Offset offset;
+  final bool isActive;
+  final VoidCallback onTap;
+  final ValueChanged<Offset> onOffsetChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned(
+      right: offset.dx.clamp(8.0, MediaQuery.sizeOf(context).width - 60),
+      bottom: (-offset.dy).clamp(8.0, MediaQuery.sizeOf(context).height - 60),
+      child: SafeArea(
+        child: GestureDetector(
+          onPanUpdate: (details) {
+            onOffsetChanged(Offset(
+              offset.dx - details.delta.dx,
+              offset.dy - details.delta.dy,
+            ));
+          },
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeOutCubic,
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isActive
+                    ? [XulangColors.accent, XulangColors.accent.withValues(alpha: .7)]
+                    : [
+                        Colors.black.withValues(alpha: .65),
+                        Colors.black.withValues(alpha: .45),
+                      ],
+              ),
+              border: Border.all(
+                color: isActive
+                    ? XulangColors.accent.withValues(alpha: .5)
+                    : Colors.white.withValues(alpha: .12),
+                width: 1,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: .35),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Material(
+              color: Colors.transparent,
+              child: InkWell(
+                onTap: onTap,
+                customBorder: const CircleBorder(),
+                child: Icon(
+                  isActive ? Icons.close : Icons.tune_rounded,
+                  size: 22,
+                  color: XulangColors.paper,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FloatingPanel extends StatefulWidget {
+  const _FloatingPanel({
+    required this.session,
+    required this.panelMode,
+    required this.selectedPlacementId,
+    required this.onFocusCanvas,
+    required this.onFocusPlacement,
+    required this.onDismiss,
+    required this.landscape,
+  });
+
+  final EditorSession session;
+  final _EditorPanelMode panelMode;
+  final String? selectedPlacementId;
+  final VoidCallback onFocusCanvas;
+  final ValueChanged<String> onFocusPlacement;
+  final VoidCallback onDismiss;
+  final bool landscape;
+
+  @override
+  State<_FloatingPanel> createState() => _FloatingPanelState();
+}
+
+class _FloatingPanelState extends State<_FloatingPanel>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _animController;
+  late final Animation<double> _slideAnimation;
+  late final Animation<double> _fadeAnimation;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      duration: const Duration(milliseconds: 280),
+      vsync: this,
+    );
+    _slideAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+    );
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+    );
+    _animController.forward();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final panelWidth = widget.landscape
+        ? (MediaQuery.sizeOf(context).width * 0.38).clamp(300.0, 380.0)
+        : double.infinity;
+    final maxHeight = widget.landscape
+        ? MediaQuery.sizeOf(context).height * 0.85
+        : MediaQuery.sizeOf(context).height * 0.55;
+
+    return Positioned(
+      right: widget.landscape ? 8 : 0,
+      left: widget.landscape ? null : 0,
+      bottom: widget.landscape ? 8 : 0,
+      top: widget.landscape ? 56 : null,
+      child: AnimatedBuilder(
+        animation: _animController,
+        builder: (context, child) {
+          return Transform.translate(
+            offset: widget.landscape
+                ? Offset(_slideAnimation.value * panelWidth, 0)
+                : Offset(0, _slideAnimation.value * maxHeight),
+            child: Opacity(
+              opacity: _fadeAnimation.value,
+              child: child,
+            ),
+          );
+        },
+        child: SafeArea(
+          top: widget.landscape,
+          child: SizedBox(
+            width: widget.landscape ? panelWidth : null,
+            child: ConstrainedBox(
+              constraints: BoxConstraints(maxHeight: maxHeight),
+              child: Padding(
+                padding: widget.landscape
+                    ? const EdgeInsets.all(0)
+                    : const EdgeInsets.fromLTRB(8, 0, 8, 8),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(24),
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .52),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .08),
+                          width: 0.5,
+                        ),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: _Inspector(
+                        session: widget.session,
+                        panelMode: widget.panelMode,
+                        selectedPlacementId: widget.selectedPlacementId,
+                        onFocusCanvas: widget.onFocusCanvas,
+                        onFocusPlacement: widget.onFocusPlacement,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _ChapterRail extends StatelessWidget {
   const _ChapterRail({
     super.key,
@@ -425,17 +732,17 @@ class _ChapterRail extends StatelessWidget {
   Widget build(BuildContext context) {
     final chapters = session.bundle!.document.chapters;
     return Container(
-      height: 62,
+      height: 64,
       decoration: const BoxDecoration(
         color: XulangColors.surface,
-        border: Border(bottom: BorderSide(color: XulangColors.line)),
+        border: Border(bottom: BorderSide(color: XulangColors.line, width: 0.5)),
       ),
       child: Row(
         children: [
           Expanded(
             child: ReorderableListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               itemCount: chapters.length,
               onReorder: session.moveChapter,
               itemBuilder: (context, index) {
@@ -447,22 +754,33 @@ class _ChapterRail extends StatelessWidget {
                     selected: selected,
                     onSelected: (_) =>
                         (onSelected ?? session.selectChapter)(index),
-                    label: Text('${index + 1}  ${chapters[index].title}'),
+                    label: Text(
+                      '${index + 1}  ${chapters[index].title}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: selected
+                            ? FontWeight.w500
+                            : FontWeight.w400,
+                        color: selected
+                            ? XulangColors.accent
+                            : XulangColors.paper,
+                      ),
+                    ),
                   ),
                 );
               },
             ),
           ),
-          IconButton(
+          _EditorIconButton(
             tooltip: '添加章节',
             onPressed: session.addChapter,
-            icon: const Icon(Icons.add),
+            icon: Icons.add,
           ),
           if (onRename != null)
-            IconButton(
+            _EditorIconButton(
               tooltip: '重命名展览',
               onPressed: onRename,
-              icon: const Icon(Icons.edit_outlined),
+              icon: Icons.edit_outlined,
             ),
           const SizedBox(width: 4),
         ],
@@ -491,7 +809,18 @@ class _PreviewState extends State<_Preview> {
   final Map<String, GalleryPlacement> _placementDrafts = {};
   final NarrativeCameraController _cameraController =
       NarrativeCameraController();
+  final TransformationController _zoomController = TransformationController();
   GalleryPlacement? _gestureStartPlacement;
+
+  bool get _isZoomed {
+    final scale = _zoomController.value.getMaxScaleOnAxis();
+    return scale > 1.05 || scale < 0.95;
+  }
+
+  void _resetZoom() {
+    _zoomController.value = Matrix4.identity();
+    setState(() {});
+  }
 
   EditorSession get session => widget.session;
   String get _chapterId => session.selectedChapter!.id;
@@ -500,6 +829,7 @@ class _PreviewState extends State<_Preview> {
   @override
   void dispose() {
     _cameraController.dispose();
+    _zoomController.dispose();
     super.dispose();
   }
 
@@ -575,47 +905,55 @@ class _PreviewState extends State<_Preview> {
         return Stack(
           children: [
             Positioned.fill(
-              child: GestureDetector(
-                key: const Key('editor-preview-gesture-surface'),
-                behavior: HitTestBehavior.opaque,
-                onTap: widget.onCanvasTap,
-                onPanStart: (_) {
-                  _cameraController.setProgress(_cameraProgress);
-                  _cameraController.begin(scale: 1);
-                },
-                onPanUpdate: (details) {
-                  _cameraController.update(
-                    delta: details.delta,
-                    viewport: viewport,
-                    itemCount: chapter.placements.length,
-                    scale: 1,
-                    axis: NarrativeAxis.fromViewport(viewport),
-                  );
-                  setState(() {
-                    _cameraProgressByChapter[_chapterId] =
-                        _cameraController.progress;
-                  });
-                },
-                onPanEnd: (_) => _cameraController.end(),
-                onPanCancel: _cameraController.end,
-                child: SceneCanvas(
-                  chapter: chapter,
-                  media: session.bundle!.media,
-                  cameraProgress: progress,
-                  sceneTheme: session.bundle!.document.theme,
-                  onPlacementTap: widget.onPlacementTap,
-                  onPlacementTransformStart: _startPlacementTransform,
-                  onPlacementTransformUpdate:
-                      (placementId, scaleDelta, delta) =>
-                          _updatePlacementTransform(
-                            placementId,
-                            scaleDelta,
-                            delta,
-                            viewport,
-                          ),
-                  onPlacementTransformEnd: (placementId) {
-                    unawaited(_endPlacementTransform(placementId));
+              child: InteractiveViewer(
+                transformationController: _zoomController,
+                minScale: 0.5,
+                maxScale: 3.0,
+                panEnabled: true,
+                scaleEnabled: true,
+                onInteractionEnd: (_) => setState(() {}),
+                child: GestureDetector(
+                  key: const Key('editor-preview-gesture-surface'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: widget.onCanvasTap,
+                  onPanStart: (_) {
+                    _cameraController.setProgress(_cameraProgress);
+                    _cameraController.begin(scale: 1);
                   },
+                  onPanUpdate: (details) {
+                    _cameraController.update(
+                      delta: details.delta,
+                      viewport: viewport,
+                      itemCount: chapter.placements.length,
+                      scale: 1,
+                      axis: NarrativeAxis.fromViewport(viewport),
+                    );
+                    setState(() {
+                      _cameraProgressByChapter[_chapterId] =
+                          _cameraController.progress;
+                    });
+                  },
+                  onPanEnd: (_) => _cameraController.end(),
+                  onPanCancel: _cameraController.end,
+                  child: SceneCanvas(
+                    chapter: chapter,
+                    media: session.bundle!.media,
+                    cameraProgress: progress,
+                    sceneTheme: session.bundle!.document.theme,
+                    onPlacementTap: widget.onPlacementTap,
+                    onPlacementTransformStart: _startPlacementTransform,
+                    onPlacementTransformUpdate:
+                        (placementId, scaleDelta, delta) =>
+                            _updatePlacementTransform(
+                              placementId,
+                              scaleDelta,
+                              delta,
+                              viewport,
+                            ),
+                    onPlacementTransformEnd: (placementId) {
+                      unawaited(_endPlacementTransform(placementId));
+                    },
+                  ),
                 ),
               ),
             ),
@@ -644,12 +982,7 @@ class _PreviewState extends State<_Preview> {
                     left: false,
                     child: SizedBox(
                       width: 44,
-                      child: DecoratedBox(
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: .62),
-                          borderRadius: BorderRadius.circular(18),
-                          border: Border.all(color: Colors.white12),
-                        ),
+                      child: _GlassPill(
                         child: Column(
                           children: [
                             Padding(
@@ -675,24 +1008,60 @@ class _PreviewState extends State<_Preview> {
             Positioned(
               right: landscape ? 14 : 58,
               top: 14,
-              child: FilledButton.icon(
+              child: _GlassImportButton(
+                importing: session.importing,
                 onPressed: session.importing ? null : session.importImages,
-                icon: session.importing
-                    ? const SizedBox.square(
-                        dimension: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : const Icon(Icons.add_photo_alternate_outlined, size: 18),
-                label: Text(session.importing ? '导入中' : '导入图片'),
               ),
             ),
+            if (_isZoomed)
+              Positioned(
+                left: 14,
+                top: 14,
+                child: _GlassPill(
+                  child: InkWell(
+                    onTap: _resetZoom,
+                    borderRadius: BorderRadius.circular(12),
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 10,
+                        vertical: 6,
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.fit_screen_outlined,
+                            size: 16,
+                            color: XulangColors.paper,
+                          ),
+                          SizedBox(width: 4),
+                          Text(
+                            '重置缩放',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: XulangColors.paper,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             if (session.error != null)
               Positioned(
                 left: 14,
                 right: 14,
                 bottom: 14,
                 child: MaterialBanner(
-                  content: Text('${session.error}'),
+                  backgroundColor: XulangColors.elevated,
+                  content: Text(
+                    '${session.error}',
+                    style: const TextStyle(
+                      color: XulangColors.paper,
+                      fontSize: 13,
+                    ),
+                  ),
                   actions: [
                     TextButton(
                       onPressed: session.clearError,
@@ -708,6 +1077,49 @@ class _PreviewState extends State<_Preview> {
   }
 }
 
+class _GlassImportButton extends StatelessWidget {
+  const _GlassImportButton({
+    required this.importing,
+    required this.onPressed,
+  });
+
+  final bool importing;
+  final VoidCallback? onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return FilledButton.icon(
+      style: FilledButton.styleFrom(
+        backgroundColor: XulangColors.paper.withValues(alpha: .92),
+        foregroundColor: XulangColors.ink,
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        elevation: 0,
+      ),
+      onPressed: onPressed,
+      icon: importing
+          ? const SizedBox.square(
+              dimension: 16,
+              child: CircularProgressIndicator(
+                strokeWidth: 2,
+                color: XulangColors.ink,
+              ),
+            )
+          : const Icon(Icons.add_photo_alternate_outlined, size: 18),
+      label: Text(
+        importing ? '导入中' : '导入图片',
+        style: const TextStyle(
+          fontSize: 13,
+          fontWeight: FontWeight.w500,
+          letterSpacing: 0.3,
+        ),
+      ),
+    );
+  }
+}
+
 class _ProgressControl extends StatelessWidget {
   const _ProgressControl({required this.progress, required this.onChanged});
 
@@ -716,12 +1128,7 @@ class _ProgressControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .62),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white12),
-      ),
+    return _GlassPill(
       child: Row(
         children: [
           const SizedBox(width: 12),
@@ -744,6 +1151,33 @@ class _ProgressControl extends StatelessWidget {
   }
 }
 
+class _GlassPill extends StatelessWidget {
+  const _GlassPill({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(18),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+        child: Container(
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .55),
+            border: Border.all(
+              color: Colors.white.withValues(alpha: .08),
+              width: 0.5,
+            ),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
 class _ProgressText extends StatelessWidget {
   const _ProgressText({required this.progress});
 
@@ -754,7 +1188,13 @@ class _ProgressText extends StatelessWidget {
     return Text(
       key: const Key('editor-camera-progress'),
       '${(progress * 100).round()}%',
-      style: const TextStyle(color: XulangColors.paper, fontSize: 11),
+      textAlign: TextAlign.center,
+      style: const TextStyle(
+        color: XulangColors.paper,
+        fontSize: 11,
+        letterSpacing: 0.3,
+        fontWeight: FontWeight.w500,
+      ),
     );
   }
 }
@@ -786,95 +1226,122 @@ class _InspectorState extends State<_Inspector> {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        Row(
-          children: [
-            PopupMenuButton<GalleryTheme>(
-              tooltip: '画布主题',
-              initialValue: session.bundle!.document.theme,
-              onSelected: session.updateTheme,
-              icon: const Icon(Icons.palette_outlined, size: 19),
-              itemBuilder: (context) => const [
-                PopupMenuItem(value: GalleryTheme.ink, child: Text('墨色画布')),
-                PopupMenuItem(value: GalleryTheme.paper, child: Text('纸张画布')),
-                PopupMenuItem(
-                  value: GalleryTheme.graphite,
-                  child: Text('石墨画布'),
-                ),
-                PopupMenuItem(value: GalleryTheme.mist, child: Text('雾蓝画布')),
-                PopupMenuItem(value: GalleryTheme.warm, child: Text('暖沙画布')),
-              ],
-            ),
-            const SizedBox(width: 8),
-            TextButton.icon(
-              onPressed: () => _editChapterText(context),
-              icon: const Icon(Icons.short_text, size: 17),
-              label: const Text('标题与短注释'),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Wrap(
-          spacing: 8,
-          runSpacing: 7,
-          children: [
-            for (final layout in GalleryLayout.values)
-              ChoiceChip(
-                selected: chapter.layout == layout,
-                onSelected: (_) => session.updateChapter(layout: layout),
-                label: Text(_layoutLabel(layout)),
+        _InspectorSection(
+          title: '画布与叙事',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  PopupMenuButton<GalleryTheme>(
+                    tooltip: '画布主题',
+                    initialValue: session.bundle!.document.theme,
+                    onSelected: session.updateTheme,
+                    icon: const Icon(
+                      Icons.palette_outlined,
+                      size: 18,
+                      color: XulangColors.muted,
+                    ),
+                    itemBuilder: (context) => const [
+                      PopupMenuItem(value: GalleryTheme.ink, child: Text('墨色画布')),
+                      PopupMenuItem(value: GalleryTheme.paper, child: Text('纸张画布')),
+                      PopupMenuItem(
+                        value: GalleryTheme.graphite,
+                        child: Text('石墨画布'),
+                      ),
+                      PopupMenuItem(value: GalleryTheme.mist, child: Text('雾蓝画布')),
+                      PopupMenuItem(value: GalleryTheme.warm, child: Text('暖沙画布')),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  TextButton.icon(
+                    onPressed: () => _editChapterText(context),
+                    icon: const Icon(Icons.short_text, size: 17),
+                    label: const Text('标题与短注释'),
+                  ),
+                ],
               ),
-          ],
+              const SizedBox(height: 8),
+              _SectionLabel('布局'),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final layout in GalleryLayout.values)
+                    ChoiceChip(
+                      selected: chapter.layout == layout,
+                      onSelected: (_) => session.updateChapter(layout: layout),
+                      label: Text(_layoutLabel(layout)),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 14),
+              _SectionLabel('路径线条'),
+              const SizedBox(height: 6),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final style in StoryPathStyle.values)
+                    ChoiceChip(
+                      selected: chapter.pathStyle == style,
+                      onSelected: (_) =>
+                          session.updateChapter(pathStyle: style),
+                      label: Text(_pathStyleLabel(style)),
+                    ),
+                ],
+              ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
-        Wrap(
-          spacing: 7,
-          runSpacing: 7,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: [
-            const Padding(
-              padding: EdgeInsets.only(right: 5),
-              child: Text(
-                '路径线条',
-                style: TextStyle(color: XulangColors.muted, fontSize: 12),
-              ),
-            ),
-            for (final style in StoryPathStyle.values)
-              ChoiceChip(
-                selected: chapter.pathStyle == style,
-                onSelected: (_) => session.updateChapter(pathStyle: style),
-                label: Text(_pathStyleLabel(style)),
-              ),
-          ],
-        ),
-        SwitchListTile.adaptive(
-          key: const Key('editor-show-chapter-title-playback'),
-          contentPadding: EdgeInsets.zero,
-          title: const Text('录屏时显示章节名'),
-          value: session.bundle!.document.showChapterTitleInPlayback,
-          onChanged: session.updateShowChapterTitleInPlayback,
-        ),
-        ListTile(
-          key: const Key('editor-background-music'),
-          contentPadding: EdgeInsets.zero,
-          dense: true,
-          leading: const Icon(Icons.music_note_outlined),
-          title: Text(
-            session.bundle!.document.musicTitle ?? '未添加背景音乐',
-            overflow: TextOverflow.ellipsis,
-          ),
-          subtitle: const Text('播放和录屏模式可使用本地音乐'),
-          trailing: Wrap(
-            spacing: 4,
+        _InspectorSection(
+          title: '播放设置',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              TextButton(
-                onPressed: () => _pickBackgroundMusic(context),
-                child: const Text('选择'),
+              SwitchListTile.adaptive(
+                key: const Key('editor-show-chapter-title-playback'),
+                contentPadding: EdgeInsets.zero,
+                title: const Text('录屏时显示章节名'),
+                value: session.bundle!.document.showChapterTitleInPlayback,
+                onChanged: session.updateShowChapterTitleInPlayback,
               ),
-              if (session.bundle!.document.musicPath != null)
-                TextButton(
-                  onPressed: session.clearBackgroundMusic,
-                  child: const Text('清除'),
+              const SizedBox(height: 4),
+              ListTile(
+                key: const Key('editor-background-music'),
+                contentPadding: EdgeInsets.zero,
+                dense: true,
+                leading: const Icon(
+                  Icons.music_note_outlined,
+                  size: 20,
+                  color: XulangColors.muted,
                 ),
+                title: Text(
+                  session.bundle!.document.musicTitle ?? '未添加背景音乐',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13),
+                ),
+                subtitle: const Text(
+                  '播放和录屏模式可使用本地音乐',
+                  style: TextStyle(fontSize: 11),
+                ),
+                trailing: Wrap(
+                  spacing: 4,
+                  children: [
+                    TextButton(
+                      onPressed: () => _pickBackgroundMusic(context),
+                      child: const Text('选择'),
+                    ),
+                    if (session.bundle!.document.musicPath != null)
+                      TextButton(
+                        onPressed: session.clearBackgroundMusic,
+                        child: const Text('清除'),
+                      ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -888,127 +1355,178 @@ class _InspectorState extends State<_Inspector> {
     GalleryPlacement? placement,
   ) {
     if (placement == null) {
-      return const Text(
-        '点击一张图片后，这里会显示图片大小、画框、裁切和旋转。',
-        style: TextStyle(color: XulangColors.muted),
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.symmetric(vertical: 32),
+          child: Text(
+            '点击一张图片后，这里会显示\n图片大小、画框、裁切和旋转。',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              color: XulangColors.muted,
+              fontSize: 13,
+              height: 1.7,
+            ),
+          ),
+        ),
       );
     }
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        SizedBox(
-          height: 54,
-          child: ReorderableListView.builder(
-            scrollDirection: Axis.horizontal,
-            buildDefaultDragHandles: false,
-            itemCount: chapter.placements.length,
-            onReorder: (oldIndex, newIndex) async {
-              final movedId = chapter.placements[oldIndex].id;
-              await session.movePlacement(oldIndex, newIndex);
-              widget.onFocusPlacement(movedId);
-            },
-            itemBuilder: (context, index) {
-              final item = chapter.placements[index];
-              final media = session.bundle!.media
-                  .where((m) => m.id == item.mediaId)
-                  .isEmpty
-                  ? null
-                  : session.bundle!.media
-                        .where((m) => m.id == item.mediaId)
-                        .first;
-              final selected = item.id == placement.id;
-              return Padding(
-                key: ValueKey(item.id),
-                padding: const EdgeInsets.only(right: 8),
-                child: ReorderableDragStartListener(
-                  index: index,
-                  child: InkWell(
-                    onTap: () => widget.onFocusPlacement(item.id),
-                    child: Container(
-                      width: 48,
-                      decoration: BoxDecoration(
-                        border: Border.all(
-                          color: selected ? XulangColors.accent : XulangColors.line,
-                          width: selected ? 2 : 1,
+        _InspectorSection(
+          title: '图层顺序',
+          child: SizedBox(
+            height: 56,
+            child: ReorderableListView.builder(
+              scrollDirection: Axis.horizontal,
+              buildDefaultDragHandles: false,
+              itemCount: chapter.placements.length,
+              onReorder: (oldIndex, newIndex) async {
+                final movedId = chapter.placements[oldIndex].id;
+                await session.movePlacement(oldIndex, newIndex);
+                widget.onFocusPlacement(movedId);
+              },
+              itemBuilder: (context, index) {
+                final item = chapter.placements[index];
+                final media = session.bundle!.media
+                    .where((m) => m.id == item.mediaId)
+                    .isEmpty
+                    ? null
+                    : session.bundle!.media
+                          .where((m) => m.id == item.mediaId)
+                          .first;
+                final selected = item.id == placement.id;
+                return Padding(
+                  key: ValueKey(item.id),
+                  padding: const EdgeInsets.only(right: 8),
+                  child: ReorderableDragStartListener(
+                    index: index,
+                    child: InkWell(
+                      onTap: () => widget.onFocusPlacement(item.id),
+                      borderRadius: BorderRadius.circular(2),
+                      child: Container(
+                        width: 48,
+                        decoration: BoxDecoration(
+                          color: XulangColors.elevated,
+                          border: Border.all(
+                            color: selected
+                                ? XulangColors.accent
+                                : XulangColors.line,
+                            width: selected ? 1.5 : 0.5,
+                          ),
                         ),
+                        child: media == null
+                            ? const Icon(
+                                Icons.broken_image_outlined,
+                                size: 18,
+                                color: XulangColors.muted,
+                              )
+                            : GalleryImage(
+                                path: media.thumbnailPath,
+                                cacheWidth: 160,
+                              ),
                       ),
-                      child: media == null
-                          ? const Icon(Icons.broken_image_outlined)
-                          : GalleryImage(path: media.thumbnailPath, cacheWidth: 160),
                     ),
                   ),
-                ),
-              );
-            },
+                );
+              },
+            ),
           ),
         ),
-        const SizedBox(height: 10),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final size in GallerySize.values)
-              ChoiceChip(
-                selected: placement.size == size,
-                onSelected: (_) => session.updatePlacement(placement.id, size: size),
-                label: Text(_sizeLabel(size)),
+        const SizedBox(height: 12),
+        _InspectorSection(
+          title: '画幅',
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final size in GallerySize.values)
+                ChoiceChip(
+                  selected: placement.size == size,
+                  onSelected: (_) =>
+                      session.updatePlacement(placement.id, size: size),
+                  label: Text(_sizeLabel(size)),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _InspectorSection(
+          title: '画框',
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final frame in GalleryFrame.values)
+                ChoiceChip(
+                  selected: placement.frame == frame,
+                  onSelected: (_) =>
+                      session.updatePlacement(placement.id, frame: frame),
+                  label: Text(_frameLabel(frame)),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        _InspectorSection(
+          title: '裁切与构图',
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _CropSlider(
+                label: '水平焦点',
+                value: placement.focalX,
+                min: 0,
+                max: 1,
+                onChanged: (value) =>
+                    session.updatePlacement(placement.id, focalX: value),
               ),
-          ],
-        ),
-        const SizedBox(height: 8),
-        Wrap(
-          spacing: 6,
-          runSpacing: 6,
-          children: [
-            for (final frame in GalleryFrame.values)
-              ChoiceChip(
-                selected: placement.frame == frame,
-                onSelected: (_) =>
-                    session.updatePlacement(placement.id, frame: frame),
-                label: Text(_frameLabel(frame)),
+              _CropSlider(
+                label: '垂直焦点',
+                value: placement.focalY,
+                min: 0,
+                max: 1,
+                onChanged: (value) =>
+                    session.updatePlacement(placement.id, focalY: value),
               ),
-          ],
+              _CropSlider(
+                label: '裁切缩放',
+                value: placement.zoom,
+                min: 1,
+                max: 3,
+                onChanged: (value) =>
+                    session.updatePlacement(placement.id, zoom: value),
+              ),
+              _CropSlider(
+                label: '旋转角度',
+                value: placement.rotation,
+                min: -180,
+                max: 180,
+                onChanged: (value) =>
+                    session.updatePlacement(placement.id, rotation: value),
+              ),
+            ],
+          ),
         ),
-        const SizedBox(height: 8),
-        _CropSlider(
-          label: '水平焦点',
-          value: placement.focalX,
-          min: 0,
-          max: 1,
-          onChanged: (value) =>
-              session.updatePlacement(placement.id, focalX: value),
-        ),
-        _CropSlider(
-          label: '垂直焦点',
-          value: placement.focalY,
-          min: 0,
-          max: 1,
-          onChanged: (value) =>
-              session.updatePlacement(placement.id, focalY: value),
-        ),
-        _CropSlider(
-          label: '裁切缩放',
-          value: placement.zoom,
-          min: 1,
-          max: 3,
-          onChanged: (value) =>
-              session.updatePlacement(placement.id, zoom: value),
-        ),
-        _CropSlider(
-          label: '旋转角度',
-          value: placement.rotation,
-          min: -180,
-          max: 180,
-          onChanged: (value) =>
-              session.updatePlacement(placement.id, rotation: value),
-        ),
-        TextFormField(
-          initialValue: placement.caption,
-          maxLength: 60,
-          decoration: const InputDecoration(labelText: '单图短注释'),
-          onChanged: (value) =>
-              session.updatePlacement(placement.id, caption: value),
+        const SizedBox(height: 12),
+        _InspectorSection(
+          title: '说明',
+          child: TextFormField(
+            initialValue: placement.caption,
+            maxLength: 60,
+            style: const TextStyle(fontSize: 13, color: XulangColors.paper),
+            decoration: const InputDecoration(
+              labelText: '单图短注释',
+              labelStyle: TextStyle(
+                fontSize: 12,
+                color: XulangColors.muted,
+              ),
+              counterStyle: TextStyle(fontSize: 10, color: XulangColors.muted),
+            ),
+            onChanged: (value) =>
+                session.updatePlacement(placement.id, caption: value),
+          ),
         ),
         Align(
           alignment: Alignment.centerRight,
@@ -1057,16 +1575,19 @@ class _InspectorState extends State<_Inspector> {
         child: ClipRRect(
           borderRadius: BorderRadius.circular(24),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 14, sigmaY: 14),
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: .52),
-                border: Border.all(color: Colors.white12),
+                color: Colors.black.withValues(alpha: .48),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: .06),
+                  width: 0.5,
+                ),
                 borderRadius: BorderRadius.circular(24),
               ),
               child: SingleChildScrollView(
                 key: const Key('editor-inspector-scroll'),
-                padding: const EdgeInsets.fromLTRB(14, 14, 14, 16),
+                padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -1075,22 +1596,23 @@ class _InspectorState extends State<_Inspector> {
                       children: [
                         const Expanded(
                           child: Text(
-                            '悬浮操作板',
+                            '操作面板',
                             style: TextStyle(
                               color: XulangColors.paper,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
+                              letterSpacing: 0.5,
                             ),
                           ),
                         ),
-                        ChoiceChip(
+                        _PanelToggleChip(
                           selected:
                               widget.panelMode == _EditorPanelMode.canvas,
                           onSelected: (_) => widget.onFocusCanvas(),
-                          label: const Text('画布'),
+                          label: '画布',
                         ),
                         const SizedBox(width: 6),
-                        ChoiceChip(
+                        _PanelToggleChip(
                           selected:
                               widget.panelMode == _EditorPanelMode.placement &&
                               placement != null,
@@ -1099,11 +1621,11 @@ class _InspectorState extends State<_Inspector> {
                               widget.onFocusPlacement(placement.id);
                             }
                           },
-                          label: const Text('图片'),
+                          label: '图片',
                         ),
                       ],
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 14),
                     if (widget.panelMode == _EditorPanelMode.canvas)
                       _buildCanvasPanel(context, chapter)
                     else
@@ -1184,8 +1706,21 @@ class _InspectorState extends State<_Inspector> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text('裁切与图片叙事', style: TextStyle(fontSize: 18)),
-                const SizedBox(height: 12),
+                const Text(
+                  '裁切与图片叙事',
+                  style: TextStyle(
+                    fontFamily: 'Noto Serif SC',
+                    fontFamilyFallback: [
+                      'Noto Sans SC',
+                      'PingFang SC',
+                      'Microsoft YaHei',
+                    ],
+                    fontSize: 18,
+                    letterSpacing: 1,
+                    color: XulangColors.paper,
+                  ),
+                ),
+                const SizedBox(height: 14),
                 _CropSlider(
                   label: '水平焦点',
                   value: focalX,
@@ -1210,7 +1745,14 @@ class _InspectorState extends State<_Inspector> {
                 TextFormField(
                   initialValue: caption,
                   maxLength: 60,
-                  decoration: const InputDecoration(labelText: '单图短注释'),
+                  style: const TextStyle(fontSize: 13, color: XulangColors.paper),
+                  decoration: const InputDecoration(
+                    labelText: '单图短注释',
+                    labelStyle: TextStyle(
+                      fontSize: 12,
+                      color: XulangColors.muted,
+                    ),
+                  ),
                   onChanged: (value) => caption = value,
                 ),
                 const SizedBox(height: 10),
@@ -1246,9 +1788,76 @@ class _InspectorState extends State<_Inspector> {
   }
 }
 
+class _PanelToggleChip extends StatelessWidget {
+  const _PanelToggleChip({
+    required this.selected,
+    required this.onSelected,
+    required this.label,
+  });
+
+  final bool selected;
+  final ValueChanged<bool> onSelected;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      selected: selected,
+      onSelected: onSelected,
+      label: Text(
+        label,
+        style: TextStyle(
+          fontSize: 12,
+          fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
+          color: selected ? XulangColors.accent : XulangColors.paper,
+        ),
+      ),
+    );
+  }
+}
+
+class _InspectorSection extends StatelessWidget {
+  const _InspectorSection({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _SectionLabel(title),
+        const SizedBox(height: 8),
+        child,
+      ],
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        color: XulangColors.muted,
+        fontSize: 11,
+        fontWeight: FontWeight.w500,
+        letterSpacing: 0.8,
+      ),
+    );
+  }
+}
+
 enum _EditorPanelMode { canvas, placement }
 
-class _CropSlider extends StatelessWidget {
+class _CropSlider extends StatefulWidget {
   const _CropSlider({
     required this.label,
     required this.value,
@@ -1264,15 +1873,128 @@ class _CropSlider extends StatelessWidget {
   final ValueChanged<double> onChanged;
 
   @override
+  State<_CropSlider> createState() => _CropSliderState();
+}
+
+class _CropSliderState extends State<_CropSlider> {
+  bool _editing = false;
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _startEditing() {
+    _controller.text = widget.value.toStringAsFixed(1);
+    setState(() => _editing = true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _controller.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _controller.text.length,
+      );
+    });
+  }
+
+  void _commitEditing() {
+    final parsed = double.tryParse(_controller.text);
+    if (parsed != null) {
+      widget.onChanged(parsed.clamp(widget.min, widget.max));
+    }
+    setState(() => _editing = false);
+  }
+
+  void _resetValue() {
+    final mid = (widget.min + widget.max) / 2;
+    widget.onChanged(mid);
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(width: 84, child: Text(label)),
-        Expanded(
-          child: Slider(value: value, min: min, max: max, onChanged: onChanged),
-        ),
-        SizedBox(width: 34, child: Text(value.toStringAsFixed(1))),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 72,
+            child: Text(
+              widget.label,
+              style: const TextStyle(
+                fontSize: 12,
+                color: XulangColors.muted,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Slider(
+              value: widget.value,
+              min: widget.min,
+              max: widget.max,
+              onChanged: widget.onChanged,
+            ),
+          ),
+          GestureDetector(
+            onTap: _editing ? null : _startEditing,
+            onDoubleTap: _resetValue,
+            child: SizedBox(
+              width: 48,
+              height: 28,
+              child: _editing
+                  ? TextField(
+                      controller: _controller,
+                      autofocus: true,
+                      keyboardType: const TextInputType.numberWithOptions(
+                        decimal: true,
+                        signed: true,
+                      ),
+                      textAlign: TextAlign.right,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: XulangColors.paper,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      decoration: const InputDecoration(
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 4,
+                          vertical: 6,
+                        ),
+                        border: UnderlineInputBorder(),
+                        enabledBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(color: XulangColors.accent),
+                        ),
+                        focusedBorder: UnderlineInputBorder(
+                          borderSide: BorderSide(
+                            color: XulangColors.accent,
+                            width: 1.5,
+                          ),
+                        ),
+                      ),
+                      onSubmitted: (_) => _commitEditing(),
+                      onTapOutside: (_) => _commitEditing(),
+                    )
+                  : Align(
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        widget.value.toStringAsFixed(1),
+                        style: const TextStyle(
+                          fontSize: 11,
+                          color: XulangColors.paper,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
