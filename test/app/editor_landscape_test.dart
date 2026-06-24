@@ -73,9 +73,12 @@ void main() {
     return double.parse(text.data!.replaceAll('%', ''));
   }
 
-  IconButton toolbarButton(WidgetTester tester, String action) {
-    return tester.widget<IconButton>(
-      find.byKey(Key('landscape-editor-$action')),
+  InkWell toolbarButton(WidgetTester tester, String action) {
+    return tester.widget<InkWell>(
+      find.descendant(
+        of: find.byKey(Key('landscape-editor-$action')),
+        matching: find.byType(InkWell),
+      ),
     );
   }
 
@@ -127,11 +130,14 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('landscape-chapter-overlay')), findsNothing);
 
+    await tester.tap(find.byKey(const Key('scene-node-gesture-sample-placement-4')));
+    await tester.pumpAndSettle();
+
     final scroll = find.byKey(const Key('editor-inspector-scroll'));
     await tester.drag(scroll, const Offset(0, -600));
     await tester.pumpAndSettle();
-    expect(find.text('裁切焦点与短注释').hitTestable(), findsOneWidget);
-    expect(find.text('邮票边').hitTestable(), findsOneWidget);
+    expect(find.text('裁切与构图'), findsOneWidget);
+    expect(find.text('邮票边'), findsOneWidget);
   });
 
   testWidgets('portrait keeps app bar and rail and supports upward progress', (
@@ -212,17 +218,17 @@ void main() {
   ) async {
     await pumpEditor(tester);
 
-    expect(toolbarButton(tester, 'undo').onPressed, isNull);
-    expect(toolbarButton(tester, 'redo').onPressed, isNull);
-    expect(toolbarButton(tester, 'play').onPressed, isNotNull);
+    expect(toolbarButton(tester, 'undo').onTap, isNull);
+    expect(toolbarButton(tester, 'redo').onTap, isNull);
+    expect(toolbarButton(tester, 'play').onTap, isNotNull);
     expect(find.text('导入图片'), findsOneWidget);
 
     await session.rename('新展览');
     await tester.pumpAndSettle();
-    expect(toolbarButton(tester, 'undo').onPressed, isNotNull);
+    expect(toolbarButton(tester, 'undo').onTap, isNotNull);
     await tester.tap(find.byTooltip('撤销'));
     await tester.pumpAndSettle();
-    expect(toolbarButton(tester, 'redo').onPressed, isNotNull);
+    expect(toolbarButton(tester, 'redo').onTap, isNotNull);
   });
 }
 

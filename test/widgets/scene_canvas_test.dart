@@ -328,8 +328,8 @@ void main() {
   });
 
   test('story path anchor dots use opaque themed foreground color', () {
-    expect(storyPathDotColor(GalleryTheme.ink).toARGB32(), 0xD9E8E0D3);
-    expect(storyPathDotColor(GalleryTheme.paper).toARGB32(), 0xD9090A0B);
+    expect(storyPathDotColor(GalleryTheme.ink).toARGB32(), 0xD9E8DFCE);
+    expect(storyPathDotColor(GalleryTheme.paper).toARGB32(), 0xD90A0B0C);
   });
 
   test('story path painter draws geometry onto the canvas', () async {
