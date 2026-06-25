@@ -249,6 +249,56 @@ void main() {
     expect(after, greaterThan(before));
   });
 
+  testWidgets('editor modes isolate canvas image and path gestures', (
+    tester,
+  ) async {
+    await pumpEditor(tester, size: const Size(390, 844));
+
+    var viewer = tester.widget<InteractiveViewer>(
+      find.byKey(const Key('editor-preview-zoom')),
+    );
+    var canvas = tester.widget<SceneCanvas>(find.byType(SceneCanvas));
+    expect(viewer.panEnabled, isTrue);
+    expect(viewer.scaleEnabled, isTrue);
+    expect(canvas.placementEditingEnabled, isFalse);
+    expect(canvas.pathEditingEnabled, isFalse);
+
+    await tester.tap(
+      find.byKey(const Key('scene-node-gesture-sample-placement-4')),
+    );
+    await tester.pumpAndSettle();
+
+    viewer = tester.widget<InteractiveViewer>(
+      find.byKey(const Key('editor-preview-zoom')),
+    );
+    canvas = tester.widget<SceneCanvas>(find.byType(SceneCanvas));
+    expect(viewer.panEnabled, isFalse);
+    expect(viewer.scaleEnabled, isFalse);
+    expect(canvas.placementEditingEnabled, isTrue);
+    expect(canvas.pathEditingEnabled, isFalse);
+
+    await tester.tap(find.byKey(const Key('editor-mode-path')));
+    await tester.pumpAndSettle();
+
+    viewer = tester.widget<InteractiveViewer>(
+      find.byKey(const Key('editor-preview-zoom')),
+    );
+    canvas = tester.widget<SceneCanvas>(find.byType(SceneCanvas));
+    expect(viewer.panEnabled, isFalse);
+    expect(viewer.scaleEnabled, isFalse);
+    expect(canvas.placementEditingEnabled, isFalse);
+    expect(canvas.pathEditingEnabled, isTrue);
+    expect(find.text('路径编辑'), findsOneWidget);
+
+    await tester.tap(
+      find.byKey(const Key('scene-node-gesture-sample-placement-4')),
+    );
+    await tester.pumpAndSettle();
+    canvas = tester.widget<SceneCanvas>(find.byType(SceneCanvas));
+    expect(canvas.pathEditingEnabled, isTrue);
+    expect(find.text('路径编辑'), findsOneWidget);
+  });
+
   testWidgets('landscape locks navigation to horizontal drags', (tester) async {
     await pumpEditor(tester);
 
