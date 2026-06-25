@@ -336,11 +336,29 @@ void main() {
     );
     await tester.pumpAndSettle();
 
-    final connections = session.selectedChapter!.customPathConnections;
+    var connections = session.selectedChapter!.customPathConnections;
     expect(connections, hasLength(1));
     expect(connections.single.fromPlacementId, isNot(connections.single.toPlacementId));
     expect(connections.single.points.length, greaterThan(1));
     expect(find.byKey(const Key('custom-path-connections')), findsOneWidget);
+
+    final connectionId = connections.single.id;
+    await tester.enterText(
+      find.byKey(Key('editor-path-note-$connectionId')),
+      '潮汐回声',
+    );
+    await tester.pumpAndSettle();
+    connections = session.selectedChapter!.customPathConnections;
+    expect(connections.single.note, '潮汐回声');
+    expect(find.byKey(Key('scene-path-note-$connectionId')), findsOneWidget);
+
+    final beforeX = connections.single.noteX;
+    final beforeY = connections.single.noteY;
+    await tester.drag(find.byKey(Key('scene-path-note-$connectionId')), const Offset(48, 36));
+    await tester.pumpAndSettle();
+    connections = session.selectedChapter!.customPathConnections;
+    expect(connections.single.noteX, isNot(beforeX));
+    expect(connections.single.noteY, isNot(beforeY));
   });
 
   testWidgets('landscape locks navigation to horizontal drags', (tester) async {
