@@ -167,6 +167,20 @@ void main() {
       find.byKey(const Key('editor-preview-zoom')),
     );
     expect(viewer.transformationController!.value.getMaxScaleOnAxis(), 1);
+    expect(find.byIcon(Icons.zoom_out), findsOneWidget);
+    expect(find.byIcon(Icons.fit_screen_outlined), findsOneWidget);
+    expect(find.byIcon(Icons.zoom_in), findsOneWidget);
+
+    await tester.tap(find.byIcon(Icons.zoom_out));
+    await tester.pump();
+    expect(
+      viewer.transformationController!.value.getMaxScaleOnAxis(),
+      lessThan(1),
+    );
+
+    await tester.tap(find.byIcon(Icons.fit_screen_outlined));
+    await tester.pump();
+    expect(viewer.transformationController!.value.getMaxScaleOnAxis(), 1);
 
     final rect = tester.getRect(
       find.byKey(const Key('editor-preview-gesture-surface')),
