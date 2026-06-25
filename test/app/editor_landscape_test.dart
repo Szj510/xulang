@@ -220,6 +220,35 @@ void main() {
     expect(after.dy, lessThan(before.dy - 160));
   });
 
+  testWidgets('canvas panel exposes adjustable opacity control', (tester) async {
+    await pumpEditor(tester, size: const Size(390, 844));
+
+    await tester.tap(find.byKey(const Key('editor-floating-ball')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('editor-floating-panel-shell')), findsOneWidget);
+    expect(find.byKey(const Key('editor-panel-opacity-slider')), findsOneWidget);
+    expect(find.text('面板透明度'), findsOneWidget);
+
+    final shell = tester.widget<DecoratedBox>(
+      find.byKey(const Key('editor-floating-panel-shell')),
+    );
+    final before = (shell.decoration as BoxDecoration).color!.a;
+    final slider = find.descendant(
+      of: find.byKey(const Key('editor-panel-opacity-slider')),
+      matching: find.byType(Slider),
+    );
+
+    await tester.drag(slider, const Offset(180, 0));
+    await tester.pumpAndSettle();
+
+    final updatedShell = tester.widget<DecoratedBox>(
+      find.byKey(const Key('editor-floating-panel-shell')),
+    );
+    final after = (updatedShell.decoration as BoxDecoration).color!.a;
+    expect(after, greaterThan(before));
+  });
+
   testWidgets('landscape locks navigation to horizontal drags', (tester) async {
     await pumpEditor(tester);
 
