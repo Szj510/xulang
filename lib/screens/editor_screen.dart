@@ -60,6 +60,7 @@ class _EditorBodyState extends State<_EditorBody> {
   bool _showPanel = false; // 默认隐藏浮动面板
   double _panelOpacity = 0.48;
   _EditorInteractionMode _interactionMode = _EditorInteractionMode.canvas;
+  _PendingPathConnection? _pendingPathConnection;
   String? _selectedPlacementId;
   Offset _floatingBallOffset = const Offset(16, 560);
 
@@ -72,6 +73,7 @@ class _EditorBodyState extends State<_EditorBody> {
   void _focusCanvas() {
     setState(() {
       _interactionMode = _EditorInteractionMode.canvas;
+      _pendingPathConnection = null;
       _selectedPlacementId = null;
       _showPanel = true;
     });
@@ -80,6 +82,7 @@ class _EditorBodyState extends State<_EditorBody> {
   void _focusPlacement(String placementId) {
     setState(() {
       _interactionMode = _EditorInteractionMode.image;
+      _pendingPathConnection = null;
       _selectedPlacementId = placementId;
       _showPanel = true;
     });
@@ -90,6 +93,54 @@ class _EditorBodyState extends State<_EditorBody> {
       _interactionMode = _EditorInteractionMode.path;
       _showPanel = true;
     });
+  }
+
+  void _startPathConnection(_PendingPathConnection connection) {
+    setState(() {
+      _interactionMode = _EditorInteractionMode.path;
+      _pendingPathConnection = connection;
+      _showPanel = false;
+    });
+  }
+
+  void _cancelPathConnection() {
+    setState(() {
+      _pendingPathConnection = null;
+      _showPanel = true;
+    });
+  }
+
+  Future<void> _finishPathDrawing(List<CustomPathPoint> points) async {
+    final draft = _pendingPathConnection;
+    if (draft == null) return;
+    if (points.length < 2) {
+      setState(() => _showPanel = true);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('路径太短，请重新画一条曲线')),
+        );
+      }
+      return;
+    }
+    final midpoint = points[points.length ~/ 2];
+    await session.addCustomPathConnection(
+      CustomPathConnection(
+        id: 'path-${DateTime.now().microsecondsSinceEpoch}',
+        fromPlacementId: draft.fromPlacementId,
+        toPlacementId: draft.toPlacementId,
+        points: points,
+        noteX: midpoint.x,
+        noteY: midpoint.y,
+      ),
+    );
+    if (!mounted) return;
+    setState(() {
+      _pendingPathConnection = null;
+      _showPanel = true;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('已保存手绘路径')),
+    );
   }
 
   void _dismissPanel() {
@@ -214,6 +265,8 @@ class _EditorBodyState extends State<_EditorBody> {
                       child: _Preview(
                         session: session,
                         interactionMode: _interactionMode,
+                        pendingPathConnection: _pendingPathConnection,
+                        onPathDrawingCompleted: _finishPathDrawing,
                         onCanvasTap: () {
                           _dismissPanel();
                           _hideChapters();
@@ -357,11 +410,14 @@ class _EditorBodyState extends State<_EditorBody> {
                         session: session,
                         interactionMode: _interactionMode,
                         selectedPlacementId: _selectedPlacementId,
+                        pendingPathConnection: _pendingPathConnection,
                         panelOpacity: _panelOpacity,
                         onPanelOpacityChanged: _setPanelOpacity,
                         onFocusCanvas: _focusCanvas,
                         onFocusPlacement: _focusPlacement,
                         onFocusPath: _focusPath,
+                        onStartPathConnection: _startPathConnection,
+                        onCancelPathConnection: _cancelPathConnection,
                         onDismiss: _dismissPanel,
                         landscape: true,
                       ),
@@ -390,6 +446,8 @@ class _EditorBodyState extends State<_EditorBody> {
                         child: _Preview(
                           session: session,
                           interactionMode: _interactionMode,
+                          pendingPathConnection: _pendingPathConnection,
+                          onPathDrawingCompleted: _finishPathDrawing,
                           onCanvasTap: _dismissPanel,
                           onPlacementTap: _focusPlacement,
                         ),
@@ -402,11 +460,14 @@ class _EditorBodyState extends State<_EditorBody> {
                       session: session,
                       interactionMode: _interactionMode,
                       selectedPlacementId: _selectedPlacementId,
+                      pendingPathConnection: _pendingPathConnection,
                       panelOpacity: _panelOpacity,
                       onPanelOpacityChanged: _setPanelOpacity,
                       onFocusCanvas: _focusCanvas,
                       onFocusPlacement: _focusPlacement,
                       onFocusPath: _focusPath,
+                      onStartPathConnection: _startPathConnection,
+                      onCancelPathConnection: _cancelPathConnection,
                       onDismiss: _dismissPanel,
                       landscape: false,
                     ),
@@ -644,11 +705,14 @@ class _FloatingPanel extends StatefulWidget {
     required this.session,
     required this.interactionMode,
     required this.selectedPlacementId,
+    required this.pendingPathConnection,
     required this.panelOpacity,
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
     required this.onFocusPath,
+    required this.onStartPathConnection,
+    required this.onCancelPathConnection,
     required this.onDismiss,
     required this.landscape,
   });
@@ -656,11 +720,14 @@ class _FloatingPanel extends StatefulWidget {
   final EditorSession session;
   final _EditorInteractionMode interactionMode;
   final String? selectedPlacementId;
+  final _PendingPathConnection? pendingPathConnection;
   final double panelOpacity;
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
   final VoidCallback onFocusPath;
+  final ValueChanged<_PendingPathConnection> onStartPathConnection;
+  final VoidCallback onCancelPathConnection;
   final VoidCallback onDismiss;
   final bool landscape;
 
@@ -751,11 +818,14 @@ class _FloatingPanelState extends State<_FloatingPanel>
                         session: widget.session,
                         interactionMode: widget.interactionMode,
                         selectedPlacementId: widget.selectedPlacementId,
+                        pendingPathConnection: widget.pendingPathConnection,
                         panelOpacity: widget.panelOpacity,
                         onPanelOpacityChanged: widget.onPanelOpacityChanged,
                         onFocusCanvas: widget.onFocusCanvas,
                         onFocusPlacement: widget.onFocusPlacement,
                         onFocusPath: widget.onFocusPath,
+                        onStartPathConnection: widget.onStartPathConnection,
+                        onCancelPathConnection: widget.onCancelPathConnection,
                       ),
                     ),
                   ),
@@ -848,12 +918,17 @@ class _Preview extends StatefulWidget {
   const _Preview({
     required this.session,
     required this.interactionMode,
+    this.pendingPathConnection,
+    this.onPathDrawingCompleted,
     this.onCanvasTap,
     this.onPlacementTap,
   });
 
   final EditorSession session;
   final _EditorInteractionMode interactionMode;
+  final _PendingPathConnection? pendingPathConnection;
+  final Future<void> Function(List<CustomPathPoint> points)?
+  onPathDrawingCompleted;
   final VoidCallback? onCanvasTap;
   final ValueChanged<String>? onPlacementTap;
 
@@ -864,6 +939,7 @@ class _Preview extends StatefulWidget {
 class _PreviewState extends State<_Preview> {
   final Map<String, double> _cameraProgressByChapter = {};
   final Map<String, GalleryPlacement> _placementDrafts = {};
+  final List<CustomPathPoint> _activePathPoints = [];
   final NarrativeCameraController _cameraController =
       NarrativeCameraController();
   final TransformationController _zoomController = TransformationController();
@@ -982,6 +1058,36 @@ class _PreviewState extends State<_Preview> {
     );
   }
 
+  void _startPathDrawing(CustomPathPoint point) {
+    if (!_isPathMode || widget.pendingPathConnection == null) return;
+    setState(() {
+      _activePathPoints
+        ..clear()
+        ..add(point);
+    });
+  }
+
+  void _updatePathDrawing(CustomPathPoint point) {
+    if (!_isPathMode || widget.pendingPathConnection == null) return;
+    if (_activePathPoints.isNotEmpty) {
+      final last = _activePathPoints.last;
+      final dx = point.x - last.x;
+      final dy = point.y - last.y;
+      if (math.sqrt(dx * dx + dy * dy) < 0.006) return;
+    }
+    setState(() => _activePathPoints.add(point));
+  }
+
+  void _endPathDrawing() {
+    if (_activePathPoints.isEmpty) return;
+    final points = List<CustomPathPoint>.unmodifiable(_activePathPoints);
+    setState(_activePathPoints.clear);
+    final onCompleted = widget.onPathDrawingCompleted;
+    if (onCompleted != null) {
+      unawaited(onCompleted(points));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -1076,6 +1182,16 @@ class _PreviewState extends State<_Preview> {
                         sceneTheme: session.bundle!.document.theme,
                         placementEditingEnabled: placementEditingEnabled,
                         pathEditingEnabled: _isPathMode,
+                        activePathPoints: _activePathPoints,
+                        onPathDrawStart: widget.pendingPathConnection == null
+                            ? null
+                            : _startPathDrawing,
+                        onPathDrawUpdate: widget.pendingPathConnection == null
+                            ? null
+                            : _updatePathDrawing,
+                        onPathDrawEnd: widget.pendingPathConnection == null
+                            ? null
+                            : _endPathDrawing,
                         onPlacementTap: placementTap,
                         onPlacementTransformStart: _startPlacementTransform,
                         onPlacementTransformUpdate:
@@ -1345,21 +1461,27 @@ class _Inspector extends StatefulWidget {
     required this.session,
     required this.interactionMode,
     required this.selectedPlacementId,
+    required this.pendingPathConnection,
     required this.panelOpacity,
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
     required this.onFocusPath,
+    required this.onStartPathConnection,
+    required this.onCancelPathConnection,
   });
 
   final EditorSession session;
   final _EditorInteractionMode interactionMode;
   final String? selectedPlacementId;
+  final _PendingPathConnection? pendingPathConnection;
   final double panelOpacity;
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
   final VoidCallback onFocusPath;
+  final ValueChanged<_PendingPathConnection> onStartPathConnection;
+  final VoidCallback onCancelPathConnection;
 
   @override
   State<_Inspector> createState() => _InspectorState();
@@ -1521,6 +1643,7 @@ class _InspectorState extends State<_Inspector> {
   }
 
   Widget _buildPathPanel(BuildContext context, GalleryChapter chapter) {
+    final pending = widget.pendingPathConnection;
     return _InspectorSection(
       title: '路径编辑',
       child: Column(
@@ -1540,11 +1663,138 @@ class _InspectorState extends State<_Inspector> {
               ),
               child: const Text('切换到故事路径布局'),
             )
-          else
+          else ...[
+            if (pending == null)
+              FilledButton.icon(
+                key: const Key('editor-create-path-connection'),
+                onPressed: chapter.placements.length < 2
+                    ? null
+                    : () => _selectPathConnection(context, chapter),
+                icon: const Icon(Icons.gesture, size: 17),
+                label: const Text('新建路径'),
+              )
+            else
+              _PathDraftNotice(
+                fromLabel: _placementLabel(chapter, pending.fromPlacementId),
+                toLabel: _placementLabel(chapter, pending.toPlacementId),
+                onCancel: widget.onCancelPathConnection,
+              ),
+            if (chapter.customPathConnections.isNotEmpty) ...[
+              const SizedBox(height: 12),
+              _SectionLabel('已连接路径'),
+              const SizedBox(height: 6),
+              for (final connection in chapter.customPathConnections)
+                _PathConnectionSummary(
+                  connection: connection,
+                  fromLabel: _placementLabel(chapter, connection.fromPlacementId),
+                  toLabel: _placementLabel(chapter, connection.toPlacementId),
+                ),
+            ],
+            const SizedBox(height: 14),
+            const Divider(height: 1),
+            const SizedBox(height: 10),
+            _SectionLabel('旧版锚点编辑'),
+            const SizedBox(height: 6),
             _buildPathEditor(context, chapter),
+          ],
         ],
       ),
     );
+  }
+
+  Future<void> _selectPathConnection(
+    BuildContext context,
+    GalleryChapter chapter,
+  ) async {
+    var fromId = chapter.placements.first.id;
+    var toId = chapter.placements.length > 1
+        ? chapter.placements[1].id
+        : chapter.placements.first.id;
+    final draft = await showDialog<_PendingPathConnection>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          return AlertDialog(
+            title: const Text('选择路径连接'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  key: const Key('editor-path-from-dropdown'),
+                  value: fromId,
+                  decoration: const InputDecoration(labelText: '起点图片'),
+                  items: [
+                    for (final placement in chapter.placements)
+                      DropdownMenuItem(
+                        value: placement.id,
+                        child: Text(_placementLabel(chapter, placement.id)),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setDialogState(() => fromId = value);
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  key: const Key('editor-path-to-dropdown'),
+                  value: toId,
+                  decoration: const InputDecoration(labelText: '终点图片'),
+                  items: [
+                    for (final placement in chapter.placements)
+                      DropdownMenuItem(
+                        value: placement.id,
+                        child: Text(_placementLabel(chapter, placement.id)),
+                      ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setDialogState(() => toId = value);
+                  },
+                ),
+                if (fromId == toId) ...[
+                  const SizedBox(height: 10),
+                  const Text(
+                    '起点和终点不能是同一张图。',
+                    style: TextStyle(color: XulangColors.accent, fontSize: 12),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('取消'),
+              ),
+              FilledButton(
+                key: const Key('editor-start-path-drawing'),
+                onPressed: fromId == toId
+                    ? null
+                    : () => Navigator.pop(
+                        context,
+                        _PendingPathConnection(
+                          fromPlacementId: fromId,
+                          toPlacementId: toId,
+                        ),
+                      ),
+                child: const Text('开始手绘'),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+    if (draft != null) {
+      widget.onStartPathConnection(draft);
+    }
+  }
+
+  String _placementLabel(GalleryChapter chapter, String placementId) {
+    final index = chapter.placements.indexWhere((item) => item.id == placementId);
+    if (index < 0) return placementId;
+    final placement = chapter.placements[index];
+    final caption = placement.caption.trim();
+    return caption.isEmpty ? '图 ${index + 1}' : '图 ${index + 1} · $caption';
   }
 
   Widget _buildPathEditor(BuildContext context, GalleryChapter chapter) {
@@ -1995,6 +2245,98 @@ class _InspectorState extends State<_Inspector> {
 
 }
 
+class _PathDraftNotice extends StatelessWidget {
+  const _PathDraftNotice({
+    required this.fromLabel,
+    required this.toLabel,
+    required this.onCancel,
+  });
+
+  final String fromLabel;
+  final String toLabel;
+  final VoidCallback onCancel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: const Key('editor-path-draft-notice'),
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: XulangColors.accent.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: XulangColors.accent.withValues(alpha: .28)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            '在画布上用手指描绘曲线',
+            style: TextStyle(
+              color: XulangColors.paper,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            '$fromLabel → $toLabel',
+            style: const TextStyle(fontSize: 12, color: XulangColors.muted),
+          ),
+          const SizedBox(height: 8),
+          Align(
+            alignment: Alignment.centerRight,
+            child: TextButton(
+              key: const Key('editor-cancel-path-draft'),
+              onPressed: onCancel,
+              child: const Text('取消绘制'),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PathConnectionSummary extends StatelessWidget {
+  const _PathConnectionSummary({
+    required this.connection,
+    required this.fromLabel,
+    required this.toLabel,
+  });
+
+  final CustomPathConnection connection;
+  final String fromLabel;
+  final String toLabel;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      key: Key('editor-path-connection-${connection.id}'),
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .045),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.timeline, size: 17, color: XulangColors.accent),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              '$fromLabel → $toLabel · ${connection.points.length} 点',
+              style: const TextStyle(fontSize: 12, color: XulangColors.paper),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PanelToggleChip extends StatelessWidget {
   const _PanelToggleChip({
     required this.selected,
@@ -2175,6 +2517,16 @@ class _SectionLabel extends StatelessWidget {
 }
 
 enum _EditorInteractionMode { canvas, image, path }
+
+class _PendingPathConnection {
+  const _PendingPathConnection({
+    required this.fromPlacementId,
+    required this.toPlacementId,
+  });
+
+  final String fromPlacementId;
+  final String toPlacementId;
+}
 
 class _CropSlider extends StatefulWidget {
   const _CropSlider({
