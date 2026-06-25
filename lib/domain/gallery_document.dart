@@ -97,6 +97,129 @@ class CustomPathAnchor {
   int get hashCode => Object.hash(x, y, label, cp1x, cp1y, cp2x, cp2y);
 }
 
+class CustomPathPoint {
+  const CustomPathPoint({required this.x, required this.y});
+
+  final double x;
+  final double y;
+
+  CustomPathPoint copyWith({double? x, double? y}) {
+    return CustomPathPoint(x: x ?? this.x, y: y ?? this.y);
+  }
+
+  Map<String, dynamic> toJson() => {'x': x, 'y': y};
+
+  factory CustomPathPoint.fromJson(Map<String, dynamic> json) {
+    return CustomPathPoint(
+      x: (json['x'] as num).toDouble(),
+      y: (json['y'] as num).toDouble(),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is CustomPathPoint && x == other.x && y == other.y;
+
+  @override
+  int get hashCode => Object.hash(x, y);
+}
+
+class CustomPathConnection {
+  const CustomPathConnection({
+    required this.id,
+    required this.fromPlacementId,
+    required this.toPlacementId,
+    required this.points,
+    this.note = '',
+    this.noteX = 0.5,
+    this.noteY = 0.5,
+  });
+
+  final String id;
+  final String fromPlacementId;
+  final String toPlacementId;
+  final List<CustomPathPoint> points;
+  final String note;
+  final double noteX;
+  final double noteY;
+
+  CustomPathConnection copyWith({
+    String? fromPlacementId,
+    String? toPlacementId,
+    List<CustomPathPoint>? points,
+    String? note,
+    double? noteX,
+    double? noteY,
+  }) {
+    return CustomPathConnection(
+      id: id,
+      fromPlacementId: fromPlacementId ?? this.fromPlacementId,
+      toPlacementId: toPlacementId ?? this.toPlacementId,
+      points: points ?? this.points,
+      note: note ?? this.note,
+      noteX: noteX ?? this.noteX,
+      noteY: noteY ?? this.noteY,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'fromPlacementId': fromPlacementId,
+    'toPlacementId': toPlacementId,
+    'points': [for (final point in points) point.toJson()],
+    'note': note,
+    'noteX': noteX,
+    'noteY': noteY,
+  };
+
+  factory CustomPathConnection.fromJson(Map<String, dynamic> json) {
+    return CustomPathConnection(
+      id: json['id'] as String,
+      fromPlacementId: json['fromPlacementId'] as String,
+      toPlacementId: json['toPlacementId'] as String,
+      points: [
+        for (final item in (json['points'] as List? ?? const []))
+          if (item is Map)
+            CustomPathPoint.fromJson(Map<String, dynamic>.from(item)),
+      ],
+      note: json['note'] as String? ?? '',
+      noteX: ((json['noteX'] as num?) ?? 0.5).toDouble(),
+      noteY: ((json['noteY'] as num?) ?? 0.5).toDouble(),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is CustomPathConnection &&
+      id == other.id &&
+      fromPlacementId == other.fromPlacementId &&
+      toPlacementId == other.toPlacementId &&
+      _listEquals(points, other.points) &&
+      note == other.note &&
+      noteX == other.noteX &&
+      noteY == other.noteY;
+
+  @override
+  int get hashCode => Object.hash(
+    id,
+    fromPlacementId,
+    toPlacementId,
+    Object.hashAll(points),
+    note,
+    noteX,
+    noteY,
+  );
+}
+
+bool _listEquals<T>(List<T> a, List<T> b) {
+  if (identical(a, b)) return true;
+  if (a.length != b.length) return false;
+  for (var index = 0; index < a.length; index++) {
+    if (a[index] != b[index]) return false;
+  }
+  return true;
+}
+
 class GalleryDocument {
   const GalleryDocument({
     required this.id,
@@ -186,6 +309,7 @@ class GalleryChapter {
     this.caption = '',
     this.pathStyle = StoryPathStyle.solid,
     this.customPathAnchors,
+    this.customPathConnections = const [],
   });
 
   final String id;
@@ -197,6 +321,7 @@ class GalleryChapter {
   final StoryPathStyle pathStyle;
   final List<GalleryPlacement> placements;
   final List<CustomPathAnchor>? customPathAnchors; // 自定义路径锚点
+  final List<CustomPathConnection> customPathConnections; // 自定义图片连接路径
 
   GalleryChapter copyWith({
     String? title,
@@ -207,6 +332,7 @@ class GalleryChapter {
     StoryPathStyle? pathStyle,
     List<GalleryPlacement>? placements,
     Object? customPathAnchors = _unchanged,
+    List<CustomPathConnection>? customPathConnections,
   }) {
     return GalleryChapter(
       id: id,
@@ -220,6 +346,8 @@ class GalleryChapter {
       customPathAnchors: identical(customPathAnchors, _unchanged)
           ? this.customPathAnchors
           : customPathAnchors as List<CustomPathAnchor>?,
+      customPathConnections:
+          customPathConnections ?? this.customPathConnections,
     );
   }
 

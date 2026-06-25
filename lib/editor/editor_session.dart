@@ -207,6 +207,7 @@ class EditorSession extends ChangeNotifier {
     GalleryMotion? motion,
     StoryPathStyle? pathStyle,
     Object? customPathAnchors = _editorUnchanged,
+    List<CustomPathConnection>? customPathConnections,
   }) async {
     final current = bundle;
     if (current == null) return;
@@ -221,6 +222,8 @@ class EditorSession extends ChangeNotifier {
       customPathAnchors: identical(customPathAnchors, _editorUnchanged)
           ? chapter.customPathAnchors
           : customPathAnchors as List<CustomPathAnchor>?,
+      customPathConnections:
+          customPathConnections ?? chapter.customPathConnections,
     );
     await _commit(
       current.copyWith(
@@ -238,6 +241,47 @@ class EditorSession extends ChangeNotifier {
 
   Future<void> clearCustomPath() async {
     await updateChapter(customPathAnchors: null);
+  }
+
+  Future<void> addCustomPathConnection(
+    CustomPathConnection connection,
+  ) async {
+    final chapter = selectedChapter;
+    if (chapter == null) return;
+    await updateChapter(
+      customPathConnections: [
+        ...chapter.customPathConnections,
+        connection,
+      ],
+    );
+  }
+
+  Future<void> updateCustomPathConnection(
+    CustomPathConnection connection,
+  ) async {
+    final chapter = selectedChapter;
+    if (chapter == null) return;
+    await updateChapter(
+      customPathConnections: [
+        for (final item in chapter.customPathConnections)
+          if (item.id == connection.id) connection else item,
+      ],
+    );
+  }
+
+  Future<void> removeCustomPathConnection(String connectionId) async {
+    final chapter = selectedChapter;
+    if (chapter == null) return;
+    await updateChapter(
+      customPathConnections: [
+        for (final item in chapter.customPathConnections)
+          if (item.id != connectionId) item,
+      ],
+    );
+  }
+
+  Future<void> clearCustomPathConnections() async {
+    await updateChapter(customPathConnections: const []);
   }
 
   Future<void> updatePlacement(
