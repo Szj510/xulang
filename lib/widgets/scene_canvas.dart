@@ -300,7 +300,7 @@ class _CustomPathNoteLabel extends StatelessWidget {
               },
         child: Container(
           width: labelSize.width,
-          minHeight: labelSize.height,
+          constraints: BoxConstraints(minHeight: labelSize.height),
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
             color: Colors.black.withValues(alpha: .42),
