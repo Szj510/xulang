@@ -58,11 +58,16 @@ class _EditorBody extends StatefulWidget {
 class _EditorBodyState extends State<_EditorBody> {
   bool _showChapters = false;
   bool _showPanel = false; // 默认隐藏浮动面板
+  double _panelOpacity = 0.48;
   _EditorPanelMode _panelMode = _EditorPanelMode.canvas;
   String? _selectedPlacementId;
   Offset _floatingBallOffset = const Offset(16, 560);
 
   EditorSession get session => widget.session;
+
+  void _setPanelOpacity(double value) {
+    setState(() => _panelOpacity = value.clamp(0.18, 0.82));
+  }
 
   void _focusCanvas() {
     setState(() {
@@ -344,6 +349,8 @@ class _EditorBodyState extends State<_EditorBody> {
                         session: session,
                         panelMode: _panelMode,
                         selectedPlacementId: _selectedPlacementId,
+                        panelOpacity: _panelOpacity,
+                        onPanelOpacityChanged: _setPanelOpacity,
                         onFocusCanvas: _focusCanvas,
                         onFocusPlacement: _focusPlacement,
                         onDismiss: _dismissPanel,
@@ -385,6 +392,8 @@ class _EditorBodyState extends State<_EditorBody> {
                       session: session,
                       panelMode: _panelMode,
                       selectedPlacementId: _selectedPlacementId,
+                      panelOpacity: _panelOpacity,
+                      onPanelOpacityChanged: _setPanelOpacity,
                       onFocusCanvas: _focusCanvas,
                       onFocusPlacement: _focusPlacement,
                       onDismiss: _dismissPanel,
@@ -624,6 +633,8 @@ class _FloatingPanel extends StatefulWidget {
     required this.session,
     required this.panelMode,
     required this.selectedPlacementId,
+    required this.panelOpacity,
+    required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
     required this.onDismiss,
@@ -633,6 +644,8 @@ class _FloatingPanel extends StatefulWidget {
   final EditorSession session;
   final _EditorPanelMode panelMode;
   final String? selectedPlacementId;
+  final double panelOpacity;
+  final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
   final VoidCallback onDismiss;
@@ -710,8 +723,11 @@ class _FloatingPanelState extends State<_FloatingPanel>
                   child: BackdropFilter(
                     filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
                     child: DecoratedBox(
+                      key: const Key('editor-floating-panel-shell'),
                       decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: .52),
+                        color: Colors.black.withValues(
+                          alpha: widget.panelOpacity,
+                        ),
                         border: Border.all(
                           color: Colors.white.withValues(alpha: .08),
                           width: 0.5,
@@ -722,6 +738,8 @@ class _FloatingPanelState extends State<_FloatingPanel>
                         session: widget.session,
                         panelMode: widget.panelMode,
                         selectedPlacementId: widget.selectedPlacementId,
+                        panelOpacity: widget.panelOpacity,
+                        onPanelOpacityChanged: widget.onPanelOpacityChanged,
                         onFocusCanvas: widget.onFocusCanvas,
                         onFocusPlacement: widget.onFocusPlacement,
                       ),
@@ -1298,6 +1316,8 @@ class _Inspector extends StatefulWidget {
     required this.session,
     required this.panelMode,
     required this.selectedPlacementId,
+    required this.panelOpacity,
+    required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
   });
@@ -1305,6 +1325,8 @@ class _Inspector extends StatefulWidget {
   final EditorSession session;
   final _EditorPanelMode panelMode;
   final String? selectedPlacementId;
+  final double panelOpacity;
+  final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
 
@@ -1366,6 +1388,15 @@ class _InspectorState extends State<_Inspector> {
                     label: const Text('标题与短注释'),
                   ),
                 ],
+              ),
+              const SizedBox(height: 8),
+              _CropSlider(
+                key: const Key('editor-panel-opacity-slider'),
+                label: '面板透明度',
+                value: widget.panelOpacity,
+                min: 0.18,
+                max: 0.82,
+                onChanged: widget.onPanelOpacityChanged,
               ),
               const SizedBox(height: 8),
               _SectionLabel('布局'),
@@ -1762,7 +1793,7 @@ class _InspectorState extends State<_Inspector> {
             filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: Colors.black.withValues(alpha: .48),
+                color: Colors.black.withValues(alpha: widget.panelOpacity),
                 border: Border.all(
                   color: Colors.white.withValues(alpha: .06),
                   width: 0.5,
