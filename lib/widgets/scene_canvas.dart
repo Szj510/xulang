@@ -26,6 +26,7 @@ class SceneCanvas extends StatelessWidget {
     this.onPathDrawStart,
     this.onPathDrawUpdate,
     this.onPathDrawEnd,
+    this.onPathConnectionChanged,
     this.onPlacementTap,
     this.onPlacementTransformStart,
     this.onPlacementTransformUpdate,
@@ -46,6 +47,7 @@ class SceneCanvas extends StatelessWidget {
   final ValueChanged<CustomPathPoint>? onPathDrawStart;
   final ValueChanged<CustomPathPoint>? onPathDrawUpdate;
   final VoidCallback? onPathDrawEnd;
+  final ValueChanged<CustomPathConnection>? onPathConnectionChanged;
   final void Function(String placementId)? onPlacementTap;
   final void Function(String placementId)? onPlacementTransformStart;
   final void Function(String placementId, double scaleDelta, Offset delta)?
@@ -205,7 +207,16 @@ class SceneCanvas extends StatelessWidget {
                       opacity: motion.opacity,
                       sceneTheme: sceneTheme,
                     ),
-                if (pathEditingEnabled)
+                for (final connection in chapter.customPathConnections)
+                  if (connection.note.trim().isNotEmpty || pathEditingEnabled)
+                    _CustomPathNoteLabel(
+                      connection: connection,
+                      sceneTheme: sceneTheme,
+                      viewport: viewport,
+                      editable: pathEditingEnabled,
+                      onChanged: onPathConnectionChanged,
+                    ),
+                if (pathEditingEnabled && onPathDrawStart != null)
                   Positioned.fill(
                     child: GestureDetector(
                       key: const Key('scene-path-draw-surface'),
@@ -237,6 +248,79 @@ class SceneCanvas extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+}
+
+class _CustomPathNoteLabel extends StatelessWidget {
+  const _CustomPathNoteLabel({
+    required this.connection,
+    required this.sceneTheme,
+    required this.viewport,
+    required this.editable,
+    required this.onChanged,
+  });
+
+  final CustomPathConnection connection;
+  final GalleryTheme sceneTheme;
+  final Size viewport;
+  final bool editable;
+  final ValueChanged<CustomPathConnection>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = sceneTheme == GalleryTheme.paper
+        ? XulangColors.ink
+        : XulangColors.paper;
+    final label = connection.note.trim().isEmpty ? '添加注释' : connection.note.trim();
+    const labelSize = Size(112, 34);
+    final maxLeft = math.max(8.0, viewport.width - labelSize.width - 8);
+    final maxTop = math.max(8.0, viewport.height - labelSize.height - 8);
+    final left = (connection.noteX.clamp(0.0, 1.0) * viewport.width)
+        .clamp(8.0, maxLeft);
+    final top = (connection.noteY.clamp(0.0, 1.0) * viewport.height)
+        .clamp(8.0, maxTop);
+    return Positioned(
+      left: left,
+      top: top,
+      child: GestureDetector(
+        key: Key('scene-path-note-${connection.id}'),
+        behavior: HitTestBehavior.opaque,
+        onPanUpdate: !editable || onChanged == null
+            ? null
+            : (details) {
+                final nextLeft = (left + details.delta.dx).clamp(8.0, maxLeft);
+                final nextTop = (top + details.delta.dy).clamp(8.0, maxTop);
+                onChanged!(
+                  connection.copyWith(
+                    noteX: (nextLeft / viewport.width).clamp(0.0, 1.0),
+                    noteY: (nextTop / viewport.height).clamp(0.0, 1.0),
+                  ),
+                );
+              },
+        child: Container(
+          width: labelSize.width,
+          minHeight: labelSize.height,
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.black.withValues(alpha: .42),
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(
+              color: XulangColors.accent.withValues(alpha: editable ? .55 : .25),
+            ),
+          ),
+          child: Text(
+            label,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: foreground.withValues(alpha: connection.note.trim().isEmpty ? .55 : .9),
+              fontSize: 11,
+              letterSpacing: .4,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

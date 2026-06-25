@@ -1192,6 +1192,8 @@ class _PreviewState extends State<_Preview> {
                         onPathDrawEnd: widget.pendingPathConnection == null
                             ? null
                             : _endPathDrawing,
+                        onPathConnectionChanged:
+                            session.updateCustomPathConnection,
                         onPlacementTap: placementTap,
                         onPlacementTransformStart: _startPlacementTransform,
                         onPlacementTransformUpdate:
@@ -1688,6 +1690,9 @@ class _InspectorState extends State<_Inspector> {
                   connection: connection,
                   fromLabel: _placementLabel(chapter, connection.fromPlacementId),
                   toLabel: _placementLabel(chapter, connection.toPlacementId),
+                  onNoteChanged: (note) => session.updateCustomPathConnection(
+                    connection.copyWith(note: note),
+                  ),
                 ),
             ],
             const SizedBox(height: 14),
@@ -2303,11 +2308,13 @@ class _PathConnectionSummary extends StatelessWidget {
     required this.connection,
     required this.fromLabel,
     required this.toLabel,
+    required this.onNoteChanged,
   });
 
   final CustomPathConnection connection;
   final String fromLabel;
   final String toLabel;
+  final ValueChanged<String> onNoteChanged;
 
   @override
   Widget build(BuildContext context) {
@@ -2320,16 +2327,38 @@ class _PathConnectionSummary extends StatelessWidget {
         borderRadius: BorderRadius.circular(14),
         border: Border.all(color: Colors.white.withValues(alpha: .08)),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.timeline, size: 17, color: XulangColors.accent),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              '$fromLabel → $toLabel · ${connection.points.length} 点',
-              style: const TextStyle(fontSize: 12, color: XulangColors.paper),
-              overflow: TextOverflow.ellipsis,
+          Row(
+            children: [
+              const Icon(Icons.timeline, size: 17, color: XulangColors.accent),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '$fromLabel → $toLabel · ${connection.points.length} 点',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: XulangColors.paper,
+                  ),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          TextFormField(
+            key: Key('editor-path-note-${connection.id}'),
+            initialValue: connection.note,
+            maxLength: 48,
+            style: const TextStyle(fontSize: 12, color: XulangColors.paper),
+            decoration: const InputDecoration(
+              labelText: '曲线注释',
+              hintText: '写一句路径旁的说明',
+              counterText: '',
+              isDense: true,
             ),
+            onChanged: onNoteChanged,
           ),
         ],
       ),
