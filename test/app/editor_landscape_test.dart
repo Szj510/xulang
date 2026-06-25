@@ -140,6 +140,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('裁切与构图'), findsOneWidget);
     expect(find.text('邮票边'), findsOneWidget);
+    expect(find.text('高级编辑'), findsNothing);
   });
 
   testWidgets('portrait keeps app bar and rail and supports upward progress', (

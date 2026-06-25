@@ -1720,14 +1720,6 @@ class _InspectorState extends State<_Inspector> {
                 session.updatePlacement(placement.id, caption: value),
           ),
         ),
-        Align(
-          alignment: Alignment.centerRight,
-          child: TextButton.icon(
-            onPressed: () => _editPlacement(context, placement),
-            icon: const Icon(Icons.tune, size: 17),
-            label: const Text('高级编辑'),
-          ),
-        ),
       ],
     );
   }
@@ -1900,113 +1892,6 @@ class _InspectorState extends State<_Inspector> {
     }
   }
 
-  Future<void> _editPlacement(
-    BuildContext context,
-    GalleryPlacement placement,
-  ) async {
-    var focalX = placement.focalX;
-    var focalY = placement.focalY;
-    var zoom = placement.zoom;
-    var caption = placement.caption;
-    final save = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setModalState) => SafeArea(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(
-              22,
-              18,
-              22,
-              18 + MediaQuery.viewInsetsOf(context).bottom,
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
-                  '裁切与图片叙事',
-                  style: TextStyle(
-                    fontFamily: 'Noto Serif SC',
-                    fontFamilyFallback: [
-                      'Noto Sans SC',
-                      'PingFang SC',
-                      'Microsoft YaHei',
-                    ],
-                    fontSize: 18,
-                    letterSpacing: 1,
-                    color: XulangColors.paper,
-                  ),
-                ),
-                const SizedBox(height: 14),
-                _CropSlider(
-                  label: '水平焦点',
-                  value: focalX,
-                  min: 0,
-                  max: 1,
-                  onChanged: (value) => setModalState(() => focalX = value),
-                ),
-                _CropSlider(
-                  label: '垂直焦点',
-                  value: focalY,
-                  min: 0,
-                  max: 1,
-                  onChanged: (value) => setModalState(() => focalY = value),
-                ),
-                _CropSlider(
-                  label: '裁切缩放',
-                  value: zoom,
-                  min: 1,
-                  max: 3,
-                  onChanged: (value) => setModalState(() => zoom = value),
-                ),
-                TextFormField(
-                  initialValue: caption,
-                  maxLength: 60,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: XulangColors.paper,
-                  ),
-                  decoration: const InputDecoration(
-                    labelText: '单图短注释',
-                    labelStyle: TextStyle(
-                      fontSize: 12,
-                      color: XulangColors.muted,
-                    ),
-                  ),
-                  onChanged: (value) => caption = value,
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      child: const Text('取消'),
-                    ),
-                    const SizedBox(width: 8),
-                    FilledButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      child: const Text('保存'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-    if (save == true) {
-      await session.updatePlacement(
-        placement.id,
-        focalX: focalX,
-        focalY: focalY,
-        zoom: zoom,
-        caption: caption.trim(),
-      );
-    }
-  }
 }
 
 class _PanelToggleChip extends StatelessWidget {
