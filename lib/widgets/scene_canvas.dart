@@ -22,6 +22,10 @@ class SceneCanvas extends StatelessWidget {
     this.sceneTheme = GalleryTheme.ink,
     this.placementEditingEnabled = true,
     this.pathEditingEnabled = false,
+    this.activePathPoints = const [],
+    this.onPathDrawStart,
+    this.onPathDrawUpdate,
+    this.onPathDrawEnd,
     this.onPlacementTap,
     this.onPlacementTransformStart,
     this.onPlacementTransformUpdate,
@@ -38,6 +42,10 @@ class SceneCanvas extends StatelessWidget {
   final GalleryTheme sceneTheme;
   final bool placementEditingEnabled;
   final bool pathEditingEnabled;
+  final List<CustomPathPoint> activePathPoints;
+  final ValueChanged<CustomPathPoint>? onPathDrawStart;
+  final ValueChanged<CustomPathPoint>? onPathDrawUpdate;
+  final VoidCallback? onPathDrawEnd;
   final void Function(String placementId)? onPlacementTap;
   final void Function(String placementId)? onPlacementTransformStart;
   final void Function(String placementId, double scaleDelta, Offset delta)?
@@ -115,6 +123,31 @@ class SceneCanvas extends StatelessWidget {
                       ),
                     ),
                   ),
+                if (chapter.customPathConnections.isNotEmpty)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        key: const Key('custom-path-connections'),
+                        painter: CustomPathConnectionPainter(
+                          connections: chapter.customPathConnections,
+                          sceneTheme: sceneTheme,
+                          opacity: motion.opacity,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (activePathPoints.length > 1)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: CustomPaint(
+                        key: const Key('active-custom-path-draft'),
+                        painter: CustomPathDraftPainter(
+                          points: activePathPoints,
+                          sceneTheme: sceneTheme,
+                        ),
+                      ),
+                    ),
+                  ),
                 for (final node in nodes)
                   if (placementsById[node.placementId] case final placement?)
                     _SceneNodeWidget(
@@ -172,6 +205,33 @@ class SceneCanvas extends StatelessWidget {
                       opacity: motion.opacity,
                       sceneTheme: sceneTheme,
                     ),
+                if (pathEditingEnabled)
+                  Positioned.fill(
+                    child: GestureDetector(
+                      key: const Key('scene-path-draw-surface'),
+                      behavior: HitTestBehavior.opaque,
+                      onPanStart: onPathDrawStart == null
+                          ? null
+                          : (details) => onPathDrawStart!(
+                              _normalizeCustomPathPoint(
+                                details.localPosition,
+                                viewport,
+                              ),
+                            ),
+                      onPanUpdate: onPathDrawUpdate == null
+                          ? null
+                          : (details) => onPathDrawUpdate!(
+                              _normalizeCustomPathPoint(
+                                details.localPosition,
+                                viewport,
+                              ),
+                            ),
+                      onPanEnd: onPathDrawEnd == null
+                          ? null
+                          : (_) => onPathDrawEnd!(),
+                      onPanCancel: onPathDrawEnd,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -653,6 +713,94 @@ StoryPathGeometry resolveCustomStoryPathGeometry({
   }
 
   return StoryPathGeometry(anchors: resolvedAnchors, segments: segments);
+}
+
+CustomPathPoint _normalizeCustomPathPoint(Offset point, Size viewport) {
+  if (viewport.isEmpty) return const CustomPathPoint(x: 0, y: 0);
+  return CustomPathPoint(
+    x: (point.dx / viewport.width).clamp(0.0, 1.0),
+    y: (point.dy / viewport.height).clamp(0.0, 1.0),
+  );
+}
+
+Offset _resolveCustomPathPoint(CustomPathPoint point, Size size) {
+  return Offset(point.x.clamp(0.0, 1.0) * size.width, point.y.clamp(0.0, 1.0) * size.height);
+}
+
+Path _polylinePath(List<CustomPathPoint> points, Size size) {
+  final path = Path();
+  if (points.isEmpty) return path;
+  final first = _resolveCustomPathPoint(points.first, size);
+  path.moveTo(first.dx, first.dy);
+  for (var index = 1; index < points.length; index++) {
+    final point = _resolveCustomPathPoint(points[index], size);
+    path.lineTo(point.dx, point.dy);
+  }
+  return path;
+}
+
+class CustomPathConnectionPainter extends CustomPainter {
+  const CustomPathConnectionPainter({
+    required this.connections,
+    required this.sceneTheme,
+    this.opacity = 1,
+  });
+
+  final List<CustomPathConnection> connections;
+  final GalleryTheme sceneTheme;
+  final double opacity;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final paint = Paint()
+      ..color = XulangColors.accent.withValues(alpha: (.72 * opacity).clamp(0, 1))
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 2.2;
+    for (final connection in connections) {
+      if (connection.points.length < 2) continue;
+      canvas.drawPath(_polylinePath(connection.points, size), paint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPathConnectionPainter oldDelegate) =>
+      connections != oldDelegate.connections ||
+      sceneTheme != oldDelegate.sceneTheme ||
+      opacity != oldDelegate.opacity;
+}
+
+class CustomPathDraftPainter extends CustomPainter {
+  const CustomPathDraftPainter({required this.points, required this.sceneTheme});
+
+  final List<CustomPathPoint> points;
+  final GalleryTheme sceneTheme;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (points.length < 2 || size.isEmpty) return;
+    final glow = Paint()
+      ..color = XulangColors.accent.withValues(alpha: .20)
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 8;
+    final stroke = Paint()
+      ..color = XulangColors.accent.withValues(alpha: .95)
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round
+      ..strokeWidth = 2.8;
+    final path = _polylinePath(points, size);
+    canvas.drawPath(path, glow);
+    canvas.drawPath(path, stroke);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPathDraftPainter oldDelegate) =>
+      points != oldDelegate.points || sceneTheme != oldDelegate.sceneTheme;
 }
 
 class StoryPathPainter extends CustomPainter {

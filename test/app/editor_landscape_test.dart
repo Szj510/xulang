@@ -299,6 +299,50 @@ void main() {
     expect(find.text('路径编辑'), findsOneWidget);
   });
 
+  testWidgets('path mode creates a hand drawn connection between images', (
+    tester,
+  ) async {
+    await pumpEditor(tester, size: const Size(390, 844));
+
+    await tester.tap(find.byKey(const Key('editor-floating-ball')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('editor-mode-path')));
+    await tester.pumpAndSettle();
+
+    final enableStoryPath = find.byKey(
+      const Key('editor-enable-story-path-layout'),
+    );
+    if (enableStoryPath.evaluate().isNotEmpty) {
+      await tester.tap(enableStoryPath);
+      await tester.pumpAndSettle();
+    }
+
+    await tester.tap(find.byKey(const Key('editor-create-path-connection')));
+    await tester.pumpAndSettle();
+    expect(find.text('选择路径连接'), findsOneWidget);
+    expect(find.byKey(const Key('editor-path-from-dropdown')), findsOneWidget);
+    expect(find.byKey(const Key('editor-path-to-dropdown')), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('editor-start-path-drawing')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('scene-path-draw-surface')), findsOneWidget);
+
+    final drawRect = tester.getRect(
+      find.byKey(const Key('scene-path-draw-surface')),
+    );
+    await tester.dragFrom(
+      drawRect.centerLeft + const Offset(28, 0),
+      const Offset(220, 150),
+    );
+    await tester.pumpAndSettle();
+
+    final connections = session.selectedChapter!.customPathConnections;
+    expect(connections, hasLength(1));
+    expect(connections.single.fromPlacementId, isNot(connections.single.toPlacementId));
+    expect(connections.single.points.length, greaterThan(1));
+    expect(find.byKey(const Key('custom-path-connections')), findsOneWidget);
+  });
+
   testWidgets('landscape locks navigation to horizontal drags', (tester) async {
     await pumpEditor(tester);
 
