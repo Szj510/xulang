@@ -58,22 +58,22 @@ class _EditorBody extends StatefulWidget {
 class _EditorBodyState extends State<_EditorBody> {
   bool _showChapters = false;
   bool _showPanel = false; // 默认隐藏浮动面板
-  double _panelOpacity = 0.48;
+  double _panelOpacity = 0.34;
   _EditorInteractionMode _interactionMode = _EditorInteractionMode.canvas;
-  _PendingPathConnection? _pendingPathConnection;
+  GalleryStickerKind? _selectedStickerKind;
   String? _selectedPlacementId;
   Offset _floatingBallOffset = const Offset(16, 560);
 
   EditorSession get session => widget.session;
 
   void _setPanelOpacity(double value) {
-    setState(() => _panelOpacity = value.clamp(0.18, 0.82));
+    setState(() => _panelOpacity = value.clamp(0.10, 0.62));
   }
 
   void _focusCanvas() {
     setState(() {
       _interactionMode = _EditorInteractionMode.canvas;
-      _pendingPathConnection = null;
+      _selectedStickerKind = null;
       _selectedPlacementId = null;
       _showPanel = true;
     });
@@ -82,7 +82,7 @@ class _EditorBodyState extends State<_EditorBody> {
   void _focusPlacement(String placementId) {
     setState(() {
       _interactionMode = _EditorInteractionMode.image;
-      _pendingPathConnection = null;
+      _selectedStickerKind = null;
       _selectedPlacementId = placementId;
       _showPanel = true;
     });
@@ -91,56 +91,30 @@ class _EditorBodyState extends State<_EditorBody> {
   void _focusPath() {
     setState(() {
       _interactionMode = _EditorInteractionMode.path;
+      _selectedStickerKind = null;
       _showPanel = true;
     });
   }
 
-  void _startPathConnection(_PendingPathConnection connection) {
+  void _focusSticker() {
     setState(() {
-      _interactionMode = _EditorInteractionMode.path;
-      _pendingPathConnection = connection;
-      _showPanel = false;
-    });
-  }
-
-  void _cancelPathConnection() {
-    setState(() {
-      _pendingPathConnection = null;
+      _interactionMode = _EditorInteractionMode.sticker;
       _showPanel = true;
     });
   }
 
-  Future<void> _finishPathDrawing(List<CustomPathPoint> points) async {
-    final draft = _pendingPathConnection;
-    if (draft == null) return;
-    if (points.length < 2) {
-      setState(() => _showPanel = true);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('路径太短，请重新画一条曲线')),
-        );
-      }
-      return;
-    }
-    final midpoint = points[points.length ~/ 2];
-    await session.addCustomPathConnection(
-      CustomPathConnection(
-        id: 'path-${DateTime.now().microsecondsSinceEpoch}',
-        fromPlacementId: draft.fromPlacementId,
-        toPlacementId: draft.toPlacementId,
-        points: points,
-        noteX: midpoint.x,
-        noteY: midpoint.y,
-      ),
-    );
-    if (!mounted) return;
+  void _selectStickerKind(GalleryStickerKind kind) {
     setState(() {
-      _pendingPathConnection = null;
+      _interactionMode = _EditorInteractionMode.sticker;
+      _selectedStickerKind = kind;
       _showPanel = true;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('已保存手绘路径')),
-    );
+  }
+
+  Future<void> _placeSticker(CustomPathPoint point) async {
+    final kind = _selectedStickerKind;
+    if (kind == null) return;
+    await session.addSticker(kind, x: point.x, y: point.y);
   }
 
   void _dismissPanel() {
@@ -265,8 +239,8 @@ class _EditorBodyState extends State<_EditorBody> {
                       child: _Preview(
                         session: session,
                         interactionMode: _interactionMode,
-                        pendingPathConnection: _pendingPathConnection,
-                        onPathDrawingCompleted: _finishPathDrawing,
+                        selectedStickerKind: _selectedStickerKind,
+                        onStickerPlaced: _placeSticker,
                         onCanvasTap: () {
                           _dismissPanel();
                           _hideChapters();
@@ -410,14 +384,14 @@ class _EditorBodyState extends State<_EditorBody> {
                         session: session,
                         interactionMode: _interactionMode,
                         selectedPlacementId: _selectedPlacementId,
-                        pendingPathConnection: _pendingPathConnection,
+                        selectedStickerKind: _selectedStickerKind,
                         panelOpacity: _panelOpacity,
                         onPanelOpacityChanged: _setPanelOpacity,
                         onFocusCanvas: _focusCanvas,
                         onFocusPlacement: _focusPlacement,
                         onFocusPath: _focusPath,
-                        onStartPathConnection: _startPathConnection,
-                        onCancelPathConnection: _cancelPathConnection,
+                        onFocusSticker: _focusSticker,
+                        onSelectStickerKind: _selectStickerKind,
                         onDismiss: _dismissPanel,
                         landscape: true,
                       ),
@@ -446,8 +420,8 @@ class _EditorBodyState extends State<_EditorBody> {
                         child: _Preview(
                           session: session,
                           interactionMode: _interactionMode,
-                          pendingPathConnection: _pendingPathConnection,
-                          onPathDrawingCompleted: _finishPathDrawing,
+                          selectedStickerKind: _selectedStickerKind,
+                          onStickerPlaced: _placeSticker,
                           onCanvasTap: _dismissPanel,
                           onPlacementTap: _focusPlacement,
                         ),
@@ -460,14 +434,14 @@ class _EditorBodyState extends State<_EditorBody> {
                       session: session,
                       interactionMode: _interactionMode,
                       selectedPlacementId: _selectedPlacementId,
-                      pendingPathConnection: _pendingPathConnection,
+                      selectedStickerKind: _selectedStickerKind,
                       panelOpacity: _panelOpacity,
                       onPanelOpacityChanged: _setPanelOpacity,
                       onFocusCanvas: _focusCanvas,
                       onFocusPlacement: _focusPlacement,
                       onFocusPath: _focusPath,
-                      onStartPathConnection: _startPathConnection,
-                      onCancelPathConnection: _cancelPathConnection,
+                      onFocusSticker: _focusSticker,
+                      onSelectStickerKind: _selectStickerKind,
                       onDismiss: _dismissPanel,
                       landscape: false,
                     ),
@@ -705,14 +679,14 @@ class _FloatingPanel extends StatefulWidget {
     required this.session,
     required this.interactionMode,
     required this.selectedPlacementId,
-    required this.pendingPathConnection,
+    required this.selectedStickerKind,
     required this.panelOpacity,
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
     required this.onFocusPath,
-    required this.onStartPathConnection,
-    required this.onCancelPathConnection,
+    required this.onFocusSticker,
+    required this.onSelectStickerKind,
     required this.onDismiss,
     required this.landscape,
   });
@@ -720,14 +694,14 @@ class _FloatingPanel extends StatefulWidget {
   final EditorSession session;
   final _EditorInteractionMode interactionMode;
   final String? selectedPlacementId;
-  final _PendingPathConnection? pendingPathConnection;
+  final GalleryStickerKind? selectedStickerKind;
   final double panelOpacity;
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
   final VoidCallback onFocusPath;
-  final ValueChanged<_PendingPathConnection> onStartPathConnection;
-  final VoidCallback onCancelPathConnection;
+  final VoidCallback onFocusSticker;
+  final ValueChanged<GalleryStickerKind> onSelectStickerKind;
   final VoidCallback onDismiss;
   final bool landscape;
 
@@ -818,14 +792,14 @@ class _FloatingPanelState extends State<_FloatingPanel>
                         session: widget.session,
                         interactionMode: widget.interactionMode,
                         selectedPlacementId: widget.selectedPlacementId,
-                        pendingPathConnection: widget.pendingPathConnection,
+                        selectedStickerKind: widget.selectedStickerKind,
                         panelOpacity: widget.panelOpacity,
                         onPanelOpacityChanged: widget.onPanelOpacityChanged,
                         onFocusCanvas: widget.onFocusCanvas,
                         onFocusPlacement: widget.onFocusPlacement,
                         onFocusPath: widget.onFocusPath,
-                        onStartPathConnection: widget.onStartPathConnection,
-                        onCancelPathConnection: widget.onCancelPathConnection,
+                        onFocusSticker: widget.onFocusSticker,
+                        onSelectStickerKind: widget.onSelectStickerKind,
                       ),
                     ),
                   ),
@@ -918,17 +892,16 @@ class _Preview extends StatefulWidget {
   const _Preview({
     required this.session,
     required this.interactionMode,
-    this.pendingPathConnection,
-    this.onPathDrawingCompleted,
+    this.selectedStickerKind,
+    this.onStickerPlaced,
     this.onCanvasTap,
     this.onPlacementTap,
   });
 
   final EditorSession session;
   final _EditorInteractionMode interactionMode;
-  final _PendingPathConnection? pendingPathConnection;
-  final Future<void> Function(List<CustomPathPoint> points)?
-  onPathDrawingCompleted;
+  final GalleryStickerKind? selectedStickerKind;
+  final Future<void> Function(CustomPathPoint point)? onStickerPlaced;
   final VoidCallback? onCanvasTap;
   final ValueChanged<String>? onPlacementTap;
 
@@ -939,7 +912,6 @@ class _Preview extends StatefulWidget {
 class _PreviewState extends State<_Preview> {
   final Map<String, double> _cameraProgressByChapter = {};
   final Map<String, GalleryPlacement> _placementDrafts = {};
-  final List<CustomPathPoint> _activePathPoints = [];
   final NarrativeCameraController _cameraController =
       NarrativeCameraController();
   final TransformationController _zoomController = TransformationController();
@@ -973,6 +945,8 @@ class _PreviewState extends State<_Preview> {
   bool get _isImageMode =>
       widget.interactionMode == _EditorInteractionMode.image;
   bool get _isPathMode => widget.interactionMode == _EditorInteractionMode.path;
+  bool get _isStickerMode =>
+      widget.interactionMode == _EditorInteractionMode.sticker;
   String get _chapterId => session.selectedChapter!.id;
   double get _cameraProgress => _cameraProgressByChapter[_chapterId] ?? 0;
 
@@ -1058,34 +1032,15 @@ class _PreviewState extends State<_Preview> {
     );
   }
 
-  void _startPathDrawing(CustomPathPoint point) {
-    if (!_isPathMode || widget.pendingPathConnection == null) return;
-    setState(() {
-      _activePathPoints
-        ..clear()
-        ..add(point);
-    });
-  }
-
-  void _updatePathDrawing(CustomPathPoint point) {
-    if (!_isPathMode || widget.pendingPathConnection == null) return;
-    if (_activePathPoints.isNotEmpty) {
-      final last = _activePathPoints.last;
-      final dx = point.x - last.x;
-      final dy = point.y - last.y;
-      if (math.sqrt(dx * dx + dy * dy) < 0.006) return;
+  void _placeStickerAt(Offset localPosition, Size viewport) {
+    if (widget.selectedStickerKind == null || widget.onStickerPlaced == null) {
+      return;
     }
-    setState(() => _activePathPoints.add(point));
-  }
-
-  void _endPathDrawing() {
-    if (_activePathPoints.isEmpty) return;
-    final points = List<CustomPathPoint>.unmodifiable(_activePathPoints);
-    setState(_activePathPoints.clear);
-    final onCompleted = widget.onPathDrawingCompleted;
-    if (onCompleted != null) {
-      unawaited(onCompleted(points));
-    }
+    final point = CustomPathPoint(
+      x: (localPosition.dx / viewport.width).clamp(0.0, 1.0),
+      y: (localPosition.dy / viewport.height).clamp(0.0, 1.0),
+    );
+    unawaited(widget.onStickerPlaced!(point));
   }
 
   @override
@@ -1099,7 +1054,7 @@ class _PreviewState extends State<_Preview> {
         final progress = _cameraProgress;
         final placementEditingEnabled = _isImageMode;
         final canvasTap = _isCanvasMode ? widget.onCanvasTap : null;
-        final placementTap = _isPathMode ? null : widget.onPlacementTap;
+        final placementTap = (_isPathMode || _isStickerMode) ? null : widget.onPlacementTap;
         return Stack(
           children: [
             Positioned.fill(
@@ -1110,13 +1065,18 @@ class _PreviewState extends State<_Preview> {
                 maxScale: 3.0,
                 boundaryMargin: const EdgeInsets.all(240),
                 constrained: false,
+                alignment: Alignment.center,
                 panEnabled: _isCanvasMode,
                 scaleEnabled: _isCanvasMode,
                 onInteractionEnd: (_) => setState(() {}),
                 child: SizedBox(
-                  width: viewport.width,
-                  height: viewport.height,
-                  child: Listener(
+                  width: viewport.width * 2.6,
+                  height: viewport.height * 2.6,
+                  child: Center(
+                    child: SizedBox(
+                      width: viewport.width,
+                      height: viewport.height,
+                      child: Listener(
                     onPointerDown: (_) {
                       _previewPointerCount += 1;
                       if (_previewPointerCount == 1) {
@@ -1182,16 +1142,11 @@ class _PreviewState extends State<_Preview> {
                         sceneTheme: session.bundle!.document.theme,
                         placementEditingEnabled: placementEditingEnabled,
                         pathEditingEnabled: _isPathMode,
-                        activePathPoints: _activePathPoints,
-                        onPathDrawStart: widget.pendingPathConnection == null
-                            ? null
-                            : _startPathDrawing,
-                        onPathDrawUpdate: widget.pendingPathConnection == null
-                            ? null
-                            : _updatePathDrawing,
-                        onPathDrawEnd: widget.pendingPathConnection == null
-                            ? null
-                            : _endPathDrawing,
+                        stickerEditingEnabled: _isStickerMode,
+                        selectedStickerKind: widget.selectedStickerKind,
+                        onStickerPlaced: _placeStickerAt,
+                        onStickerChanged: session.updateSticker,
+                        onStickerDeleted: session.removeSticker,
                         onPathConnectionChanged:
                             session.updateCustomPathConnection,
                         onPlacementTap: placementTap,
@@ -1463,27 +1418,27 @@ class _Inspector extends StatefulWidget {
     required this.session,
     required this.interactionMode,
     required this.selectedPlacementId,
-    required this.pendingPathConnection,
+    required this.selectedStickerKind,
     required this.panelOpacity,
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
     required this.onFocusPath,
-    required this.onStartPathConnection,
-    required this.onCancelPathConnection,
+    required this.onFocusSticker,
+    required this.onSelectStickerKind,
   });
 
   final EditorSession session;
   final _EditorInteractionMode interactionMode;
   final String? selectedPlacementId;
-  final _PendingPathConnection? pendingPathConnection;
+  final GalleryStickerKind? selectedStickerKind;
   final double panelOpacity;
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
   final VoidCallback onFocusPath;
-  final ValueChanged<_PendingPathConnection> onStartPathConnection;
-  final VoidCallback onCancelPathConnection;
+  final VoidCallback onFocusSticker;
+  final ValueChanged<GalleryStickerKind> onSelectStickerKind;
 
   @override
   State<_Inspector> createState() => _InspectorState();
@@ -1549,8 +1504,8 @@ class _InspectorState extends State<_Inspector> {
                 key: const Key('editor-panel-opacity-slider'),
                 label: '面板透明度',
                 value: widget.panelOpacity,
-                min: 0.18,
-                max: 0.82,
+                min: 0.10,
+                max: 0.62,
                 onChanged: widget.onPanelOpacityChanged,
               ),
               const SizedBox(height: 8),
@@ -1584,9 +1539,6 @@ class _InspectorState extends State<_Inspector> {
                     ),
                 ],
               ),
-              const SizedBox(height: 8),
-              if (chapter.layout == GalleryLayout.storyPath)
-                _buildPathEditor(context, chapter),
             ],
           ),
         ),
@@ -1645,246 +1597,61 @@ class _InspectorState extends State<_Inspector> {
   }
 
   Widget _buildPathPanel(BuildContext context, GalleryChapter chapter) {
-    final pending = widget.pendingPathConnection;
     return _InspectorSection(
-      title: '路径编辑',
+      title: '路径注释',
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            '路径模式下，画布缩放和图片拖动会暂时关闭，只处理路径相关操作。',
+            '使用模板自带路径，不再手绘曲线；这里只负责添加和调整路径旁的说明文字。',
             style: TextStyle(fontSize: 11, color: XulangColors.muted),
           ),
           const SizedBox(height: 10),
           if (chapter.layout != GalleryLayout.storyPath)
             FilledButton.tonal(
               key: const Key('editor-enable-story-path-layout'),
-              onPressed: () => session.updateChapter(
-                layout: GalleryLayout.storyPath,
-              ),
+              onPressed: () => session.updateChapter(layout: GalleryLayout.storyPath),
               child: const Text('切换到故事路径布局'),
             )
           else ...[
-            if (pending == null)
-              FilledButton.icon(
-                key: const Key('editor-create-path-connection'),
-                onPressed: chapter.placements.length < 2
-                    ? null
-                    : () => _selectPathConnection(context, chapter),
-                icon: const Icon(Icons.gesture, size: 17),
-                label: const Text('新建路径'),
-              )
-            else
-              _PathDraftNotice(
-                fromLabel: _placementLabel(chapter, pending.fromPlacementId),
-                toLabel: _placementLabel(chapter, pending.toPlacementId),
-                onCancel: widget.onCancelPathConnection,
-              ),
+            FilledButton.icon(
+              key: const Key('editor-add-path-note'),
+              onPressed: _addPathNote,
+              icon: const Icon(Icons.sticky_note_2_outlined, size: 17),
+              label: const Text('添加路径注释'),
+            ),
             if (chapter.customPathConnections.isNotEmpty) ...[
               const SizedBox(height: 12),
-              _SectionLabel('已连接路径'),
+              _SectionLabel('注释列表'),
               const SizedBox(height: 6),
               for (final connection in chapter.customPathConnections)
                 _PathConnectionSummary(
                   connection: connection,
-                  fromLabel: _placementLabel(chapter, connection.fromPlacementId),
-                  toLabel: _placementLabel(chapter, connection.toPlacementId),
                   onNoteChanged: (note) => session.updateCustomPathConnection(
                     connection.copyWith(note: note),
                   ),
+                  onDelete: () => session.removeCustomPathConnection(connection.id),
                 ),
             ],
-            const SizedBox(height: 14),
-            const Divider(height: 1),
-            const SizedBox(height: 10),
-            _SectionLabel('旧版锚点编辑'),
-            const SizedBox(height: 6),
-            _buildPathEditor(context, chapter),
           ],
         ],
       ),
     );
   }
 
-  Future<void> _selectPathConnection(
-    BuildContext context,
-    GalleryChapter chapter,
-  ) async {
-    var fromId = chapter.placements.first.id;
-    var toId = chapter.placements.length > 1
-        ? chapter.placements[1].id
-        : chapter.placements.first.id;
-    final draft = await showDialog<_PendingPathConnection>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) {
-          return AlertDialog(
-            title: const Text('选择路径连接'),
-            content: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  key: const Key('editor-path-from-dropdown'),
-                  value: fromId,
-                  decoration: const InputDecoration(labelText: '起点图片'),
-                  items: [
-                    for (final placement in chapter.placements)
-                      DropdownMenuItem(
-                        value: placement.id,
-                        child: Text(_placementLabel(chapter, placement.id)),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setDialogState(() => fromId = value);
-                  },
-                ),
-                const SizedBox(height: 12),
-                DropdownButtonFormField<String>(
-                  key: const Key('editor-path-to-dropdown'),
-                  value: toId,
-                  decoration: const InputDecoration(labelText: '终点图片'),
-                  items: [
-                    for (final placement in chapter.placements)
-                      DropdownMenuItem(
-                        value: placement.id,
-                        child: Text(_placementLabel(chapter, placement.id)),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value == null) return;
-                    setDialogState(() => toId = value);
-                  },
-                ),
-                if (fromId == toId) ...[
-                  const SizedBox(height: 10),
-                  const Text(
-                    '起点和终点不能是同一张图。',
-                    style: TextStyle(color: XulangColors.accent, fontSize: 12),
-                  ),
-                ],
-              ],
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('取消'),
-              ),
-              FilledButton(
-                key: const Key('editor-start-path-drawing'),
-                onPressed: fromId == toId
-                    ? null
-                    : () => Navigator.pop(
-                        context,
-                        _PendingPathConnection(
-                          fromPlacementId: fromId,
-                          toPlacementId: toId,
-                        ),
-                      ),
-                child: const Text('开始手绘'),
-              ),
-            ],
-          );
-        },
+  Future<void> _addPathNote() async {
+    await session.addCustomPathConnection(
+      CustomPathConnection(
+        id: session.repository.createId(),
+        fromPlacementId: 'template-path',
+        toPlacementId: 'template-path',
+        points: const [],
+        note: '',
+        noteX: 0.5,
+        noteY: 0.42,
       ),
     );
-    if (draft != null) {
-      widget.onStartPathConnection(draft);
-    }
-  }
-
-  String _placementLabel(GalleryChapter chapter, String placementId) {
-    final index = chapter.placements.indexWhere((item) => item.id == placementId);
-    if (index < 0) return placementId;
-    final placement = chapter.placements[index];
-    final caption = placement.caption.trim();
-    return caption.isEmpty ? '图 ${index + 1}' : '图 ${index + 1} · $caption';
-  }
-
-  Widget _buildPathEditor(BuildContext context, GalleryChapter chapter) {
-    final anchors = chapter.customPathAnchors;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 4),
-        Row(
-          children: [
-            Expanded(
-              child: FilledButton.tonal(
-                onPressed: () => anchors == null
-                    ? _startPathDrawing(context)
-                    : _addPathAnchor(chapter),
-                child: Text(anchors == null ? '绘制路径' : '添加锚点'),
-              ),
-            ),
-            const SizedBox(width: 8),
-            if (anchors != null)
-              Expanded(
-                child: OutlinedButton(
-                  onPressed: () => session.clearCustomPath(),
-                  child: const Text('重置'),
-                ),
-              ),
-          ],
-        ),
-        if (anchors != null) ...[
-          const SizedBox(height: 8),
-          Text(
-            '已自定义 ${anchors.length} 个锚点，可编辑位置与文字',
-            style: const TextStyle(fontSize: 11, color: XulangColors.muted),
-          ),
-          const SizedBox(height: 8),
-          for (var index = 0; index < anchors.length; index++)
-            _PathAnchorEditor(
-              key: ValueKey('path-anchor-${chapter.id}-$index'),
-              index: index,
-              anchor: anchors[index],
-              canDelete: anchors.length > 2,
-              onChanged: (anchor) => _replacePathAnchor(chapter, index, anchor),
-              onDelete: () => _removePathAnchor(chapter, index),
-            ),
-        ],
-      ],
-    );
-  }
-
-  Future<void> _replacePathAnchor(
-    GalleryChapter chapter,
-    int index,
-    CustomPathAnchor anchor,
-  ) async {
-    final anchors = chapter.customPathAnchors;
-    if (anchors == null || index < 0 || index >= anchors.length) return;
-    final next = List<CustomPathAnchor>.of(anchors);
-    next[index] = anchor;
-    await session.updateChapterPath(next);
-  }
-
-  Future<void> _addPathAnchor(GalleryChapter chapter) async {
-    final anchors = List<CustomPathAnchor>.of(
-      chapter.customPathAnchors ?? const <CustomPathAnchor>[],
-    );
-    if (anchors.isEmpty) {
-      await _startPathDrawing(context);
-      return;
-    }
-    final previous = anchors.last;
-    anchors.add(
-      CustomPathAnchor(
-        x: (previous.x + 0.12).clamp(0.08, 0.92),
-        y: previous.y.clamp(0.08, 0.92),
-        label: '点 ${anchors.length + 1}',
-      ),
-    );
-    await session.updateChapterPath(anchors);
-  }
-
-  Future<void> _removePathAnchor(GalleryChapter chapter, int index) async {
-    final anchors = chapter.customPathAnchors;
-    if (anchors == null || anchors.length <= 2) return;
-    final next = List<CustomPathAnchor>.of(anchors)..removeAt(index);
-    await session.updateChapterPath(next);
   }
 
   Widget _buildPlacementPanel(
@@ -2159,6 +1926,14 @@ class _InspectorState extends State<_Inspector> {
                           onSelected: (_) => widget.onFocusPath(),
                           label: '路径',
                         ),
+                        const SizedBox(width: 6),
+                        _PanelToggleChip(
+                          key: const Key('editor-mode-sticker'),
+                          selected: widget.interactionMode ==
+                              _EditorInteractionMode.sticker,
+                          onSelected: (_) => widget.onFocusSticker(),
+                          label: '贴画',
+                        ),
                       ],
                     ),
                     const SizedBox(height: 14),
@@ -2185,34 +1960,60 @@ class _InspectorState extends State<_Inspector> {
         return _buildPlacementPanel(context, chapter, placement);
       case _EditorInteractionMode.path:
         return _buildPathPanel(context, chapter);
+      case _EditorInteractionMode.sticker:
+        return _buildStickerPanel(context, chapter);
     }
   }
 
-  Future<void> _startPathDrawing(BuildContext context) async {
-    final chapter = session.selectedChapter!;
-    if (chapter.placements.isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请先添加图片')));
-      return;
-    }
-
-    // 创建初始锚点（每张图片一个）
-    final anchors = chapter.placements.asMap().entries.map((e) {
-      final idx = e.key;
-      final x = 0.1 + (idx * 0.8 / (chapter.placements.length - 1));
-      return CustomPathAnchor(x: x, y: 0.5, label: '点 ${idx + 1}');
-    }).toList();
-
-    await session.updateChapterPath(anchors);
-    if (context.mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('已创建 ${anchors.length} 个锚点，可在画布上编辑'),
-          duration: const Duration(seconds: 2),
-        ),
-      );
-    }
+  Widget _buildStickerPanel(BuildContext context, GalleryChapter chapter) {
+    return _InspectorSection(
+      title: '贴画',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '选择一个小物品后，点击画布放置；已放置的贴画可以拖动，点垃圾桶删除。',
+            style: TextStyle(fontSize: 11, color: XulangColors.muted),
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              for (final kind in GalleryStickerKind.values)
+                ChoiceChip(
+                  key: Key('editor-sticker-kind-${kind.name}'),
+                  selected: widget.selectedStickerKind == kind,
+                  onSelected: (_) => widget.onSelectStickerKind(kind),
+                  label: Text(_stickerKindLabel(kind)),
+                ),
+            ],
+          ),
+          if (chapter.stickers.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _SectionLabel('已添加贴画'),
+            const SizedBox(height: 6),
+            for (final sticker in chapter.stickers)
+              ListTile(
+                key: Key('editor-sticker-item-${sticker.id}'),
+                dense: true,
+                contentPadding: EdgeInsets.zero,
+                leading: Text(
+                  sticker.kind.emoji,
+                  style: const TextStyle(fontSize: 20),
+                ),
+                title: Text(_stickerKindLabel(sticker.kind)),
+                trailing: IconButton(
+                  tooltip: '删除贴画',
+                  icon: const Icon(Icons.delete_outline, size: 18),
+                  onPressed: () => session.removeSticker(sticker.id),
+                ),
+              ),
+          ],
+        ],
+      ),
+    );
   }
 
   Future<void> _editChapterText(BuildContext context) async {
@@ -2259,71 +2060,16 @@ class _InspectorState extends State<_Inspector> {
 
 }
 
-class _PathDraftNotice extends StatelessWidget {
-  const _PathDraftNotice({
-    required this.fromLabel,
-    required this.toLabel,
-    required this.onCancel,
-  });
-
-  final String fromLabel;
-  final String toLabel;
-  final VoidCallback onCancel;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: const Key('editor-path-draft-notice'),
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: XulangColors.accent.withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: XulangColors.accent.withValues(alpha: .28)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            '在画布上用手指描绘曲线',
-            style: TextStyle(
-              color: XulangColors.paper,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '$fromLabel → $toLabel',
-            style: const TextStyle(fontSize: 12, color: XulangColors.muted),
-          ),
-          const SizedBox(height: 8),
-          Align(
-            alignment: Alignment.centerRight,
-            child: TextButton(
-              key: const Key('editor-cancel-path-draft'),
-              onPressed: onCancel,
-              child: const Text('取消绘制'),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PathConnectionSummary extends StatelessWidget {
   const _PathConnectionSummary({
     required this.connection,
-    required this.fromLabel,
-    required this.toLabel,
     required this.onNoteChanged,
+    required this.onDelete,
   });
 
   final CustomPathConnection connection;
-  final String fromLabel;
-  final String toLabel;
   final ValueChanged<String> onNoteChanged;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -2332,26 +2078,28 @@ class _PathConnectionSummary extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .045),
+        color: Colors.black.withValues(alpha: .22),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+        border: Border.all(color: Colors.white.withValues(alpha: .16)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.timeline, size: 17, color: XulangColors.accent),
+              const Icon(Icons.sticky_note_2_outlined, size: 17, color: XulangColors.accent),
               const SizedBox(width: 8),
-              Expanded(
+              const Expanded(
                 child: Text(
-                  '$fromLabel → $toLabel · ${connection.points.length} 点',
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: XulangColors.paper,
-                  ),
-                  overflow: TextOverflow.ellipsis,
+                  '模板路径注释',
+                  style: TextStyle(fontSize: 12, color: XulangColors.paper),
                 ),
+              ),
+              IconButton(
+                tooltip: '删除注释',
+                visualDensity: VisualDensity.compact,
+                onPressed: onDelete,
+                icon: const Icon(Icons.delete_outline, size: 18),
               ),
             ],
           ),
@@ -2362,8 +2110,8 @@ class _PathConnectionSummary extends StatelessWidget {
             maxLength: 48,
             style: const TextStyle(fontSize: 12, color: XulangColors.paper),
             decoration: const InputDecoration(
-              labelText: '曲线注释',
-              hintText: '写一句路径旁的说明',
+              labelText: '路径旁注释',
+              hintText: '写一句说明',
               counterText: '',
               isDense: true,
             ),
@@ -2404,122 +2152,6 @@ class _PanelToggleChip extends StatelessWidget {
   }
 }
 
-class _PathAnchorEditor extends StatelessWidget {
-  const _PathAnchorEditor({
-    super.key,
-    required this.index,
-    required this.anchor,
-    required this.canDelete,
-    required this.onChanged,
-    required this.onDelete,
-  });
-
-  final int index;
-  final CustomPathAnchor anchor;
-  final bool canDelete;
-  final ValueChanged<CustomPathAnchor> onChanged;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: .045),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: .08)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Text(
-                '锚点 ${index + 1}',
-                style: const TextStyle(
-                  color: XulangColors.paper,
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const Spacer(),
-              IconButton(
-                tooltip: '删除锚点',
-                visualDensity: VisualDensity.compact,
-                onPressed: canDelete ? onDelete : null,
-                icon: const Icon(Icons.remove_circle_outline, size: 18),
-              ),
-            ],
-          ),
-          TextFormField(
-            key: Key('path-anchor-label-$index'),
-            initialValue: anchor.label,
-            style: const TextStyle(color: XulangColors.paper, fontSize: 12),
-            decoration: const InputDecoration(labelText: '线条文字', isDense: true),
-            onFieldSubmitted: (value) =>
-                onChanged(anchor.copyWith(label: value.trim())),
-          ),
-          const SizedBox(height: 10),
-          _AnchorSlider(
-            label: '横向',
-            value: anchor.x,
-            onChanged: (value) => onChanged(anchor.copyWith(x: value)),
-          ),
-          _AnchorSlider(
-            label: '纵向',
-            value: anchor.y,
-            onChanged: (value) => onChanged(anchor.copyWith(y: value)),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _AnchorSlider extends StatelessWidget {
-  const _AnchorSlider({
-    required this.label,
-    required this.value,
-    required this.onChanged,
-  });
-
-  final String label;
-  final double value;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        SizedBox(
-          width: 36,
-          child: Text(
-            label,
-            style: const TextStyle(color: XulangColors.muted, fontSize: 11),
-          ),
-        ),
-        Expanded(
-          child: Slider(
-            value: value.clamp(0.04, 0.96),
-            min: 0.04,
-            max: 0.96,
-            onChanged: onChanged,
-          ),
-        ),
-        SizedBox(
-          width: 34,
-          child: Text(
-            '${(value * 100).round()}%',
-            textAlign: TextAlign.right,
-            style: const TextStyle(color: XulangColors.muted, fontSize: 10),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 class _InspectorSection extends StatelessWidget {
   const _InspectorSection({required this.title, required this.child});
 
@@ -2555,17 +2187,25 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-enum _EditorInteractionMode { canvas, image, path }
+enum _EditorInteractionMode { canvas, image, path, sticker }
 
-class _PendingPathConnection {
-  const _PendingPathConnection({
-    required this.fromPlacementId,
-    required this.toPlacementId,
-  });
-
-  final String fromPlacementId;
-  final String toPlacementId;
+extension _StickerKindView on GalleryStickerKind {
+  String get emoji => switch (this) {
+    GalleryStickerKind.star => '⭐',
+    GalleryStickerKind.sparkle => '✨',
+    GalleryStickerKind.heart => '💛',
+    GalleryStickerKind.leaf => '🍃',
+    GalleryStickerKind.flower => '🌼',
+  };
 }
+
+String _stickerKindLabel(GalleryStickerKind kind) => switch (kind) {
+  GalleryStickerKind.star => '星星',
+  GalleryStickerKind.sparkle => '闪光',
+  GalleryStickerKind.heart => '爱心',
+  GalleryStickerKind.leaf => '叶子',
+  GalleryStickerKind.flower => '小花',
+};
 
 class _CropSlider extends StatefulWidget {
   const _CropSlider({
@@ -2633,11 +2273,16 @@ class _CropSliderState extends State<_CropSlider> {
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
         children: [
-          SizedBox(
-            width: 72,
+          Container(
+            width: 78,
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: .24),
+              borderRadius: BorderRadius.circular(10),
+            ),
             child: Text(
               widget.label,
-              style: const TextStyle(fontSize: 12, color: XulangColors.muted),
+              style: const TextStyle(fontSize: 12, color: XulangColors.paper),
             ),
           ),
           Expanded(
@@ -2651,9 +2296,14 @@ class _CropSliderState extends State<_CropSlider> {
           GestureDetector(
             onTap: _editing ? null : _startEditing,
             onDoubleTap: _resetValue,
-            child: SizedBox(
-              width: 48,
-              height: 28,
+            child: Container(
+              width: 54,
+              height: 30,
+              padding: const EdgeInsets.symmetric(horizontal: 6),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .28),
+                borderRadius: BorderRadius.circular(10),
+              ),
               child: _editing
                   ? TextField(
                       controller: _controller,

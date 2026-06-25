@@ -288,7 +288,7 @@ void main() {
     expect(viewer.scaleEnabled, isFalse);
     expect(canvas.placementEditingEnabled, isFalse);
     expect(canvas.pathEditingEnabled, isTrue);
-    expect(find.text('路径编辑'), findsOneWidget);
+    expect(find.text('路径注释'), findsOneWidget);
 
     await tester.tap(
       find.byKey(const Key('scene-node-gesture-sample-placement-4')),
@@ -296,10 +296,10 @@ void main() {
     await tester.pumpAndSettle();
     canvas = tester.widget<SceneCanvas>(find.byType(SceneCanvas));
     expect(canvas.pathEditingEnabled, isTrue);
-    expect(find.text('路径编辑'), findsOneWidget);
+    expect(find.text('路径注释'), findsOneWidget);
   });
 
-  testWidgets('path mode creates a hand drawn connection between images', (
+  testWidgets('path mode edits template path notes without hand drawing', (
     tester,
   ) async {
     await pumpEditor(tester, size: const Size(390, 844));
@@ -317,30 +317,15 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await tester.tap(find.byKey(const Key('editor-create-path-connection')));
-    await tester.pumpAndSettle();
-    expect(find.text('选择路径连接'), findsOneWidget);
-    expect(find.byKey(const Key('editor-path-from-dropdown')), findsOneWidget);
-    expect(find.byKey(const Key('editor-path-to-dropdown')), findsOneWidget);
+    expect(find.byKey(const Key('editor-create-path-connection')), findsNothing);
+    expect(find.byKey(const Key('scene-path-draw-surface')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('editor-start-path-drawing')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('scene-path-draw-surface')), findsOneWidget);
-
-    final drawRect = tester.getRect(
-      find.byKey(const Key('scene-path-draw-surface')),
-    );
-    await tester.dragFrom(
-      drawRect.centerLeft + const Offset(28, 0),
-      const Offset(220, 150),
-    );
+    await tester.tap(find.byKey(const Key('editor-add-path-note')));
     await tester.pumpAndSettle();
 
     var connections = session.selectedChapter!.customPathConnections;
     expect(connections, hasLength(1));
-    expect(connections.single.fromPlacementId, isNot(connections.single.toPlacementId));
-    expect(connections.single.points.length, greaterThan(1));
-    expect(find.byKey(const Key('custom-path-connections')), findsOneWidget);
+    expect(connections.single.points, isEmpty);
 
     final connectionId = connections.single.id;
     await tester.enterText(
@@ -359,6 +344,39 @@ void main() {
     connections = session.selectedChapter!.customPathConnections;
     expect(connections.single.noteX, isNot(beforeX));
     expect(connections.single.noteY, isNot(beforeY));
+  });
+
+  testWidgets('sticker mode places moves and deletes stickers', (tester) async {
+    await pumpEditor(tester, size: const Size(390, 844));
+
+    await tester.tap(find.byKey(const Key('editor-floating-ball')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('editor-mode-sticker')));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const Key('editor-sticker-kind-star')));
+    await tester.pumpAndSettle();
+
+    final surface = find.byKey(const Key('scene-sticker-place-surface'));
+    expect(surface, findsOneWidget);
+    final rect = tester.getRect(surface);
+    await tester.tapAt(rect.center);
+    await tester.pumpAndSettle();
+
+    var stickers = session.selectedChapter!.stickers;
+    expect(stickers, hasLength(1));
+    final stickerId = stickers.single.id;
+    expect(find.byKey(Key('scene-sticker-$stickerId')), findsOneWidget);
+
+    final beforeX = stickers.single.x;
+    await tester.drag(find.byKey(Key('scene-sticker-$stickerId')), const Offset(40, 0));
+    await tester.pumpAndSettle();
+    stickers = session.selectedChapter!.stickers;
+    expect(stickers.single.x, isNot(beforeX));
+
+    await tester.tap(find.byKey(Key('scene-sticker-delete-$stickerId')));
+    await tester.pumpAndSettle();
+    expect(session.selectedChapter!.stickers, isEmpty);
   });
 
   testWidgets('landscape locks navigation to horizontal drags', (tester) async {
