@@ -136,7 +136,11 @@ class _LibraryHeader extends StatelessWidget {
                 style: TextStyle(
                   color: XulangColors.paper,
                   fontFamily: 'Noto Serif SC',
-                  fontFamilyFallback: ['Noto Sans SC', 'PingFang SC', 'Microsoft YaHei'],
+                  fontFamilyFallback: [
+                    'Noto Sans SC',
+                    'PingFang SC',
+                    'Microsoft YaHei',
+                  ],
                   fontSize: 32,
                   fontWeight: FontWeight.w400,
                   letterSpacing: 5,
@@ -241,7 +245,11 @@ class _EmptyLibrary extends StatelessWidget {
                 '让照片沿着故事展开',
                 style: TextStyle(
                   fontFamily: 'Noto Serif SC',
-                  fontFamilyFallback: ['Noto Sans SC', 'PingFang SC', 'Microsoft YaHei'],
+                  fontFamilyFallback: [
+                    'Noto Sans SC',
+                    'PingFang SC',
+                    'Microsoft YaHei',
+                  ],
                   color: XulangColors.paper,
                   fontSize: 24,
                   fontWeight: FontWeight.w400,
@@ -400,10 +408,7 @@ class _ExhibitionCard extends ConsumerWidget {
           ),
           cover: cover == null
               ? const _CoverFallback()
-              : GalleryImage(
-                  path: cover.thumbnailPath,
-                  cacheWidth: 900,
-                ),
+              : GalleryImage(path: cover.thumbnailPath, cacheWidth: 900),
           title: summary.title,
           meta: '$imageCount 张照片 · ${_formatDate(summary.updatedAt)}',
           actions: [
@@ -412,15 +417,13 @@ class _ExhibitionCard extends ConsumerWidget {
                 tooltip: '沉浸观看',
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
-                    builder: (_) =>
-                        ViewerScreen(exhibitionId: summary.id),
+                    builder: (_) => ViewerScreen(exhibitionId: summary.id),
                   ),
                 ),
                 icon: Icons.play_arrow_rounded,
               ),
             _CardMenuButton(
-              onSelected: (action) =>
-                  _handleAction(context, ref, action),
+              onSelected: (action) => _handleAction(context, ref, action),
             ),
           ],
         );
@@ -521,10 +524,7 @@ class _MountedCard extends StatelessWidget {
                 child: _PrintMount(child: cover),
               ),
             ),
-            Container(
-              height: 0.5,
-              color: XulangColors.line,
-            ),
+            Container(height: 0.5, color: XulangColors.line),
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 12, 8, 12),
               child: Row(
@@ -648,11 +648,7 @@ class _CardIconButton extends StatelessWidget {
             width: 36,
             height: 36,
             alignment: Alignment.center,
-            child: Icon(
-              icon,
-              size: 20,
-              color: XulangColors.muted,
-            ),
+            child: Icon(icon, size: 20, color: XulangColors.muted),
           ),
         ),
       ),
@@ -725,10 +721,7 @@ class _LibraryError extends StatelessWidget {
               color: XulangColors.muted,
             ),
             const SizedBox(height: 16),
-            Text(
-              '无法读取展览',
-              style: Theme.of(context).textTheme.headlineSmall,
-            ),
+            Text('无法读取展览', style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
             Text(
               '$error',

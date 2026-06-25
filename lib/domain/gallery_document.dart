@@ -20,6 +20,83 @@ enum GallerySize { small, medium, large }
 
 enum GalleryTheme { ink, paper, graphite, mist, warm }
 
+/// 自定义路径锚点数据
+class CustomPathAnchor {
+  const CustomPathAnchor({
+    required this.x,
+    required this.y,
+    this.label = '',
+    this.cp1x,
+    this.cp1y,
+    this.cp2x,
+    this.cp2y,
+  });
+
+  final double x;
+  final double y;
+  final String label; // 锚点标签文字
+  final double? cp1x; // 贝塞尔控制点1
+  final double? cp1y;
+  final double? cp2x; // 贝塞尔控制点2
+  final double? cp2y;
+
+  CustomPathAnchor copyWith({
+    double? x,
+    double? y,
+    String? label,
+    double? cp1x,
+    double? cp1y,
+    double? cp2x,
+    double? cp2y,
+  }) {
+    return CustomPathAnchor(
+      x: x ?? this.x,
+      y: y ?? this.y,
+      label: label ?? this.label,
+      cp1x: cp1x ?? this.cp1x,
+      cp1y: cp1y ?? this.cp1y,
+      cp2x: cp2x ?? this.cp2x,
+      cp2y: cp2y ?? this.cp2y,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'x': x,
+    'y': y,
+    'label': label,
+    'cp1x': cp1x,
+    'cp1y': cp1y,
+    'cp2x': cp2x,
+    'cp2y': cp2y,
+  };
+
+  factory CustomPathAnchor.fromJson(Map<String, dynamic> json) {
+    return CustomPathAnchor(
+      x: (json['x'] as num).toDouble(),
+      y: (json['y'] as num).toDouble(),
+      label: json['label'] as String? ?? '',
+      cp1x: (json['cp1x'] as num?)?.toDouble(),
+      cp1y: (json['cp1y'] as num?)?.toDouble(),
+      cp2x: (json['cp2x'] as num?)?.toDouble(),
+      cp2y: (json['cp2y'] as num?)?.toDouble(),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is CustomPathAnchor &&
+      x == other.x &&
+      y == other.y &&
+      label == other.label &&
+      cp1x == other.cp1x &&
+      cp1y == other.cp1y &&
+      cp2x == other.cp2x &&
+      cp2y == other.cp2y;
+
+  @override
+  int get hashCode => Object.hash(x, y, label, cp1x, cp1y, cp2x, cp2y);
+}
+
 class GalleryDocument {
   const GalleryDocument({
     required this.id,
@@ -108,6 +185,7 @@ class GalleryChapter {
     required this.placements,
     this.caption = '',
     this.pathStyle = StoryPathStyle.solid,
+    this.customPathAnchors,
   });
 
   final String id;
@@ -118,6 +196,7 @@ class GalleryChapter {
   final GalleryMotion motion;
   final StoryPathStyle pathStyle;
   final List<GalleryPlacement> placements;
+  final List<CustomPathAnchor>? customPathAnchors; // 自定义路径锚点
 
   GalleryChapter copyWith({
     String? title,
@@ -127,6 +206,7 @@ class GalleryChapter {
     GalleryMotion? motion,
     StoryPathStyle? pathStyle,
     List<GalleryPlacement>? placements,
+    Object? customPathAnchors = _unchanged,
   }) {
     return GalleryChapter(
       id: id,
@@ -137,6 +217,9 @@ class GalleryChapter {
       motion: motion ?? this.motion,
       pathStyle: pathStyle ?? this.pathStyle,
       placements: placements ?? this.placements,
+      customPathAnchors: identical(customPathAnchors, _unchanged)
+          ? this.customPathAnchors
+          : customPathAnchors as List<CustomPathAnchor>?,
     );
   }
 

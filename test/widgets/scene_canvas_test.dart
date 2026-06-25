@@ -268,6 +268,54 @@ void main() {
     );
   });
 
+  testWidgets('custom story path anchors drive geometry and labels', (
+    tester,
+  ) async {
+    const storyChapter = GalleryChapter(
+      id: 'custom-story',
+      title: 'Story',
+      order: 0,
+      layout: GalleryLayout.storyPath,
+      motion: GalleryMotion.push,
+      customPathAnchors: [
+        CustomPathAnchor(x: 0.2, y: 0.25, label: 'start'),
+        CustomPathAnchor(x: 0.8, y: 0.75, label: 'end'),
+      ],
+      placements: [
+        GalleryPlacement(id: 'p0', mediaId: 'media', order: 0),
+        GalleryPlacement(id: 'p1', mediaId: 'media', order: 1),
+      ],
+    );
+
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: SizedBox(
+          width: 400,
+          height: 800,
+          child: SceneCanvas(chapter: storyChapter, media: [media]),
+        ),
+      ),
+    );
+
+    final paint = tester.widget<CustomPaint>(
+      find.byKey(const Key('story-path-line')),
+    );
+    final painter = paint.painter! as StoryPathPainter;
+    final viewport = tester.getSize(find.byKey(const Key('scene-background')));
+    expect(painter.geometry.anchors, hasLength(2));
+    expect(painter.geometry.segments, hasLength(1));
+    expect(
+      painter.geometry.anchors.first.point.dx,
+      closeTo(viewport.width * 0.2, 0.01),
+    );
+    expect(
+      painter.geometry.anchors.first.point.dy,
+      closeTo(viewport.height * 0.25, 0.01),
+    );
+    expect(find.text('start'), findsOneWidget);
+    expect(find.text('end'), findsOneWidget);
+  });
+
   test('story path painter repaints for geometry or theme changes', () {
     final geometry = StoryPathGeometry(
       anchors: const [

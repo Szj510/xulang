@@ -92,48 +92,51 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     duration: MediaQuery.disableAnimationsOf(context)
                         ? const Duration(milliseconds: 120)
                         : const Duration(milliseconds: 320),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      final isNewWidget = child.key == ValueKey(chapter.id);
-                      final axis = NarrativeAxis.fromViewport(MediaQuery.sizeOf(context));
-                      final direction = _slideDirection;
-                      
-                      final Offset beginOffset;
-                      final Offset endOffset;
-                      
-                      if (axis == NarrativeAxis.vertical) {
-                        if (isNewWidget) {
-                          beginOffset = Offset(0.0, direction * 0.15);
-                          endOffset = Offset.zero;
-                        } else {
-                          beginOffset = Offset.zero;
-                          endOffset = Offset(0.0, -direction * 0.15);
-                        }
-                      } else {
-                        if (isNewWidget) {
-                          beginOffset = Offset(direction * 0.15, 0.0);
-                          endOffset = Offset.zero;
-                        } else {
-                          beginOffset = Offset.zero;
-                          endOffset = Offset(-direction * 0.15, 0.0);
-                        }
-                      }
+                    transitionBuilder:
+                        (Widget child, Animation<double> animation) {
+                          final isNewWidget = child.key == ValueKey(chapter.id);
+                          final axis = NarrativeAxis.fromViewport(
+                            MediaQuery.sizeOf(context),
+                          );
+                          final direction = _slideDirection;
 
-                      final curve = CurvedAnimation(
-                        parent: animation,
-                        curve: Curves.easeOutCubic,
-                      );
+                          final Offset beginOffset;
+                          final Offset endOffset;
 
-                      return FadeTransition(
-                        opacity: curve,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: beginOffset,
-                            end: endOffset,
-                          ).animate(curve),
-                          child: child,
-                        ),
-                      );
-                    },
+                          if (axis == NarrativeAxis.vertical) {
+                            if (isNewWidget) {
+                              beginOffset = Offset(0.0, direction * 0.15);
+                              endOffset = Offset.zero;
+                            } else {
+                              beginOffset = Offset.zero;
+                              endOffset = Offset(0.0, -direction * 0.15);
+                            }
+                          } else {
+                            if (isNewWidget) {
+                              beginOffset = Offset(direction * 0.15, 0.0);
+                              endOffset = Offset.zero;
+                            } else {
+                              beginOffset = Offset.zero;
+                              endOffset = Offset(-direction * 0.15, 0.0);
+                            }
+                          }
+
+                          final curve = CurvedAnimation(
+                            parent: animation,
+                            curve: Curves.easeOutCubic,
+                          );
+
+                          return FadeTransition(
+                            opacity: curve,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: beginOffset,
+                                end: endOffset,
+                              ).animate(curve),
+                              child: child,
+                            ),
+                          );
+                        },
                     child: _ViewerChapter(
                       key: ValueKey(chapter.id),
                       chapter: chapter,
@@ -250,10 +253,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (mounted) setState(() => _changingChapter = false);
   }
 
-  Future<void> _setRecordingMode(
-    GalleryDocument document,
-    bool enabled,
-  ) async {
+  Future<void> _setRecordingMode(GalleryDocument document, bool enabled) async {
     if (mounted) {
       setState(() {
         _recordingMode = enabled;
@@ -963,11 +963,7 @@ class _ChromeNavButton extends StatelessWidget {
                         width: 0.5,
                       ),
                     ),
-                    child: Icon(
-                      icon,
-                      size: 22,
-                      color: XulangColors.paper,
-                    ),
+                    child: Icon(icon, size: 22, color: XulangColors.paper),
                   ),
                 ),
               ),

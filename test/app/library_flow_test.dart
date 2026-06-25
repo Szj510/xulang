@@ -89,6 +89,10 @@ void main() {
 
     expect(find.text('山海之间'), findsWidgets);
     expect(find.text('导入图片'), findsOneWidget);
+
+    await tester.tap(find.byKey(const Key('editor-floating-ball')));
+    await tester.pumpAndSettle();
+
     expect(find.text('主视觉'), findsOneWidget);
     expect(find.text('横向胶片'), findsOneWidget);
     expect(find.text('双联画'), findsOneWidget);

@@ -130,7 +130,9 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byKey(const Key('landscape-chapter-overlay')), findsNothing);
 
-    await tester.tap(find.byKey(const Key('scene-node-gesture-sample-placement-4')));
+    await tester.tap(
+      find.byKey(const Key('scene-node-gesture-sample-placement-4')),
+    );
     await tester.pumpAndSettle();
 
     final scroll = find.byKey(const Key('editor-inspector-scroll'));
@@ -154,6 +156,53 @@ void main() {
     await dragCanvasTrack(tester, const Offset(0, -160));
     await tester.pump();
     expect(progress(tester), greaterThan(0));
+  });
+
+  testWidgets('portrait preview background supports two finger pinch zoom', (
+    tester,
+  ) async {
+    await pumpEditor(tester, size: const Size(390, 844));
+
+    final viewer = tester.widget<InteractiveViewer>(
+      find.byKey(const Key('editor-preview-zoom')),
+    );
+    expect(viewer.transformationController!.value.getMaxScaleOnAxis(), 1);
+
+    final rect = tester.getRect(
+      find.byKey(const Key('editor-preview-gesture-surface')),
+    );
+    final center = rect.topLeft + const Offset(60, 90);
+    final first = await tester.createGesture();
+    final second = await tester.createGesture();
+    await first.down(center - const Offset(18, 0));
+    await second.down(center + const Offset(18, 0));
+    await tester.pump();
+    await first.moveTo(center - const Offset(54, 0));
+    await second.moveTo(center + const Offset(54, 0));
+    await tester.pump();
+    await first.up();
+    await second.up();
+    await tester.pump();
+
+    expect(
+      viewer.transformationController!.value.getMaxScaleOnAxis(),
+      greaterThan(1.2),
+    );
+  });
+
+  testWidgets('floating ball can be dragged vertically across the editor', (
+    tester,
+  ) async {
+    await pumpEditor(tester, size: const Size(390, 844));
+
+    final finder = find.byKey(const Key('editor-floating-ball'));
+    final before = tester.getTopLeft(finder);
+
+    await tester.drag(finder, const Offset(0, -220));
+    await tester.pump();
+
+    final after = tester.getTopLeft(finder);
+    expect(after.dy, lessThan(before.dy - 160));
   });
 
   testWidgets('landscape locks navigation to horizontal drags', (tester) async {

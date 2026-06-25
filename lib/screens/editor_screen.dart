@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:file_selector/file_selector.dart';
@@ -56,10 +57,10 @@ class _EditorBody extends StatefulWidget {
 
 class _EditorBodyState extends State<_EditorBody> {
   bool _showChapters = false;
-  bool _showPanel = false;  // 默认隐藏浮动面板
+  bool _showPanel = false; // 默认隐藏浮动面板
   _EditorPanelMode _panelMode = _EditorPanelMode.canvas;
   String? _selectedPlacementId;
-  Offset _floatingBallOffset = const Offset(16, -80); // relative to bottom-right
+  Offset _floatingBallOffset = const Offset(16, 560);
 
   EditorSession get session => widget.session;
 
@@ -200,7 +201,10 @@ class _EditorBodyState extends State<_EditorBody> {
                     Positioned.fill(
                       child: _Preview(
                         session: session,
-                        onCanvasTap: _dismissPanel,
+                        onCanvasTap: () {
+                          _dismissPanel();
+                          _hideChapters();
+                        },
                         onPlacementTap: _focusPlacement,
                       ),
                     ),
@@ -274,13 +278,19 @@ class _EditorBodyState extends State<_EditorBody> {
                                   tooltip: '导出与分享',
                                   onSelected: (action) =>
                                       _handleExportAction(context, action),
-                                  icon: const Icon(Icons.share_outlined, size: 20),
+                                  icon: const Icon(
+                                    Icons.share_outlined,
+                                    size: 20,
+                                  ),
                                   itemBuilder: (context) => const [
                                     PopupMenuItem(
                                       value: _EditorExportAction.template,
                                       child: Row(
                                         children: [
-                                          Icon(Icons.ios_share_outlined, size: 18),
+                                          Icon(
+                                            Icons.ios_share_outlined,
+                                            size: 18,
+                                          ),
                                           SizedBox(width: 12),
                                           Text('分享模板'),
                                         ],
@@ -290,7 +300,10 @@ class _EditorBodyState extends State<_EditorBody> {
                                       value: _EditorExportAction.importTemplate,
                                       child: Row(
                                         children: [
-                                          Icon(Icons.file_open_outlined, size: 18),
+                                          Icon(
+                                            Icons.file_open_outlined,
+                                            size: 18,
+                                          ),
                                           SizedBox(width: 12),
                                           Text('导入模板'),
                                         ],
@@ -535,58 +548,68 @@ class _FloatingBall extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final size = MediaQuery.sizeOf(context);
+    final padding = MediaQuery.paddingOf(context);
+    final minX = 8.0;
+    final maxX = math.max(minX, size.width - 56);
+    final minY = padding.top + 8;
+    final maxY = math.max(minY, size.height - padding.bottom - 56);
+    final absX = offset.dx.clamp(minX, maxX);
+    final absY = offset.dy.clamp(minY, maxY);
+
     return Positioned(
-      right: offset.dx.clamp(8.0, MediaQuery.sizeOf(context).width - 60),
-      bottom: (-offset.dy).clamp(8.0, MediaQuery.sizeOf(context).height - 60),
-      child: SafeArea(
-        child: GestureDetector(
-          onPanUpdate: (details) {
-            onOffsetChanged(Offset(
-              offset.dx - details.delta.dx,
-              offset.dy - details.delta.dy,
-            ));
-          },
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOutCubic,
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: isActive
-                    ? [XulangColors.accent, XulangColors.accent.withValues(alpha: .7)]
-                    : [
-                        Colors.black.withValues(alpha: .65),
-                        Colors.black.withValues(alpha: .45),
-                      ],
-              ),
-              border: Border.all(
-                color: isActive
-                    ? XulangColors.accent.withValues(alpha: .5)
-                    : Colors.white.withValues(alpha: .12),
-                width: 1,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: .35),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+      left: absX,
+      top: absY,
+      child: GestureDetector(
+        key: const Key('editor-floating-ball'),
+        onPanUpdate: (details) {
+          final newX = (absX + details.delta.dx).clamp(minX, maxX);
+          final newY = (absY + details.delta.dy).clamp(minY, maxY);
+          onOffsetChanged(Offset(newX, newY));
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          curve: Curves.easeOutCubic,
+          width: 48,
+          height: 48,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: isActive
+                  ? [
+                      XulangColors.accent,
+                      XulangColors.accent.withValues(alpha: .7),
+                    ]
+                  : [
+                      Colors.black.withValues(alpha: .65),
+                      Colors.black.withValues(alpha: .45),
+                    ],
             ),
-            child: Material(
-              color: Colors.transparent,
-              child: InkWell(
-                onTap: onTap,
-                customBorder: const CircleBorder(),
-                child: Icon(
-                  isActive ? Icons.close : Icons.tune_rounded,
-                  size: 22,
-                  color: XulangColors.paper,
-                ),
+            border: Border.all(
+              color: isActive
+                  ? XulangColors.accent.withValues(alpha: .5)
+                  : Colors.white.withValues(alpha: .12),
+              width: 1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .35),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onTap,
+              customBorder: const CircleBorder(),
+              child: Icon(
+                isActive ? Icons.close : Icons.tune_rounded,
+                size: 22,
+                color: XulangColors.paper,
               ),
             ),
           ),
@@ -635,9 +658,10 @@ class _FloatingPanelState extends State<_FloatingPanel>
     _slideAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
       CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
     );
-    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
+    _fadeAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _animController, curve: Curves.easeOut));
     _animController.forward();
   }
 
@@ -668,10 +692,7 @@ class _FloatingPanelState extends State<_FloatingPanel>
             offset: widget.landscape
                 ? Offset(_slideAnimation.value * panelWidth, 0)
                 : Offset(0, _slideAnimation.value * maxHeight),
-            child: Opacity(
-              opacity: _fadeAnimation.value,
-              child: child,
-            ),
+            child: Opacity(opacity: _fadeAnimation.value, child: child),
           );
         },
         child: SafeArea(
@@ -735,7 +756,9 @@ class _ChapterRail extends StatelessWidget {
       height: 64,
       decoration: const BoxDecoration(
         color: XulangColors.surface,
-        border: Border(bottom: BorderSide(color: XulangColors.line, width: 0.5)),
+        border: Border(
+          bottom: BorderSide(color: XulangColors.line, width: 0.5),
+        ),
       ),
       child: Row(
         children: [
@@ -811,6 +834,9 @@ class _PreviewState extends State<_Preview> {
       NarrativeCameraController();
   final TransformationController _zoomController = TransformationController();
   GalleryPlacement? _gestureStartPlacement;
+  int _previewPointerCount = 0;
+  bool _cameraDragActive = false;
+  bool _previewPointerMoved = false;
 
   bool get _isZoomed {
     final scale = _zoomController.value.getMaxScaleOnAxis();
@@ -837,6 +863,20 @@ class _PreviewState extends State<_Preview> {
     final next = value.clamp(0.0, 1.0);
     _cameraController.setProgress(next);
     setState(() => _cameraProgressByChapter[_chapterId] = next);
+  }
+
+  void _beginCameraDragIfNeeded() {
+    if (_previewPointerCount == 1 && !_isZoomed && !_cameraDragActive) {
+      _cameraController.setProgress(_cameraProgress);
+      _cameraController.begin(scale: 1);
+      _cameraDragActive = true;
+    }
+  }
+
+  void _endCameraDragIfNeeded() {
+    if (!_cameraDragActive) return;
+    _cameraController.end();
+    _cameraDragActive = false;
   }
 
   GalleryChapter _chapterWithDrafts(GalleryChapter chapter) {
@@ -906,23 +946,33 @@ class _PreviewState extends State<_Preview> {
           children: [
             Positioned.fill(
               child: InteractiveViewer(
+                key: const Key('editor-preview-zoom'),
                 transformationController: _zoomController,
                 minScale: 0.5,
                 maxScale: 3.0,
                 panEnabled: true,
                 scaleEnabled: true,
                 onInteractionEnd: (_) => setState(() {}),
-                child: GestureDetector(
-                  key: const Key('editor-preview-gesture-surface'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: widget.onCanvasTap,
-                  onPanStart: (_) {
-                    _cameraController.setProgress(_cameraProgress);
-                    _cameraController.begin(scale: 1);
+                child: Listener(
+                  onPointerDown: (_) {
+                    _previewPointerCount += 1;
+                    if (_previewPointerCount == 1) {
+                      _previewPointerMoved = false;
+                    }
+                    if (_previewPointerCount > 1) {
+                      _endCameraDragIfNeeded();
+                    } else {
+                      _beginCameraDragIfNeeded();
+                    }
                   },
-                  onPanUpdate: (details) {
+                  onPointerMove: (event) {
+                    if (event.delta.distance > 2) {
+                      _previewPointerMoved = true;
+                    }
+                    if (_previewPointerCount != 1 || _isZoomed) return;
+                    _beginCameraDragIfNeeded();
                     _cameraController.update(
-                      delta: details.delta,
+                      delta: event.delta,
                       viewport: viewport,
                       itemCount: chapter.placements.length,
                       scale: 1,
@@ -933,26 +983,52 @@ class _PreviewState extends State<_Preview> {
                           _cameraController.progress;
                     });
                   },
-                  onPanEnd: (_) => _cameraController.end(),
-                  onPanCancel: _cameraController.end,
-                  child: SceneCanvas(
-                    chapter: chapter,
-                    media: session.bundle!.media,
-                    cameraProgress: progress,
-                    sceneTheme: session.bundle!.document.theme,
-                    onPlacementTap: widget.onPlacementTap,
-                    onPlacementTransformStart: _startPlacementTransform,
-                    onPlacementTransformUpdate:
-                        (placementId, scaleDelta, delta) =>
-                            _updatePlacementTransform(
-                              placementId,
-                              scaleDelta,
-                              delta,
-                              viewport,
-                            ),
-                    onPlacementTransformEnd: (placementId) {
-                      unawaited(_endPlacementTransform(placementId));
-                    },
+                  onPointerUp: (_) {
+                    final wasSingleTap =
+                        _previewPointerCount == 1 && !_previewPointerMoved;
+                    _previewPointerCount = math.max(
+                      0,
+                      _previewPointerCount - 1,
+                    );
+                    if (_previewPointerCount == 0) {
+                      _endCameraDragIfNeeded();
+                    }
+                    if (wasSingleTap) {
+                      widget.onCanvasTap?.call();
+                    }
+                  },
+                  onPointerCancel: (_) {
+                    _previewPointerCount = math.max(
+                      0,
+                      _previewPointerCount - 1,
+                    );
+                    if (_previewPointerCount == 0) {
+                      _endCameraDragIfNeeded();
+                    }
+                  },
+                  child: GestureDetector(
+                    key: const Key('editor-preview-gesture-surface'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: widget.onCanvasTap,
+                    child: SceneCanvas(
+                      chapter: chapter,
+                      media: session.bundle!.media,
+                      cameraProgress: progress,
+                      sceneTheme: session.bundle!.document.theme,
+                      onPlacementTap: widget.onPlacementTap,
+                      onPlacementTransformStart: _startPlacementTransform,
+                      onPlacementTransformUpdate:
+                          (placementId, scaleDelta, delta) =>
+                              _updatePlacementTransform(
+                                placementId,
+                                scaleDelta,
+                                delta,
+                                viewport,
+                              ),
+                      onPlacementTransformEnd: (placementId) {
+                        unawaited(_endPlacementTransform(placementId));
+                      },
+                    ),
                   ),
                 ),
               ),
@@ -1078,10 +1154,7 @@ class _PreviewState extends State<_Preview> {
 }
 
 class _GlassImportButton extends StatelessWidget {
-  const _GlassImportButton({
-    required this.importing,
-    required this.onPressed,
-  });
+  const _GlassImportButton({required this.importing, required this.onPressed});
 
   final bool importing;
   final VoidCallback? onPressed;
@@ -1093,9 +1166,7 @@ class _GlassImportButton extends StatelessWidget {
         backgroundColor: XulangColors.paper.withValues(alpha: .92),
         foregroundColor: XulangColors.ink,
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         elevation: 0,
       ),
       onPressed: onPressed,
@@ -1243,14 +1314,26 @@ class _InspectorState extends State<_Inspector> {
                       color: XulangColors.muted,
                     ),
                     itemBuilder: (context) => const [
-                      PopupMenuItem(value: GalleryTheme.ink, child: Text('墨色画布')),
-                      PopupMenuItem(value: GalleryTheme.paper, child: Text('纸张画布')),
+                      PopupMenuItem(
+                        value: GalleryTheme.ink,
+                        child: Text('墨色画布'),
+                      ),
+                      PopupMenuItem(
+                        value: GalleryTheme.paper,
+                        child: Text('纸张画布'),
+                      ),
                       PopupMenuItem(
                         value: GalleryTheme.graphite,
                         child: Text('石墨画布'),
                       ),
-                      PopupMenuItem(value: GalleryTheme.mist, child: Text('雾蓝画布')),
-                      PopupMenuItem(value: GalleryTheme.warm, child: Text('暖沙画布')),
+                      PopupMenuItem(
+                        value: GalleryTheme.mist,
+                        child: Text('雾蓝画布'),
+                      ),
+                      PopupMenuItem(
+                        value: GalleryTheme.warm,
+                        child: Text('暖沙画布'),
+                      ),
                     ],
                   ),
                   const SizedBox(width: 8),
@@ -1292,6 +1375,9 @@ class _InspectorState extends State<_Inspector> {
                     ),
                 ],
               ),
+              const SizedBox(height: 8),
+              if (chapter.layout == GalleryLayout.storyPath)
+                _buildPathEditor(context, chapter),
             ],
           ),
         ),
@@ -1349,6 +1435,91 @@ class _InspectorState extends State<_Inspector> {
     );
   }
 
+  Widget _buildPathEditor(BuildContext context, GalleryChapter chapter) {
+    final anchors = chapter.customPathAnchors;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: FilledButton.tonal(
+                onPressed: () => anchors == null
+                    ? _startPathDrawing(context)
+                    : _addPathAnchor(chapter),
+                child: Text(anchors == null ? '绘制路径' : '添加锚点'),
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (anchors != null)
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => session.clearCustomPath(),
+                  child: const Text('重置'),
+                ),
+              ),
+          ],
+        ),
+        if (anchors != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            '已自定义 ${anchors.length} 个锚点，可编辑位置与文字',
+            style: const TextStyle(fontSize: 11, color: XulangColors.muted),
+          ),
+          const SizedBox(height: 8),
+          for (var index = 0; index < anchors.length; index++)
+            _PathAnchorEditor(
+              key: ValueKey('path-anchor-${chapter.id}-$index'),
+              index: index,
+              anchor: anchors[index],
+              canDelete: anchors.length > 2,
+              onChanged: (anchor) => _replacePathAnchor(chapter, index, anchor),
+              onDelete: () => _removePathAnchor(chapter, index),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Future<void> _replacePathAnchor(
+    GalleryChapter chapter,
+    int index,
+    CustomPathAnchor anchor,
+  ) async {
+    final anchors = chapter.customPathAnchors;
+    if (anchors == null || index < 0 || index >= anchors.length) return;
+    final next = List<CustomPathAnchor>.of(anchors);
+    next[index] = anchor;
+    await session.updateChapterPath(next);
+  }
+
+  Future<void> _addPathAnchor(GalleryChapter chapter) async {
+    final anchors = List<CustomPathAnchor>.of(
+      chapter.customPathAnchors ?? const <CustomPathAnchor>[],
+    );
+    if (anchors.isEmpty) {
+      await _startPathDrawing(context);
+      return;
+    }
+    final previous = anchors.last;
+    anchors.add(
+      CustomPathAnchor(
+        x: (previous.x + 0.12).clamp(0.08, 0.92),
+        y: previous.y.clamp(0.08, 0.92),
+        label: '点 ${anchors.length + 1}',
+      ),
+    );
+    await session.updateChapterPath(anchors);
+  }
+
+  Future<void> _removePathAnchor(GalleryChapter chapter, int index) async {
+    final anchors = chapter.customPathAnchors;
+    if (anchors == null || anchors.length <= 2) return;
+    final next = List<CustomPathAnchor>.of(anchors)..removeAt(index);
+    await session.updateChapterPath(next);
+  }
+
   Widget _buildPlacementPanel(
     BuildContext context,
     GalleryChapter chapter,
@@ -1389,9 +1560,10 @@ class _InspectorState extends State<_Inspector> {
               },
               itemBuilder: (context, index) {
                 final item = chapter.placements[index];
-                final media = session.bundle!.media
-                    .where((m) => m.id == item.mediaId)
-                    .isEmpty
+                final media =
+                    session.bundle!.media
+                        .where((m) => m.id == item.mediaId)
+                        .isEmpty
                     ? null
                     : session.bundle!.media
                           .where((m) => m.id == item.mediaId)
@@ -1518,10 +1690,7 @@ class _InspectorState extends State<_Inspector> {
             style: const TextStyle(fontSize: 13, color: XulangColors.paper),
             decoration: const InputDecoration(
               labelText: '单图短注释',
-              labelStyle: TextStyle(
-                fontSize: 12,
-                color: XulangColors.muted,
-              ),
+              labelStyle: TextStyle(fontSize: 12, color: XulangColors.muted),
               counterStyle: TextStyle(fontSize: 10, color: XulangColors.muted),
             ),
             onChanged: (value) =>
@@ -1606,8 +1775,7 @@ class _InspectorState extends State<_Inspector> {
                           ),
                         ),
                         _PanelToggleChip(
-                          selected:
-                              widget.panelMode == _EditorPanelMode.canvas,
+                          selected: widget.panelMode == _EditorPanelMode.canvas,
                           onSelected: (_) => widget.onFocusCanvas(),
                           label: '画布',
                         ),
@@ -1638,6 +1806,33 @@ class _InspectorState extends State<_Inspector> {
         ),
       ),
     );
+  }
+
+  Future<void> _startPathDrawing(BuildContext context) async {
+    final chapter = session.selectedChapter!;
+    if (chapter.placements.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('请先添加图片')));
+      return;
+    }
+
+    // 创建初始锚点（每张图片一个）
+    final anchors = chapter.placements.asMap().entries.map((e) {
+      final idx = e.key;
+      final x = 0.1 + (idx * 0.8 / (chapter.placements.length - 1));
+      return CustomPathAnchor(x: x, y: 0.5, label: '点 ${idx + 1}');
+    }).toList();
+
+    await session.updateChapterPath(anchors);
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('已创建 ${anchors.length} 个锚点，可在画布上编辑'),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
   }
 
   Future<void> _editChapterText(BuildContext context) async {
@@ -1745,7 +1940,10 @@ class _InspectorState extends State<_Inspector> {
                 TextFormField(
                   initialValue: caption,
                   maxLength: 60,
-                  style: const TextStyle(fontSize: 13, color: XulangColors.paper),
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: XulangColors.paper,
+                  ),
                   decoration: const InputDecoration(
                     labelText: '单图短注释',
                     labelStyle: TextStyle(
@@ -1816,6 +2014,122 @@ class _PanelToggleChip extends StatelessWidget {
   }
 }
 
+class _PathAnchorEditor extends StatelessWidget {
+  const _PathAnchorEditor({
+    super.key,
+    required this.index,
+    required this.anchor,
+    required this.canDelete,
+    required this.onChanged,
+    required this.onDelete,
+  });
+
+  final int index;
+  final CustomPathAnchor anchor;
+  final bool canDelete;
+  final ValueChanged<CustomPathAnchor> onChanged;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: .045),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: .08)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                '锚点 ${index + 1}',
+                style: const TextStyle(
+                  color: XulangColors.paper,
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              const Spacer(),
+              IconButton(
+                tooltip: '删除锚点',
+                visualDensity: VisualDensity.compact,
+                onPressed: canDelete ? onDelete : null,
+                icon: const Icon(Icons.remove_circle_outline, size: 18),
+              ),
+            ],
+          ),
+          TextFormField(
+            key: Key('path-anchor-label-$index'),
+            initialValue: anchor.label,
+            style: const TextStyle(color: XulangColors.paper, fontSize: 12),
+            decoration: const InputDecoration(labelText: '线条文字', isDense: true),
+            onFieldSubmitted: (value) =>
+                onChanged(anchor.copyWith(label: value.trim())),
+          ),
+          const SizedBox(height: 10),
+          _AnchorSlider(
+            label: '横向',
+            value: anchor.x,
+            onChanged: (value) => onChanged(anchor.copyWith(x: value)),
+          ),
+          _AnchorSlider(
+            label: '纵向',
+            value: anchor.y,
+            onChanged: (value) => onChanged(anchor.copyWith(y: value)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnchorSlider extends StatelessWidget {
+  const _AnchorSlider({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String label;
+  final double value;
+  final ValueChanged<double> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        SizedBox(
+          width: 36,
+          child: Text(
+            label,
+            style: const TextStyle(color: XulangColors.muted, fontSize: 11),
+          ),
+        ),
+        Expanded(
+          child: Slider(
+            value: value.clamp(0.04, 0.96),
+            min: 0.04,
+            max: 0.96,
+            onChanged: onChanged,
+          ),
+        ),
+        SizedBox(
+          width: 34,
+          child: Text(
+            '${(value * 100).round()}%',
+            textAlign: TextAlign.right,
+            style: const TextStyle(color: XulangColors.muted, fontSize: 10),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _InspectorSection extends StatelessWidget {
   const _InspectorSection({required this.title, required this.child});
 
@@ -1827,11 +2141,7 @@ class _InspectorSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
-      children: [
-        _SectionLabel(title),
-        const SizedBox(height: 8),
-        child,
-      ],
+      children: [_SectionLabel(title), const SizedBox(height: 8), child],
     );
   }
 }
@@ -1926,10 +2236,7 @@ class _CropSliderState extends State<_CropSlider> {
             width: 72,
             child: Text(
               widget.label,
-              style: const TextStyle(
-                fontSize: 12,
-                color: XulangColors.muted,
-              ),
+              style: const TextStyle(fontSize: 12, color: XulangColors.muted),
             ),
           ),
           Expanded(

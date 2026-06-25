@@ -35,6 +35,18 @@ void main() {
           layout: GalleryLayout.collage,
           motion: GalleryMotion.unfold,
           pathStyle: StoryPathStyle.glow,
+          customPathAnchors: [
+            CustomPathAnchor(
+              x: 0.2,
+              y: 0.3,
+              label: 'start',
+              cp1x: 0.28,
+              cp1y: 0.36,
+              cp2x: 0.42,
+              cp2y: 0.48,
+            ),
+            CustomPathAnchor(x: 0.8, y: 0.72, label: 'return'),
+          ],
           placements: [
             GalleryPlacement(
               id: 'placement-1',
@@ -75,6 +87,10 @@ void main() {
     expect(restored.showChapterTitleInPlayback, isFalse);
     expect(restored.chapters.single.layout, GalleryLayout.collage);
     expect(restored.chapters.single.pathStyle, StoryPathStyle.glow);
+    expect(restored.chapters.single.customPathAnchors, hasLength(2));
+    expect(restored.chapters.single.customPathAnchors!.first.label, 'start');
+    expect(restored.chapters.single.customPathAnchors!.first.cp1x, 0.28);
+    expect(restored.chapters.single.customPathAnchors!.last.x, 0.8);
     expect(
       restored.chapters.single.placements.single.frame,
       GalleryFrame.stamp,
