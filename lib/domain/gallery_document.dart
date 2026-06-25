@@ -124,6 +124,87 @@ class CustomPathPoint {
   int get hashCode => Object.hash(x, y);
 }
 
+enum GalleryStickerKind { star, sparkle, heart, leaf, flower }
+
+class GallerySticker {
+  const GallerySticker({
+    required this.id,
+    required this.kind,
+    required this.x,
+    required this.y,
+    this.scale = 1,
+    this.rotation = 0,
+  });
+
+  final String id;
+  final GalleryStickerKind kind;
+  final double x;
+  final double y;
+  final double scale;
+  final double rotation;
+
+  GallerySticker copyWith({
+    GalleryStickerKind? kind,
+    double? x,
+    double? y,
+    double? scale,
+    double? rotation,
+  }) {
+    return GallerySticker(
+      id: id,
+      kind: kind ?? this.kind,
+      x: x ?? this.x,
+      y: y ?? this.y,
+      scale: scale ?? this.scale,
+      rotation: rotation ?? this.rotation,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'kind': kind.name,
+    'x': x,
+    'y': y,
+    'scale': scale,
+    'rotation': rotation,
+  };
+
+  factory GallerySticker.fromJson(Map<String, dynamic> json) {
+    return GallerySticker(
+      id: json['id'] as String,
+      kind: _enumByName(
+        GalleryStickerKind.values,
+        json['kind'] as String? ?? GalleryStickerKind.star.name,
+        GalleryStickerKind.star,
+      ),
+      x: ((json['x'] as num?) ?? 0.5).toDouble(),
+      y: ((json['y'] as num?) ?? 0.5).toDouble(),
+      scale: ((json['scale'] as num?) ?? 1).toDouble(),
+      rotation: ((json['rotation'] as num?) ?? 0).toDouble(),
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is GallerySticker &&
+      id == other.id &&
+      kind == other.kind &&
+      x == other.x &&
+      y == other.y &&
+      scale == other.scale &&
+      rotation == other.rotation;
+
+  @override
+  int get hashCode => Object.hash(id, kind, x, y, scale, rotation);
+}
+
+T _enumByName<T extends Enum>(List<T> values, String name, T fallback) {
+  for (final value in values) {
+    if (value.name == name) return value;
+  }
+  return fallback;
+}
+
 class CustomPathConnection {
   const CustomPathConnection({
     required this.id,
@@ -310,6 +391,7 @@ class GalleryChapter {
     this.pathStyle = StoryPathStyle.solid,
     this.customPathAnchors,
     this.customPathConnections = const [],
+    this.stickers = const [],
   });
 
   final String id;
@@ -321,7 +403,8 @@ class GalleryChapter {
   final StoryPathStyle pathStyle;
   final List<GalleryPlacement> placements;
   final List<CustomPathAnchor>? customPathAnchors; // 自定义路径锚点
-  final List<CustomPathConnection> customPathConnections; // 自定义图片连接路径
+  final List<CustomPathConnection> customPathConnections; // 路径注释与旧连接数据
+  final List<GallerySticker> stickers; // 画布贴画
 
   GalleryChapter copyWith({
     String? title,
@@ -333,6 +416,7 @@ class GalleryChapter {
     List<GalleryPlacement>? placements,
     Object? customPathAnchors = _unchanged,
     List<CustomPathConnection>? customPathConnections,
+    List<GallerySticker>? stickers,
   }) {
     return GalleryChapter(
       id: id,
@@ -348,6 +432,7 @@ class GalleryChapter {
           : customPathAnchors as List<CustomPathAnchor>?,
       customPathConnections:
           customPathConnections ?? this.customPathConnections,
+      stickers: stickers ?? this.stickers,
     );
   }
 

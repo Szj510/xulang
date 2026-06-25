@@ -208,6 +208,7 @@ class EditorSession extends ChangeNotifier {
     StoryPathStyle? pathStyle,
     Object? customPathAnchors = _editorUnchanged,
     List<CustomPathConnection>? customPathConnections,
+    List<GallerySticker>? stickers,
   }) async {
     final current = bundle;
     if (current == null) return;
@@ -224,6 +225,7 @@ class EditorSession extends ChangeNotifier {
           : customPathAnchors as List<CustomPathAnchor>?,
       customPathConnections:
           customPathConnections ?? chapter.customPathConnections,
+      stickers: stickers ?? chapter.stickers,
     );
     await _commit(
       current.copyWith(
@@ -282,6 +284,44 @@ class EditorSession extends ChangeNotifier {
 
   Future<void> clearCustomPathConnections() async {
     await updateChapter(customPathConnections: const []);
+  }
+
+  Future<void> addSticker(GalleryStickerKind kind, {double x = 0.5, double y = 0.5}) async {
+    final chapter = selectedChapter;
+    if (chapter == null) return;
+    await updateChapter(
+      stickers: [
+        ...chapter.stickers,
+        GallerySticker(
+          id: repository.createId(),
+          kind: kind,
+          x: x.clamp(0.0, 1.0),
+          y: y.clamp(0.0, 1.0),
+        ),
+      ],
+    );
+  }
+
+  Future<void> updateSticker(GallerySticker sticker) async {
+    final chapter = selectedChapter;
+    if (chapter == null) return;
+    await updateChapter(
+      stickers: [
+        for (final item in chapter.stickers)
+          if (item.id == sticker.id) sticker else item,
+      ],
+    );
+  }
+
+  Future<void> removeSticker(String stickerId) async {
+    final chapter = selectedChapter;
+    if (chapter == null) return;
+    await updateChapter(
+      stickers: [
+        for (final item in chapter.stickers)
+          if (item.id != stickerId) item,
+      ],
+    );
   }
 
   Future<void> updatePlacement(

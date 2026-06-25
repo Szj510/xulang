@@ -22,10 +22,11 @@ class SceneCanvas extends StatelessWidget {
     this.sceneTheme = GalleryTheme.ink,
     this.placementEditingEnabled = true,
     this.pathEditingEnabled = false,
-    this.activePathPoints = const [],
-    this.onPathDrawStart,
-    this.onPathDrawUpdate,
-    this.onPathDrawEnd,
+    this.stickerEditingEnabled = false,
+    this.selectedStickerKind,
+    this.onStickerPlaced,
+    this.onStickerChanged,
+    this.onStickerDeleted,
     this.onPathConnectionChanged,
     this.onPlacementTap,
     this.onPlacementTransformStart,
@@ -43,10 +44,11 @@ class SceneCanvas extends StatelessWidget {
   final GalleryTheme sceneTheme;
   final bool placementEditingEnabled;
   final bool pathEditingEnabled;
-  final List<CustomPathPoint> activePathPoints;
-  final ValueChanged<CustomPathPoint>? onPathDrawStart;
-  final ValueChanged<CustomPathPoint>? onPathDrawUpdate;
-  final VoidCallback? onPathDrawEnd;
+  final bool stickerEditingEnabled;
+  final GalleryStickerKind? selectedStickerKind;
+  final void Function(Offset localPosition, Size viewport)? onStickerPlaced;
+  final ValueChanged<GallerySticker>? onStickerChanged;
+  final ValueChanged<String>? onStickerDeleted;
   final ValueChanged<CustomPathConnection>? onPathConnectionChanged;
   final void Function(String placementId)? onPlacementTap;
   final void Function(String placementId)? onPlacementTransformStart;
@@ -138,17 +140,13 @@ class SceneCanvas extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (activePathPoints.length > 1)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        key: const Key('active-custom-path-draft'),
-                        painter: CustomPathDraftPainter(
-                          points: activePathPoints,
-                          sceneTheme: sceneTheme,
-                        ),
-                      ),
-                    ),
+                for (final sticker in chapter.stickers)
+                  _StickerWidget(
+                    sticker: sticker,
+                    viewport: viewport,
+                    editable: stickerEditingEnabled,
+                    onChanged: onStickerChanged,
+                    onDeleted: onStickerDeleted,
                   ),
                 for (final node in nodes)
                   if (placementsById[node.placementId] case final placement?)
@@ -216,31 +214,13 @@ class SceneCanvas extends StatelessWidget {
                       editable: pathEditingEnabled,
                       onChanged: onPathConnectionChanged,
                     ),
-                if (pathEditingEnabled && onPathDrawStart != null)
+                if (stickerEditingEnabled && selectedStickerKind != null)
                   Positioned.fill(
                     child: GestureDetector(
-                      key: const Key('scene-path-draw-surface'),
-                      behavior: HitTestBehavior.opaque,
-                      onPanStart: onPathDrawStart == null
-                          ? null
-                          : (details) => onPathDrawStart!(
-                              _normalizeCustomPathPoint(
-                                details.localPosition,
-                                viewport,
-                              ),
-                            ),
-                      onPanUpdate: onPathDrawUpdate == null
-                          ? null
-                          : (details) => onPathDrawUpdate!(
-                              _normalizeCustomPathPoint(
-                                details.localPosition,
-                                viewport,
-                              ),
-                            ),
-                      onPanEnd: onPathDrawEnd == null
-                          ? null
-                          : (_) => onPathDrawEnd!(),
-                      onPanCancel: onPathDrawEnd,
+                      key: const Key('scene-sticker-place-surface'),
+                      behavior: HitTestBehavior.translucent,
+                      onTapUp: (details) =>
+                          onStickerPlaced?.call(details.localPosition, viewport),
                     ),
                   ),
               ],
@@ -251,6 +231,98 @@ class SceneCanvas extends StatelessWidget {
     );
   }
 }
+
+class _StickerWidget extends StatelessWidget {
+  const _StickerWidget({
+    required this.sticker,
+    required this.viewport,
+    required this.editable,
+    required this.onChanged,
+    required this.onDeleted,
+  });
+
+  final GallerySticker sticker;
+  final Size viewport;
+  final bool editable;
+  final ValueChanged<GallerySticker>? onChanged;
+  final ValueChanged<String>? onDeleted;
+
+  @override
+  Widget build(BuildContext context) {
+    const baseSize = 42.0;
+    final size = baseSize * sticker.scale.clamp(0.6, 1.8);
+    final left = (sticker.x.clamp(0.0, 1.0) * viewport.width - size / 2)
+        .clamp(6.0, math.max(6.0, viewport.width - size - 6));
+    final top = (sticker.y.clamp(0.0, 1.0) * viewport.height - size / 2)
+        .clamp(6.0, math.max(6.0, viewport.height - size - 6));
+    return Positioned(
+      left: left,
+      top: top,
+      child: GestureDetector(
+        key: Key('scene-sticker-${sticker.id}'),
+        behavior: HitTestBehavior.opaque,
+        onPanUpdate: !editable || onChanged == null
+            ? null
+            : (details) {
+                final nextCenter = Offset(
+                  left + size / 2 + details.delta.dx,
+                  top + size / 2 + details.delta.dy,
+                );
+                onChanged!(
+                  sticker.copyWith(
+                    x: (nextCenter.dx / viewport.width).clamp(0.0, 1.0),
+                    y: (nextCenter.dy / viewport.height).clamp(0.0, 1.0),
+                  ),
+                );
+              },
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Transform.rotate(
+              angle: sticker.rotation,
+              child: Text(
+                _stickerEmoji(sticker.kind),
+                style: TextStyle(
+                  fontSize: size,
+                  shadows: const [
+                    Shadow(color: Colors.black54, blurRadius: 5, offset: Offset(0, 2)),
+                  ],
+                ),
+              ),
+            ),
+            if (editable)
+              Positioned(
+                right: -13,
+                top: -13,
+                child: GestureDetector(
+                  key: Key('scene-sticker-delete-${sticker.id}'),
+                  onTap: () => onDeleted?.call(sticker.id),
+                  child: Container(
+                    width: 24,
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: .65),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withValues(alpha: .26)),
+                    ),
+                    child: const Icon(Icons.close, size: 15, color: Colors.white),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+String _stickerEmoji(GalleryStickerKind kind) => switch (kind) {
+  GalleryStickerKind.star => '⭐',
+  GalleryStickerKind.sparkle => '✨',
+  GalleryStickerKind.heart => '💛',
+  GalleryStickerKind.leaf => '🍃',
+  GalleryStickerKind.flower => '🌼',
+};
 
 class _CustomPathNoteLabel extends StatelessWidget {
   const _CustomPathNoteLabel({

@@ -175,6 +175,7 @@ class GalleryDatabase extends _$GalleryDatabase {
                 _encodeCustomPath(
                   anchors: chapter.customPathAnchors,
                   connections: chapter.customPathConnections,
+                  stickers: chapter.stickers,
                 ),
               ),
             ),
@@ -254,6 +255,7 @@ class GalleryDatabase extends _$GalleryDatabase {
           ),
           customPathAnchors: customPath.anchors,
           customPathConnections: customPath.connections,
+          stickers: customPath.stickers,
           placements: [
             for (final item in placementRows)
               GalleryPlacement(
@@ -335,8 +337,9 @@ class GalleryDatabase extends _$GalleryDatabase {
 String? _encodeCustomPath({
   List<CustomPathAnchor>? anchors,
   List<CustomPathConnection> connections = const [],
+  List<GallerySticker> stickers = const [],
 }) {
-  if (anchors == null && connections.isEmpty) return null;
+  if (anchors == null && connections.isEmpty && stickers.isEmpty) return null;
   return jsonEncode({
     'version': 2,
     'anchors': [
@@ -344,6 +347,7 @@ String? _encodeCustomPath({
         anchor.toJson(),
     ],
     'connections': [for (final connection in connections) connection.toJson()],
+    'stickers': [for (final sticker in stickers) sticker.toJson()],
   });
 }
 
@@ -361,6 +365,7 @@ _DecodedCustomPath _decodeCustomPath(String? data) {
       return _DecodedCustomPath(
         anchors: _decodeLegacyAnchors(json['anchors'] as List? ?? const []),
         connections: _decodeConnections(json['connections'] as List? ?? const []),
+        stickers: _decodeStickers(json['stickers'] as List? ?? const []),
       );
     }
     return const _DecodedCustomPath();
@@ -385,11 +390,23 @@ List<CustomPathConnection> _decodeConnections(List data) {
   ];
 }
 
+List<GallerySticker> _decodeStickers(List data) {
+  return [
+    for (final item in data)
+      if (item is Map) GallerySticker.fromJson(Map<String, dynamic>.from(item)),
+  ];
+}
+
 class _DecodedCustomPath {
-  const _DecodedCustomPath({this.anchors, this.connections = const []});
+  const _DecodedCustomPath({
+    this.anchors,
+    this.connections = const [],
+    this.stickers = const [],
+  });
 
   final List<CustomPathAnchor>? anchors;
   final List<CustomPathConnection> connections;
+  final List<GallerySticker> stickers;
 }
 
 T _enumByName<T extends Enum>(List<T> values, String name, T fallback) {
