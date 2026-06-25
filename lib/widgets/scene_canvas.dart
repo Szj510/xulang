@@ -20,6 +20,8 @@ class SceneCanvas extends StatelessWidget {
     this.showStoryPath = true,
     this.useOriginals = false,
     this.sceneTheme = GalleryTheme.ink,
+    this.placementEditingEnabled = true,
+    this.pathEditingEnabled = false,
     this.onPlacementTap,
     this.onPlacementTransformStart,
     this.onPlacementTransformUpdate,
@@ -34,6 +36,8 @@ class SceneCanvas extends StatelessWidget {
   final bool showStoryPath;
   final bool useOriginals;
   final GalleryTheme sceneTheme;
+  final bool placementEditingEnabled;
+  final bool pathEditingEnabled;
   final void Function(String placementId)? onPlacementTap;
   final void Function(String placementId)? onPlacementTransformStart;
   final void Function(String placementId, double scaleDelta, Offset delta)?
@@ -123,9 +127,15 @@ class SceneCanvas extends StatelessWidget {
                       sceneTheme: sceneTheme,
                       depthWall: chapter.layout == GalleryLayout.depthWall,
                       onTap: onPlacementTap,
-                      onTransformStart: onPlacementTransformStart,
-                      onTransformUpdate: onPlacementTransformUpdate,
-                      onTransformEnd: onPlacementTransformEnd,
+                      onTransformStart: placementEditingEnabled
+                          ? onPlacementTransformStart
+                          : null,
+                      onTransformUpdate: placementEditingEnabled
+                          ? onPlacementTransformUpdate
+                          : null,
+                      onTransformEnd: placementEditingEnabled
+                          ? onPlacementTransformEnd
+                          : null,
                     ),
                 if (chapter.layout == GalleryLayout.storyPath &&
                     customPathAnchors == null)

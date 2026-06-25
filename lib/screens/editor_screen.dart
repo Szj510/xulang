@@ -59,7 +59,7 @@ class _EditorBodyState extends State<_EditorBody> {
   bool _showChapters = false;
   bool _showPanel = false; // 默认隐藏浮动面板
   double _panelOpacity = 0.48;
-  _EditorPanelMode _panelMode = _EditorPanelMode.canvas;
+  _EditorInteractionMode _interactionMode = _EditorInteractionMode.canvas;
   String? _selectedPlacementId;
   Offset _floatingBallOffset = const Offset(16, 560);
 
@@ -71,7 +71,7 @@ class _EditorBodyState extends State<_EditorBody> {
 
   void _focusCanvas() {
     setState(() {
-      _panelMode = _EditorPanelMode.canvas;
+      _interactionMode = _EditorInteractionMode.canvas;
       _selectedPlacementId = null;
       _showPanel = true;
     });
@@ -79,8 +79,15 @@ class _EditorBodyState extends State<_EditorBody> {
 
   void _focusPlacement(String placementId) {
     setState(() {
-      _panelMode = _EditorPanelMode.placement;
+      _interactionMode = _EditorInteractionMode.image;
       _selectedPlacementId = placementId;
+      _showPanel = true;
+    });
+  }
+
+  void _focusPath() {
+    setState(() {
+      _interactionMode = _EditorInteractionMode.path;
       _showPanel = true;
     });
   }
@@ -206,6 +213,7 @@ class _EditorBodyState extends State<_EditorBody> {
                     Positioned.fill(
                       child: _Preview(
                         session: session,
+                        interactionMode: _interactionMode,
                         onCanvasTap: () {
                           _dismissPanel();
                           _hideChapters();
@@ -347,12 +355,13 @@ class _EditorBodyState extends State<_EditorBody> {
                     if (_showPanel)
                       _FloatingPanel(
                         session: session,
-                        panelMode: _panelMode,
+                        interactionMode: _interactionMode,
                         selectedPlacementId: _selectedPlacementId,
                         panelOpacity: _panelOpacity,
                         onPanelOpacityChanged: _setPanelOpacity,
                         onFocusCanvas: _focusCanvas,
                         onFocusPlacement: _focusPlacement,
+                        onFocusPath: _focusPath,
                         onDismiss: _dismissPanel,
                         landscape: true,
                       ),
@@ -380,6 +389,7 @@ class _EditorBodyState extends State<_EditorBody> {
                       Expanded(
                         child: _Preview(
                           session: session,
+                          interactionMode: _interactionMode,
                           onCanvasTap: _dismissPanel,
                           onPlacementTap: _focusPlacement,
                         ),
@@ -390,12 +400,13 @@ class _EditorBodyState extends State<_EditorBody> {
                   if (_showPanel)
                     _FloatingPanel(
                       session: session,
-                      panelMode: _panelMode,
+                      interactionMode: _interactionMode,
                       selectedPlacementId: _selectedPlacementId,
                       panelOpacity: _panelOpacity,
                       onPanelOpacityChanged: _setPanelOpacity,
                       onFocusCanvas: _focusCanvas,
                       onFocusPlacement: _focusPlacement,
+                      onFocusPath: _focusPath,
                       onDismiss: _dismissPanel,
                       landscape: false,
                     ),
@@ -631,23 +642,25 @@ class _FloatingBall extends StatelessWidget {
 class _FloatingPanel extends StatefulWidget {
   const _FloatingPanel({
     required this.session,
-    required this.panelMode,
+    required this.interactionMode,
     required this.selectedPlacementId,
     required this.panelOpacity,
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
+    required this.onFocusPath,
     required this.onDismiss,
     required this.landscape,
   });
 
   final EditorSession session;
-  final _EditorPanelMode panelMode;
+  final _EditorInteractionMode interactionMode;
   final String? selectedPlacementId;
   final double panelOpacity;
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
+  final VoidCallback onFocusPath;
   final VoidCallback onDismiss;
   final bool landscape;
 
@@ -736,12 +749,13 @@ class _FloatingPanelState extends State<_FloatingPanel>
                       ),
                       child: _Inspector(
                         session: widget.session,
-                        panelMode: widget.panelMode,
+                        interactionMode: widget.interactionMode,
                         selectedPlacementId: widget.selectedPlacementId,
                         panelOpacity: widget.panelOpacity,
                         onPanelOpacityChanged: widget.onPanelOpacityChanged,
                         onFocusCanvas: widget.onFocusCanvas,
                         onFocusPlacement: widget.onFocusPlacement,
+                        onFocusPath: widget.onFocusPath,
                       ),
                     ),
                   ),
@@ -833,11 +847,13 @@ class _ChapterRail extends StatelessWidget {
 class _Preview extends StatefulWidget {
   const _Preview({
     required this.session,
+    required this.interactionMode,
     this.onCanvasTap,
     this.onPlacementTap,
   });
 
   final EditorSession session;
+  final _EditorInteractionMode interactionMode;
   final VoidCallback? onCanvasTap;
   final ValueChanged<String>? onPlacementTap;
 
@@ -876,6 +892,11 @@ class _PreviewState extends State<_Preview> {
   }
 
   EditorSession get session => widget.session;
+  bool get _isCanvasMode =>
+      widget.interactionMode == _EditorInteractionMode.canvas;
+  bool get _isImageMode =>
+      widget.interactionMode == _EditorInteractionMode.image;
+  bool get _isPathMode => widget.interactionMode == _EditorInteractionMode.path;
   String get _chapterId => session.selectedChapter!.id;
   double get _cameraProgress => _cameraProgressByChapter[_chapterId] ?? 0;
 
@@ -893,6 +914,7 @@ class _PreviewState extends State<_Preview> {
   }
 
   void _beginCameraDragIfNeeded() {
+    if (!_isCanvasMode) return;
     if (_previewPointerCount == 1 && !_isZoomed && !_cameraDragActive) {
       _cameraController.setProgress(_cameraProgress);
       _cameraController.begin(scale: 1);
@@ -969,6 +991,9 @@ class _PreviewState extends State<_Preview> {
             NarrativeAxis.fromViewport(viewport) == NarrativeAxis.horizontal;
         final chapter = _chapterWithDrafts(session.selectedChapter!);
         final progress = _cameraProgress;
+        final placementEditingEnabled = _isImageMode;
+        final canvasTap = _isCanvasMode ? widget.onCanvasTap : null;
+        final placementTap = _isPathMode ? null : widget.onPlacementTap;
         return Stack(
           children: [
             Positioned.fill(
@@ -979,8 +1004,8 @@ class _PreviewState extends State<_Preview> {
                 maxScale: 3.0,
                 boundaryMargin: const EdgeInsets.all(240),
                 constrained: false,
-                panEnabled: true,
-                scaleEnabled: true,
+                panEnabled: _isCanvasMode,
+                scaleEnabled: _isCanvasMode,
                 onInteractionEnd: (_) => setState(() {}),
                 child: SizedBox(
                   width: viewport.width,
@@ -1001,7 +1026,9 @@ class _PreviewState extends State<_Preview> {
                       if (event.delta.distance > 2) {
                         _previewPointerMoved = true;
                       }
-                      if (_previewPointerCount != 1 || _isZoomed) return;
+                      if (!_isCanvasMode || _previewPointerCount != 1 || _isZoomed) {
+                        return;
+                      }
                       _beginCameraDragIfNeeded();
                       _cameraController.update(
                         delta: event.delta,
@@ -1026,7 +1053,7 @@ class _PreviewState extends State<_Preview> {
                         _endCameraDragIfNeeded();
                       }
                       if (wasSingleTap) {
-                        widget.onCanvasTap?.call();
+                        canvasTap?.call();
                       }
                     },
                     onPointerCancel: (_) {
@@ -1041,13 +1068,15 @@ class _PreviewState extends State<_Preview> {
                     child: GestureDetector(
                       key: const Key('editor-preview-gesture-surface'),
                       behavior: HitTestBehavior.opaque,
-                      onTap: widget.onCanvasTap,
+                      onTap: canvasTap,
                       child: SceneCanvas(
                         chapter: chapter,
                         media: session.bundle!.media,
                         cameraProgress: progress,
                         sceneTheme: session.bundle!.document.theme,
-                        onPlacementTap: widget.onPlacementTap,
+                        placementEditingEnabled: placementEditingEnabled,
+                        pathEditingEnabled: _isPathMode,
+                        onPlacementTap: placementTap,
                         onPlacementTransformStart: _startPlacementTransform,
                         onPlacementTransformUpdate:
                             (placementId, scaleDelta, delta) =>
@@ -1314,21 +1343,23 @@ class _ProgressText extends StatelessWidget {
 class _Inspector extends StatefulWidget {
   const _Inspector({
     required this.session,
-    required this.panelMode,
+    required this.interactionMode,
     required this.selectedPlacementId,
     required this.panelOpacity,
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
+    required this.onFocusPath,
   });
 
   final EditorSession session;
-  final _EditorPanelMode panelMode;
+  final _EditorInteractionMode interactionMode;
   final String? selectedPlacementId;
   final double panelOpacity;
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
+  final VoidCallback onFocusPath;
 
   @override
   State<_Inspector> createState() => _InspectorState();
@@ -1486,6 +1517,33 @@ class _InspectorState extends State<_Inspector> {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildPathPanel(BuildContext context, GalleryChapter chapter) {
+    return _InspectorSection(
+      title: '路径编辑',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text(
+            '路径模式下，画布缩放和图片拖动会暂时关闭，只处理路径相关操作。',
+            style: TextStyle(fontSize: 11, color: XulangColors.muted),
+          ),
+          const SizedBox(height: 10),
+          if (chapter.layout != GalleryLayout.storyPath)
+            FilledButton.tonal(
+              key: const Key('editor-enable-story-path-layout'),
+              onPressed: () => session.updateChapter(
+                layout: GalleryLayout.storyPath,
+              ),
+              child: const Text('切换到故事路径布局'),
+            )
+          else
+            _buildPathEditor(context, chapter),
+        ],
+      ),
     );
   }
 
@@ -1821,14 +1879,15 @@ class _InspectorState extends State<_Inspector> {
                           ),
                         ),
                         _PanelToggleChip(
-                          selected: widget.panelMode == _EditorPanelMode.canvas,
+                          selected: widget.interactionMode ==
+                              _EditorInteractionMode.canvas,
                           onSelected: (_) => widget.onFocusCanvas(),
                           label: '画布',
                         ),
                         const SizedBox(width: 6),
                         _PanelToggleChip(
-                          selected:
-                              widget.panelMode == _EditorPanelMode.placement &&
+                          selected: widget.interactionMode ==
+                                  _EditorInteractionMode.image &&
                               placement != null,
                           onSelected: (_) {
                             if (placement != null) {
@@ -1837,13 +1896,24 @@ class _InspectorState extends State<_Inspector> {
                           },
                           label: '图片',
                         ),
+                        const SizedBox(width: 6),
+                        _PanelToggleChip(
+                          key: const Key('editor-mode-path'),
+                          selected: widget.interactionMode ==
+                              _EditorInteractionMode.path,
+                          onSelected: (_) => widget.onFocusPath(),
+                          label: '路径',
+                        ),
                       ],
                     ),
                     const SizedBox(height: 14),
-                    if (widget.panelMode == _EditorPanelMode.canvas)
-                      _buildCanvasPanel(context, chapter)
-                    else
-                      _buildPlacementPanel(context, chapter, placement),
+                    switch (widget.interactionMode)
+                      _EditorInteractionMode.canvas =>
+                        _buildCanvasPanel(context, chapter),
+                      _EditorInteractionMode.image =>
+                        _buildPlacementPanel(context, chapter, placement),
+                      _EditorInteractionMode.path =>
+                        _buildPathPanel(context, chapter),
                   ],
                 ),
               ),
@@ -2104,7 +2174,7 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-enum _EditorPanelMode { canvas, placement }
+enum _EditorInteractionMode { canvas, image, path }
 
 class _CropSlider extends StatefulWidget {
   const _CropSlider({
