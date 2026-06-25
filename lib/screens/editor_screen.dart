@@ -2162,13 +2162,7 @@ class _InspectorState extends State<_Inspector> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    switch (widget.interactionMode)
-                      _EditorInteractionMode.canvas =>
-                        _buildCanvasPanel(context, chapter),
-                      _EditorInteractionMode.image =>
-                        _buildPlacementPanel(context, chapter, placement),
-                      _EditorInteractionMode.path =>
-                        _buildPathPanel(context, chapter),
+                    _buildModePanel(context, chapter, placement),
                   ],
                 ),
               ),
@@ -2177,6 +2171,21 @@ class _InspectorState extends State<_Inspector> {
         ),
       ),
     );
+  }
+
+  Widget _buildModePanel(
+    BuildContext context,
+    GalleryChapter chapter,
+    GalleryPlacement? placement,
+  ) {
+    switch (widget.interactionMode) {
+      case _EditorInteractionMode.canvas:
+        return _buildCanvasPanel(context, chapter);
+      case _EditorInteractionMode.image:
+        return _buildPlacementPanel(context, chapter, placement);
+      case _EditorInteractionMode.path:
+        return _buildPathPanel(context, chapter);
+    }
   }
 
   Future<void> _startPathDrawing(BuildContext context) async {
@@ -2368,6 +2377,7 @@ class _PathConnectionSummary extends StatelessWidget {
 
 class _PanelToggleChip extends StatelessWidget {
   const _PanelToggleChip({
+    super.key,
     required this.selected,
     required this.onSelected,
     required this.label,
@@ -2559,6 +2569,7 @@ class _PendingPathConnection {
 
 class _CropSlider extends StatefulWidget {
   const _CropSlider({
+    super.key,
     required this.label,
     required this.value,
     required this.min,
