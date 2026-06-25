@@ -838,13 +838,22 @@ class _PreviewState extends State<_Preview> {
   bool _cameraDragActive = false;
   bool _previewPointerMoved = false;
 
-  bool get _isZoomed {
-    final scale = _zoomController.value.getMaxScaleOnAxis();
-    return scale > 1.05 || scale < 0.95;
-  }
+  double get _currentScale => _zoomController.value.getMaxScaleOnAxis();
+
+  bool get _isZoomed => _currentScale > 1.05 || _currentScale < 0.95;
 
   void _resetZoom() {
     _zoomController.value = Matrix4.identity();
+    setState(() {});
+  }
+
+  void _setPreviewScale(double targetScale, Size viewport) {
+    final scale = targetScale.clamp(0.35, 3.0);
+    final center = Offset(viewport.width / 2, viewport.height / 2);
+    _zoomController.value = Matrix4.identity()
+      ..translate(center.dx, center.dy)
+      ..scale(scale)
+      ..translate(-center.dx, -center.dy);
     setState(() {});
   }
 
@@ -948,86 +957,92 @@ class _PreviewState extends State<_Preview> {
               child: InteractiveViewer(
                 key: const Key('editor-preview-zoom'),
                 transformationController: _zoomController,
-                minScale: 0.5,
+                minScale: 0.35,
                 maxScale: 3.0,
+                boundaryMargin: const EdgeInsets.all(240),
+                constrained: false,
                 panEnabled: true,
                 scaleEnabled: true,
                 onInteractionEnd: (_) => setState(() {}),
-                child: Listener(
-                  onPointerDown: (_) {
-                    _previewPointerCount += 1;
-                    if (_previewPointerCount == 1) {
-                      _previewPointerMoved = false;
-                    }
-                    if (_previewPointerCount > 1) {
-                      _endCameraDragIfNeeded();
-                    } else {
+                child: SizedBox(
+                  width: viewport.width,
+                  height: viewport.height,
+                  child: Listener(
+                    onPointerDown: (_) {
+                      _previewPointerCount += 1;
+                      if (_previewPointerCount == 1) {
+                        _previewPointerMoved = false;
+                      }
+                      if (_previewPointerCount > 1) {
+                        _endCameraDragIfNeeded();
+                      } else {
+                        _beginCameraDragIfNeeded();
+                      }
+                    },
+                    onPointerMove: (event) {
+                      if (event.delta.distance > 2) {
+                        _previewPointerMoved = true;
+                      }
+                      if (_previewPointerCount != 1 || _isZoomed) return;
                       _beginCameraDragIfNeeded();
-                    }
-                  },
-                  onPointerMove: (event) {
-                    if (event.delta.distance > 2) {
-                      _previewPointerMoved = true;
-                    }
-                    if (_previewPointerCount != 1 || _isZoomed) return;
-                    _beginCameraDragIfNeeded();
-                    _cameraController.update(
-                      delta: event.delta,
-                      viewport: viewport,
-                      itemCount: chapter.placements.length,
-                      scale: 1,
-                      axis: NarrativeAxis.fromViewport(viewport),
-                    );
-                    setState(() {
-                      _cameraProgressByChapter[_chapterId] =
-                          _cameraController.progress;
-                    });
-                  },
-                  onPointerUp: (_) {
-                    final wasSingleTap =
-                        _previewPointerCount == 1 && !_previewPointerMoved;
-                    _previewPointerCount = math.max(
-                      0,
-                      _previewPointerCount - 1,
-                    );
-                    if (_previewPointerCount == 0) {
-                      _endCameraDragIfNeeded();
-                    }
-                    if (wasSingleTap) {
-                      widget.onCanvasTap?.call();
-                    }
-                  },
-                  onPointerCancel: (_) {
-                    _previewPointerCount = math.max(
-                      0,
-                      _previewPointerCount - 1,
-                    );
-                    if (_previewPointerCount == 0) {
-                      _endCameraDragIfNeeded();
-                    }
-                  },
-                  child: GestureDetector(
-                    key: const Key('editor-preview-gesture-surface'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: widget.onCanvasTap,
-                    child: SceneCanvas(
-                      chapter: chapter,
-                      media: session.bundle!.media,
-                      cameraProgress: progress,
-                      sceneTheme: session.bundle!.document.theme,
-                      onPlacementTap: widget.onPlacementTap,
-                      onPlacementTransformStart: _startPlacementTransform,
-                      onPlacementTransformUpdate:
-                          (placementId, scaleDelta, delta) =>
-                              _updatePlacementTransform(
-                                placementId,
-                                scaleDelta,
-                                delta,
-                                viewport,
-                              ),
-                      onPlacementTransformEnd: (placementId) {
-                        unawaited(_endPlacementTransform(placementId));
-                      },
+                      _cameraController.update(
+                        delta: event.delta,
+                        viewport: viewport,
+                        itemCount: chapter.placements.length,
+                        scale: 1,
+                        axis: NarrativeAxis.fromViewport(viewport),
+                      );
+                      setState(() {
+                        _cameraProgressByChapter[_chapterId] =
+                            _cameraController.progress;
+                      });
+                    },
+                    onPointerUp: (_) {
+                      final wasSingleTap =
+                          _previewPointerCount == 1 && !_previewPointerMoved;
+                      _previewPointerCount = math.max(
+                        0,
+                        _previewPointerCount - 1,
+                      );
+                      if (_previewPointerCount == 0) {
+                        _endCameraDragIfNeeded();
+                      }
+                      if (wasSingleTap) {
+                        widget.onCanvasTap?.call();
+                      }
+                    },
+                    onPointerCancel: (_) {
+                      _previewPointerCount = math.max(
+                        0,
+                        _previewPointerCount - 1,
+                      );
+                      if (_previewPointerCount == 0) {
+                        _endCameraDragIfNeeded();
+                      }
+                    },
+                    child: GestureDetector(
+                      key: const Key('editor-preview-gesture-surface'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: widget.onCanvasTap,
+                      child: SceneCanvas(
+                        chapter: chapter,
+                        media: session.bundle!.media,
+                        cameraProgress: progress,
+                        sceneTheme: session.bundle!.document.theme,
+                        onPlacementTap: widget.onPlacementTap,
+                        onPlacementTransformStart: _startPlacementTransform,
+                        onPlacementTransformUpdate:
+                            (placementId, scaleDelta, delta) =>
+                                _updatePlacementTransform(
+                                  placementId,
+                                  scaleDelta,
+                                  delta,
+                                  viewport,
+                                ),
+                        onPlacementTransformEnd: (placementId) {
+                          unawaited(_endPlacementTransform(placementId));
+                        },
+                      ),
                     ),
                   ),
                 ),
@@ -1089,41 +1104,49 @@ class _PreviewState extends State<_Preview> {
                 onPressed: session.importing ? null : session.importImages,
               ),
             ),
-            if (_isZoomed)
-              Positioned(
-                left: 14,
-                top: 14,
-                child: _GlassPill(
-                  child: InkWell(
-                    onTap: _resetZoom,
-                    borderRadius: BorderRadius.circular(12),
-                    child: const Padding(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.fit_screen_outlined,
-                            size: 16,
-                            color: XulangColors.paper,
-                          ),
-                          SizedBox(width: 4),
-                          Text(
-                            '重置缩放',
-                            style: TextStyle(
-                              fontSize: 11,
-                              color: XulangColors.paper,
-                            ),
-                          ),
-                        ],
+            Positioned(
+              left: 14,
+              top: 14,
+              child: _GlassPill(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    IconButton(
+                      tooltip: '缩小画布',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () =>
+                          _setPreviewScale(_currentScale - 0.15, viewport),
+                      icon: const Icon(
+                        Icons.zoom_out,
+                        size: 17,
+                        color: XulangColors.paper,
                       ),
                     ),
-                  ),
+                    IconButton(
+                      tooltip: '重置缩放',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: _resetZoom,
+                      icon: const Icon(
+                        Icons.fit_screen_outlined,
+                        size: 17,
+                        color: XulangColors.paper,
+                      ),
+                    ),
+                    IconButton(
+                      tooltip: '放大画布',
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () =>
+                          _setPreviewScale(_currentScale + 0.15, viewport),
+                      icon: const Icon(
+                        Icons.zoom_in,
+                        size: 17,
+                        color: XulangColors.paper,
+                      ),
+                    ),
+                  ],
                 ),
               ),
+            ),
             if (session.error != null)
               Positioned(
                 left: 14,
