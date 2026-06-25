@@ -112,6 +112,25 @@ void main() {
     expect(persisted!.document.theme, GalleryTheme.paper);
   });
 
+  test('updates and clears custom story path anchors', () async {
+    const anchors = [
+      CustomPathAnchor(x: 0.15, y: 0.2, label: 'start'),
+      CustomPathAnchor(x: 0.75, y: 0.8, label: 'end'),
+    ];
+
+    await session.updateChapterPath(anchors);
+
+    expect(session.selectedChapter!.customPathAnchors, anchors);
+    var persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters.single.customPathAnchors, anchors);
+
+    await session.clearCustomPath();
+
+    expect(session.selectedChapter!.customPathAnchors, isNull);
+    persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters.single.customPathAnchors, isNull);
+  });
+
   test('imports and clears local background music', () async {
     final source = File('${mediaRoot.path}/source-track.mp3');
     await source.writeAsBytes([1, 2, 3, 4, 5]);

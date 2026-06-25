@@ -28,7 +28,12 @@ ThemeData buildXulangTheme() {
 
   const serifFamily = 'Noto Serif SC';
   const sansFamily = 'Noto Sans SC';
-  const fallbackFamilies = [serifFamily, sansFamily, 'PingFang SC', 'Microsoft YaHei'];
+  const fallbackFamilies = [
+    serifFamily,
+    sansFamily,
+    'PingFang SC',
+    'Microsoft YaHei',
+  ];
 
   return ThemeData(
     useMaterial3: true,
@@ -384,7 +389,10 @@ ThemeData buildXulangTheme() {
       thumbColor: XulangColors.paper,
       overlayColor: XulangColors.accent.withValues(alpha: .12),
       trackHeight: 3,
-      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6, elevation: 2),
+      thumbShape: const RoundSliderThumbShape(
+        enabledThumbRadius: 6,
+        elevation: 2,
+      ),
       overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
     ),
 
@@ -439,12 +447,14 @@ ThemeData buildXulangTheme() {
         fontSize: 13,
         color: XulangColors.paper,
       ),
-      labelTextStyle: WidgetStateProperty.all(const TextStyle(
-        fontFamily: sansFamily,
-        fontFamilyFallback: fallbackFamilies,
-        fontSize: 13,
-        color: XulangColors.paper,
-      )),
+      labelTextStyle: WidgetStateProperty.all(
+        const TextStyle(
+          fontFamily: sansFamily,
+          fontFamilyFallback: fallbackFamilies,
+          fontSize: 13,
+          color: XulangColors.paper,
+        ),
+      ),
     ),
 
     // Page transitions

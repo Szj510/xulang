@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:drift/drift.dart';
@@ -34,6 +35,7 @@ class Chapters extends Table {
   TextColumn get layout => text()();
   TextColumn get motion => text()();
   TextColumn get pathStyle => text().withDefault(const Constant('solid'))();
+  TextColumn get customPathData => text().nullable()();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -81,7 +83,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 4;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -99,6 +101,9 @@ class GalleryDatabase extends _$GalleryDatabase {
       }
       if (from < 4) {
         await m.addColumn(placements, placements.rotation);
+      }
+      if (from < 5) {
+        await m.addColumn(chapters, chapters.customPathData);
       }
     },
   );
@@ -166,6 +171,9 @@ class GalleryDatabase extends _$GalleryDatabase {
               layout: chapter.layout.name,
               motion: chapter.motion.name,
               pathStyle: Value(chapter.pathStyle.name),
+              customPathData: Value(
+                _encodeCustomPath(chapter.customPathAnchors),
+              ),
             ),
         ]);
         batch.insertAll(placements, [
@@ -240,6 +248,7 @@ class GalleryDatabase extends _$GalleryDatabase {
             chapter.pathStyle,
             StoryPathStyle.solid,
           ),
+          customPathAnchors: _decodeCustomPath(chapter.customPathData),
           placements: [
             for (final item in placementRows)
               GalleryPlacement(
@@ -315,6 +324,26 @@ class GalleryDatabase extends _$GalleryDatabase {
         exhibitions,
       )..where((row) => row.id.equals(exhibitionId))).go();
     });
+  }
+}
+
+String? _encodeCustomPath(List<CustomPathAnchor>? anchors) {
+  if (anchors == null) return null;
+  return jsonEncode([for (final anchor in anchors) anchor.toJson()]);
+}
+
+List<CustomPathAnchor>? _decodeCustomPath(String? data) {
+  if (data == null || data.trim().isEmpty) return null;
+  try {
+    final decoded = jsonDecode(data);
+    if (decoded is! List) return null;
+    return [
+      for (final item in decoded)
+        if (item is Map)
+          CustomPathAnchor.fromJson(Map<String, dynamic>.from(item)),
+    ];
+  } catch (_) {
+    return null;
   }
 }
 

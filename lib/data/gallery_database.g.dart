@@ -675,6 +675,17 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
     requiredDuringInsert: false,
     defaultValue: const Constant('solid'),
   );
+  static const VerificationMeta _customPathDataMeta = const VerificationMeta(
+    'customPathData',
+  );
+  @override
+  late final GeneratedColumn<String> customPathData = GeneratedColumn<String>(
+    'custom_path_data',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -685,6 +696,7 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
     layout,
     motion,
     pathStyle,
+    customPathData,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -760,6 +772,15 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
         pathStyle.isAcceptableOrUnknown(data['path_style']!, _pathStyleMeta),
       );
     }
+    if (data.containsKey('custom_path_data')) {
+      context.handle(
+        _customPathDataMeta,
+        customPathData.isAcceptableOrUnknown(
+          data['custom_path_data']!,
+          _customPathDataMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -801,6 +822,10 @@ class $ChaptersTable extends Chapters with TableInfo<$ChaptersTable, Chapter> {
         DriftSqlType.string,
         data['${effectivePrefix}path_style'],
       )!,
+      customPathData: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}custom_path_data'],
+      ),
     );
   }
 
@@ -819,6 +844,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
   final String layout;
   final String motion;
   final String pathStyle;
+  final String? customPathData;
   const Chapter({
     required this.id,
     required this.exhibitionId,
@@ -828,6 +854,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     required this.layout,
     required this.motion,
     required this.pathStyle,
+    this.customPathData,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -840,6 +867,9 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     map['layout'] = Variable<String>(layout);
     map['motion'] = Variable<String>(motion);
     map['path_style'] = Variable<String>(pathStyle);
+    if (!nullToAbsent || customPathData != null) {
+      map['custom_path_data'] = Variable<String>(customPathData);
+    }
     return map;
   }
 
@@ -853,6 +883,9 @@ class Chapter extends DataClass implements Insertable<Chapter> {
       layout: Value(layout),
       motion: Value(motion),
       pathStyle: Value(pathStyle),
+      customPathData: customPathData == null && nullToAbsent
+          ? const Value.absent()
+          : Value(customPathData),
     );
   }
 
@@ -870,6 +903,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
       layout: serializer.fromJson<String>(json['layout']),
       motion: serializer.fromJson<String>(json['motion']),
       pathStyle: serializer.fromJson<String>(json['pathStyle']),
+      customPathData: serializer.fromJson<String?>(json['customPathData']),
     );
   }
   @override
@@ -884,6 +918,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
       'layout': serializer.toJson<String>(layout),
       'motion': serializer.toJson<String>(motion),
       'pathStyle': serializer.toJson<String>(pathStyle),
+      'customPathData': serializer.toJson<String?>(customPathData),
     };
   }
 
@@ -896,6 +931,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     String? layout,
     String? motion,
     String? pathStyle,
+    Value<String?> customPathData = const Value.absent(),
   }) => Chapter(
     id: id ?? this.id,
     exhibitionId: exhibitionId ?? this.exhibitionId,
@@ -905,6 +941,9 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     layout: layout ?? this.layout,
     motion: motion ?? this.motion,
     pathStyle: pathStyle ?? this.pathStyle,
+    customPathData: customPathData.present
+        ? customPathData.value
+        : this.customPathData,
   );
   Chapter copyWithCompanion(ChaptersCompanion data) {
     return Chapter(
@@ -918,6 +957,9 @@ class Chapter extends DataClass implements Insertable<Chapter> {
       layout: data.layout.present ? data.layout.value : this.layout,
       motion: data.motion.present ? data.motion.value : this.motion,
       pathStyle: data.pathStyle.present ? data.pathStyle.value : this.pathStyle,
+      customPathData: data.customPathData.present
+          ? data.customPathData.value
+          : this.customPathData,
     );
   }
 
@@ -931,7 +973,8 @@ class Chapter extends DataClass implements Insertable<Chapter> {
           ..write('sortOrder: $sortOrder, ')
           ..write('layout: $layout, ')
           ..write('motion: $motion, ')
-          ..write('pathStyle: $pathStyle')
+          ..write('pathStyle: $pathStyle, ')
+          ..write('customPathData: $customPathData')
           ..write(')'))
         .toString();
   }
@@ -946,6 +989,7 @@ class Chapter extends DataClass implements Insertable<Chapter> {
     layout,
     motion,
     pathStyle,
+    customPathData,
   );
   @override
   bool operator ==(Object other) =>
@@ -958,7 +1002,8 @@ class Chapter extends DataClass implements Insertable<Chapter> {
           other.sortOrder == this.sortOrder &&
           other.layout == this.layout &&
           other.motion == this.motion &&
-          other.pathStyle == this.pathStyle);
+          other.pathStyle == this.pathStyle &&
+          other.customPathData == this.customPathData);
 }
 
 class ChaptersCompanion extends UpdateCompanion<Chapter> {
@@ -970,6 +1015,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
   final Value<String> layout;
   final Value<String> motion;
   final Value<String> pathStyle;
+  final Value<String?> customPathData;
   final Value<int> rowid;
   const ChaptersCompanion({
     this.id = const Value.absent(),
@@ -980,6 +1026,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     this.layout = const Value.absent(),
     this.motion = const Value.absent(),
     this.pathStyle = const Value.absent(),
+    this.customPathData = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   ChaptersCompanion.insert({
@@ -991,6 +1038,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     required String layout,
     required String motion,
     this.pathStyle = const Value.absent(),
+    this.customPathData = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        exhibitionId = Value(exhibitionId),
@@ -1008,6 +1056,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     Expression<String>? layout,
     Expression<String>? motion,
     Expression<String>? pathStyle,
+    Expression<String>? customPathData,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -1019,6 +1068,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
       if (layout != null) 'layout': layout,
       if (motion != null) 'motion': motion,
       if (pathStyle != null) 'path_style': pathStyle,
+      if (customPathData != null) 'custom_path_data': customPathData,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -1032,6 +1082,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     Value<String>? layout,
     Value<String>? motion,
     Value<String>? pathStyle,
+    Value<String?>? customPathData,
     Value<int>? rowid,
   }) {
     return ChaptersCompanion(
@@ -1043,6 +1094,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
       layout: layout ?? this.layout,
       motion: motion ?? this.motion,
       pathStyle: pathStyle ?? this.pathStyle,
+      customPathData: customPathData ?? this.customPathData,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -1074,6 +1126,9 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
     if (pathStyle.present) {
       map['path_style'] = Variable<String>(pathStyle.value);
     }
+    if (customPathData.present) {
+      map['custom_path_data'] = Variable<String>(customPathData.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -1091,6 +1146,7 @@ class ChaptersCompanion extends UpdateCompanion<Chapter> {
           ..write('layout: $layout, ')
           ..write('motion: $motion, ')
           ..write('pathStyle: $pathStyle, ')
+          ..write('customPathData: $customPathData, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2898,6 +2954,7 @@ typedef $$ChaptersTableCreateCompanionBuilder =
       required String layout,
       required String motion,
       Value<String> pathStyle,
+      Value<String?> customPathData,
       Value<int> rowid,
     });
 typedef $$ChaptersTableUpdateCompanionBuilder =
@@ -2910,6 +2967,7 @@ typedef $$ChaptersTableUpdateCompanionBuilder =
       Value<String> layout,
       Value<String> motion,
       Value<String> pathStyle,
+      Value<String?> customPathData,
       Value<int> rowid,
     });
 
@@ -2994,6 +3052,11 @@ class $$ChaptersTableFilterComposer
 
   ColumnFilters<String> get pathStyle => $composableBuilder(
     column: $table.pathStyle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get customPathData => $composableBuilder(
+    column: $table.customPathData,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3090,6 +3153,11 @@ class $$ChaptersTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get customPathData => $composableBuilder(
+    column: $table.customPathData,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ExhibitionsTableOrderingComposer get exhibitionId {
     final $$ExhibitionsTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -3143,6 +3211,11 @@ class $$ChaptersTableAnnotationComposer
 
   GeneratedColumn<String> get pathStyle =>
       $composableBuilder(column: $table.pathStyle, builder: (column) => column);
+
+  GeneratedColumn<String> get customPathData => $composableBuilder(
+    column: $table.customPathData,
+    builder: (column) => column,
+  );
 
   $$ExhibitionsTableAnnotationComposer get exhibitionId {
     final $$ExhibitionsTableAnnotationComposer composer = $composerBuilder(
@@ -3229,6 +3302,7 @@ class $$ChaptersTableTableManager
                 Value<String> layout = const Value.absent(),
                 Value<String> motion = const Value.absent(),
                 Value<String> pathStyle = const Value.absent(),
+                Value<String?> customPathData = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ChaptersCompanion(
                 id: id,
@@ -3239,6 +3313,7 @@ class $$ChaptersTableTableManager
                 layout: layout,
                 motion: motion,
                 pathStyle: pathStyle,
+                customPathData: customPathData,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3251,6 +3326,7 @@ class $$ChaptersTableTableManager
                 required String layout,
                 required String motion,
                 Value<String> pathStyle = const Value.absent(),
+                Value<String?> customPathData = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => ChaptersCompanion.insert(
                 id: id,
@@ -3261,6 +3337,7 @@ class $$ChaptersTableTableManager
                 layout: layout,
                 motion: motion,
                 pathStyle: pathStyle,
+                customPathData: customPathData,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

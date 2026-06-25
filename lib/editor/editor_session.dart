@@ -206,6 +206,7 @@ class EditorSession extends ChangeNotifier {
     GalleryLayout? layout,
     GalleryMotion? motion,
     StoryPathStyle? pathStyle,
+    Object? customPathAnchors = _editorUnchanged,
   }) async {
     final current = bundle;
     if (current == null) return;
@@ -217,6 +218,9 @@ class EditorSession extends ChangeNotifier {
       layout: layout,
       motion: motion,
       pathStyle: pathStyle,
+      customPathAnchors: identical(customPathAnchors, _editorUnchanged)
+          ? chapter.customPathAnchors
+          : customPathAnchors as List<CustomPathAnchor>?,
     );
     await _commit(
       current.copyWith(
@@ -226,6 +230,14 @@ class EditorSession extends ChangeNotifier {
         ),
       ),
     );
+  }
+
+  Future<void> updateChapterPath(List<CustomPathAnchor> anchors) async {
+    await updateChapter(customPathAnchors: anchors);
+  }
+
+  Future<void> clearCustomPath() async {
+    await updateChapter(customPathAnchors: null);
   }
 
   Future<void> updatePlacement(
@@ -380,3 +392,5 @@ class EditorSession extends ChangeNotifier {
     super.dispose();
   }
 }
+
+const Object _editorUnchanged = Object();

@@ -62,8 +62,15 @@ class SceneCanvas extends StatelessWidget {
           progress: progress,
           reduceMotion: reduceMotion,
         );
+        final customPathAnchors = chapter.customPathAnchors;
+        final basePath = customPathAnchors == null
+            ? frame.path
+            : resolveCustomStoryPathGeometry(
+                anchors: customPathAnchors,
+                viewport: viewport,
+              );
         final displayedGeometry = transformStoryPathGeometry(
-          geometry: frame.path,
+          geometry: basePath,
           motion: motion,
           viewport: viewport,
         );
@@ -120,7 +127,8 @@ class SceneCanvas extends StatelessWidget {
                       onTransformUpdate: onPlacementTransformUpdate,
                       onTransformEnd: onPlacementTransformEnd,
                     ),
-                if (chapter.layout == GalleryLayout.storyPath)
+                if (chapter.layout == GalleryLayout.storyPath &&
+                    customPathAnchors == null)
                   for (
                     var index = 0;
                     index < chapter.placements.length;
@@ -139,11 +147,68 @@ class SceneCanvas extends StatelessWidget {
                         sceneTheme: sceneTheme,
                         viewport: viewport,
                       ),
+                if (chapter.layout == GalleryLayout.storyPath &&
+                    customPathAnchors != null)
+                  for (
+                    var index = 0;
+                    index < customPathAnchors.length &&
+                        index < displayedGeometry.anchors.length;
+                    index++
+                  )
+                    _CustomStoryPathLabel(
+                      anchor: displayedGeometry.anchors[index],
+                      source: customPathAnchors[index],
+                      index: index,
+                      opacity: motion.opacity,
+                      sceneTheme: sceneTheme,
+                    ),
               ],
             ),
           ),
         );
       },
+    );
+  }
+}
+
+class _CustomStoryPathLabel extends StatelessWidget {
+  const _CustomStoryPathLabel({
+    required this.anchor,
+    required this.source,
+    required this.index,
+    required this.opacity,
+    required this.sceneTheme,
+  });
+
+  final StoryPathAnchor anchor;
+  final CustomPathAnchor source;
+  final int index;
+  final double opacity;
+  final GalleryTheme sceneTheme;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = sceneTheme == GalleryTheme.paper
+        ? XulangColors.ink
+        : XulangColors.paper;
+    final text = source.label.trim().isEmpty ? '点 ${index + 1}' : source.label;
+    return Positioned(
+      left: anchor.point.dx + 8,
+      top: anchor.point.dy - 12,
+      child: IgnorePointer(
+        child: Opacity(
+          opacity: (opacity * .82).clamp(0, 1),
+          child: Text(
+            text,
+            style: TextStyle(
+              color: foreground.withValues(alpha: .72),
+              fontFamily: 'serif',
+              fontSize: 11,
+              letterSpacing: .8,
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -528,6 +593,56 @@ StoryPathGeometry transformStoryPathGeometry({
     anchors: transformedAnchors,
     segments: transformedSegments,
   );
+}
+
+StoryPathGeometry resolveCustomStoryPathGeometry({
+  required List<CustomPathAnchor> anchors,
+  required Size viewport,
+}) {
+  if (anchors.isEmpty || viewport.isEmpty) {
+    return const StoryPathGeometry.empty();
+  }
+
+  Offset normalizedPoint(double x, double y) => Offset(
+    x.clamp(0.0, 1.0) * viewport.width,
+    y.clamp(0.0, 1.0) * viewport.height,
+  );
+
+  final resolvedAnchors = <StoryPathAnchor>[];
+  for (var index = 0; index < anchors.length; index++) {
+    final point = normalizedPoint(anchors[index].x, anchors[index].y);
+    resolvedAnchors.add(
+      StoryPathAnchor(
+        placementId: 'custom-path-$index',
+        point: point,
+        nodeRect: Rect.fromCenter(center: point, width: 1, height: 1),
+      ),
+    );
+  }
+
+  final segments = <StoryPathSegment>[];
+  for (var index = 1; index < resolvedAnchors.length; index++) {
+    final previousSource = anchors[index - 1];
+    final source = anchors[index];
+    final start = resolvedAnchors[index - 1].point;
+    final end = resolvedAnchors[index].point;
+    final control1 = previousSource.cp1x == null || previousSource.cp1y == null
+        ? Offset.lerp(start, end, .34)!
+        : normalizedPoint(previousSource.cp1x!, previousSource.cp1y!);
+    final control2 = source.cp2x == null || source.cp2y == null
+        ? Offset.lerp(start, end, .66)!
+        : normalizedPoint(source.cp2x!, source.cp2y!);
+    segments.add(
+      StoryPathSegment(
+        start: start,
+        control1: control1,
+        control2: control2,
+        end: end,
+      ),
+    );
+  }
+
+  return StoryPathGeometry(anchors: resolvedAnchors, segments: segments);
 }
 
 class StoryPathPainter extends CustomPainter {
