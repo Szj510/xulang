@@ -131,6 +131,51 @@ void main() {
     expect(persisted!.document.chapters.single.customPathAnchors, isNull);
   });
 
+  test('adds updates removes and clears custom path connections', () async {
+    const connection = CustomPathConnection(
+      id: 'connection-1',
+      fromPlacementId: 'placement',
+      toPlacementId: 'placement-2',
+      points: [
+        CustomPathPoint(x: 0.1, y: 0.2),
+        CustomPathPoint(x: 0.7, y: 0.8),
+      ],
+      note: 'first note',
+      noteX: 0.4,
+      noteY: 0.5,
+    );
+
+    await session.addCustomPathConnection(connection);
+
+    expect(session.selectedChapter!.customPathConnections, [connection]);
+    var persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters.single.customPathConnections, [
+      connection,
+    ]);
+
+    final updated = connection.copyWith(note: 'updated note', noteX: 0.6);
+    await session.updateCustomPathConnection(updated);
+
+    expect(session.selectedChapter!.customPathConnections, [updated]);
+    persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters.single.customPathConnections, [
+      updated,
+    ]);
+
+    await session.removeCustomPathConnection(connection.id);
+
+    expect(session.selectedChapter!.customPathConnections, isEmpty);
+    persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters.single.customPathConnections, isEmpty);
+
+    await session.addCustomPathConnection(connection);
+    await session.clearCustomPathConnections();
+
+    expect(session.selectedChapter!.customPathConnections, isEmpty);
+    persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters.single.customPathConnections, isEmpty);
+  });
+
   test('imports and clears local background music', () async {
     final source = File('${mediaRoot.path}/source-track.mp3');
     await source.writeAsBytes([1, 2, 3, 4, 5]);

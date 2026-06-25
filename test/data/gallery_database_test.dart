@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart';
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xulang/data/gallery_database.dart';
@@ -47,6 +48,21 @@ void main() {
             ),
             CustomPathAnchor(x: 0.8, y: 0.72, label: 'return'),
           ],
+          customPathConnections: [
+            CustomPathConnection(
+              id: 'connection-1',
+              fromPlacementId: 'placement-1',
+              toPlacementId: 'placement-2',
+              points: [
+                CustomPathPoint(x: 0.2, y: 0.3),
+                CustomPathPoint(x: 0.5, y: 0.45),
+                CustomPathPoint(x: 0.8, y: 0.72),
+              ],
+              note: '沿海回望',
+              noteX: 0.52,
+              noteY: 0.4,
+            ),
+          ],
           placements: [
             GalleryPlacement(
               id: 'placement-1',
@@ -91,6 +107,11 @@ void main() {
     expect(restored.chapters.single.customPathAnchors!.first.label, 'start');
     expect(restored.chapters.single.customPathAnchors!.first.cp1x, 0.28);
     expect(restored.chapters.single.customPathAnchors!.last.x, 0.8);
+    expect(restored.chapters.single.customPathConnections, hasLength(1));
+    expect(
+      restored.chapters.single.customPathConnections.single,
+      document.chapters.single.customPathConnections.single,
+    );
     expect(
       restored.chapters.single.placements.single.frame,
       GalleryFrame.stamp,
@@ -100,6 +121,40 @@ void main() {
     expect(restored.chapters.single.placements.single.offsetX, 0.12);
     expect(restored.chapters.single.placements.single.offsetY, -0.08);
     expect(restoredMedia.single.contentHash, 'abc123');
+  });
+
+  test('loads legacy custom path anchor arrays', () async {
+    final now = DateTime.utc(2026, 6, 22);
+    await database.into(database.exhibitions).insert(
+      ExhibitionsCompanion.insert(
+        id: 'legacy-exhibition',
+        title: '旧路径',
+        theme: GalleryTheme.ink.name,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+    await database.into(database.chapters).insert(
+      ChaptersCompanion.insert(
+        id: 'legacy-chapter',
+        exhibitionId: 'legacy-exhibition',
+        title: '旧章节',
+        caption: '',
+        sortOrder: 0,
+        layout: GalleryLayout.storyPath.name,
+        motion: GalleryMotion.push.name,
+        customPathData: const Value(
+          '[{"x":0.25,"y":0.35,"label":"legacy"}]',
+        ),
+      ),
+    );
+
+    final restored = await database.loadDocument('legacy-exhibition');
+
+    expect(restored, isNotNull);
+    expect(restored!.chapters.single.customPathAnchors, hasLength(1));
+    expect(restored.chapters.single.customPathAnchors!.single.label, 'legacy');
+    expect(restored.chapters.single.customPathConnections, isEmpty);
   });
 
   test('deleting an exhibition cascades to its story records', () async {

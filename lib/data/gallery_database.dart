@@ -172,7 +172,10 @@ class GalleryDatabase extends _$GalleryDatabase {
               motion: chapter.motion.name,
               pathStyle: Value(chapter.pathStyle.name),
               customPathData: Value(
-                _encodeCustomPath(chapter.customPathAnchors),
+                _encodeCustomPath(
+                  anchors: chapter.customPathAnchors,
+                  connections: chapter.customPathConnections,
+                ),
               ),
             ),
         ]);
@@ -230,6 +233,7 @@ class GalleryDatabase extends _$GalleryDatabase {
             .get();
     final restoredChapters = <GalleryChapter>[];
     for (final chapter in chapterRows) {
+      final customPath = _decodeCustomPath(chapter.customPathData);
       final placementRows =
           await (select(placements)
                 ..where((row) => row.chapterId.equals(chapter.id))
@@ -248,7 +252,8 @@ class GalleryDatabase extends _$GalleryDatabase {
             chapter.pathStyle,
             StoryPathStyle.solid,
           ),
-          customPathAnchors: _decodeCustomPath(chapter.customPathData),
+          customPathAnchors: customPath.anchors,
+          customPathConnections: customPath.connections,
           placements: [
             for (final item in placementRows)
               GalleryPlacement(
@@ -327,24 +332,64 @@ class GalleryDatabase extends _$GalleryDatabase {
   }
 }
 
-String? _encodeCustomPath(List<CustomPathAnchor>? anchors) {
-  if (anchors == null) return null;
-  return jsonEncode([for (final anchor in anchors) anchor.toJson()]);
+String? _encodeCustomPath({
+  List<CustomPathAnchor>? anchors,
+  List<CustomPathConnection> connections = const [],
+}) {
+  if (anchors == null && connections.isEmpty) return null;
+  return jsonEncode({
+    'version': 2,
+    'anchors': [
+      for (final anchor in anchors ?? const <CustomPathAnchor>[])
+        anchor.toJson(),
+    ],
+    'connections': [for (final connection in connections) connection.toJson()],
+  });
 }
 
-List<CustomPathAnchor>? _decodeCustomPath(String? data) {
-  if (data == null || data.trim().isEmpty) return null;
+_DecodedCustomPath _decodeCustomPath(String? data) {
+  if (data == null || data.trim().isEmpty) {
+    return const _DecodedCustomPath();
+  }
   try {
     final decoded = jsonDecode(data);
-    if (decoded is! List) return null;
-    return [
-      for (final item in decoded)
-        if (item is Map)
-          CustomPathAnchor.fromJson(Map<String, dynamic>.from(item)),
-    ];
+    if (decoded is List) {
+      return _DecodedCustomPath(anchors: _decodeLegacyAnchors(decoded));
+    }
+    if (decoded is Map) {
+      final json = Map<String, dynamic>.from(decoded);
+      return _DecodedCustomPath(
+        anchors: _decodeLegacyAnchors(json['anchors'] as List? ?? const []),
+        connections: _decodeConnections(json['connections'] as List? ?? const []),
+      );
+    }
+    return const _DecodedCustomPath();
   } catch (_) {
-    return null;
+    return const _DecodedCustomPath();
   }
+}
+
+List<CustomPathAnchor>? _decodeLegacyAnchors(List data) {
+  final anchors = [
+    for (final item in data)
+      if (item is Map) CustomPathAnchor.fromJson(Map<String, dynamic>.from(item)),
+  ];
+  return anchors.isEmpty ? null : anchors;
+}
+
+List<CustomPathConnection> _decodeConnections(List data) {
+  return [
+    for (final item in data)
+      if (item is Map)
+        CustomPathConnection.fromJson(Map<String, dynamic>.from(item)),
+  ];
+}
+
+class _DecodedCustomPath {
+  const _DecodedCustomPath({this.anchors, this.connections = const []});
+
+  final List<CustomPathAnchor>? anchors;
+  final List<CustomPathConnection> connections;
 }
 
 T _enumByName<T extends Enum>(List<T> values, String name, T fallback) {
