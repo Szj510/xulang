@@ -1059,6 +1059,7 @@ class _PreviewState extends State<_Preview> {
         final placementEditingEnabled = _isImageMode;
         final canvasTap = _isCanvasMode ? widget.onCanvasTap : null;
         final placementTap = (_isPathMode || _isStickerMode) ? null : widget.onPlacementTap;
+        final worldSize = Size(viewport.width * 3.2, viewport.height * 3.2);
         return Stack(
           children: [
             Positioned.fill(
@@ -1067,20 +1068,19 @@ class _PreviewState extends State<_Preview> {
                 transformationController: _zoomController,
                 minScale: 0.35,
                 maxScale: 3.0,
-                boundaryMargin: const EdgeInsets.all(240),
+                boundaryMargin: EdgeInsets.all(
+                  math.max(viewport.width, viewport.height),
+                ),
                 constrained: false,
                 alignment: Alignment.center,
                 panEnabled: _isCanvasMode,
                 scaleEnabled: _isCanvasMode,
                 onInteractionEnd: (_) => setState(() {}),
                 child: SizedBox(
-                  width: viewport.width * 2.6,
-                  height: viewport.height * 2.6,
-                  child: Center(
-                    child: SizedBox(
-                      width: viewport.width,
-                      height: viewport.height,
-                      child: Listener(
+                  key: const Key('editor-infinite-world'),
+                  width: worldSize.width,
+                  height: worldSize.height,
+                  child: Listener(
                     onPointerDown: (_) {
                       _previewPointerCount += 1;
                       if (_previewPointerCount == 1) {
@@ -1161,7 +1161,7 @@ class _PreviewState extends State<_Preview> {
                                   placementId,
                                   scaleDelta,
                                   delta,
-                                  viewport,
+                                  worldSize,
                                 ),
                         onPlacementTransformEnd: (placementId) {
                           unawaited(_endPlacementTransform(placementId));
@@ -1171,8 +1171,6 @@ class _PreviewState extends State<_Preview> {
                   ),
                 ),
               ),
-            ),
-            ),
             ),
             if (chapter.placements.length > 1)
               if (landscape)
