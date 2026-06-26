@@ -168,6 +168,9 @@ void main() {
       find.byKey(const Key('editor-preview-zoom')),
     );
     expect(viewer.transformationController!.value.getMaxScaleOnAxis(), 1);
+    final worldSize = tester.getSize(find.byKey(const Key('editor-infinite-world')));
+    expect(worldSize.width, greaterThan(390));
+    expect(worldSize.height, greaterThan(844));
     expect(find.byIcon(Icons.zoom_out), findsOneWidget);
     expect(find.byIcon(Icons.fit_screen_outlined), findsOneWidget);
     expect(find.byIcon(Icons.zoom_in), findsOneWidget);
