@@ -74,7 +74,7 @@ void main() {
     expect(find.textContaining('进度 0%'), findsNothing);
   });
 
-  testWidgets('recording mode hides playback chrome and progress overlays', (
+  testWidgets('recording mode hides chrome and restores it after replay double tap', (
     tester,
   ) async {
     await pumpViewer(tester);
@@ -87,6 +87,23 @@ void main() {
     expect(find.byKey(const Key('viewer-caption-scrim')), findsNothing);
     expect(find.byKey(const Key('viewer-track-progress')), findsNothing);
     expect(find.byKey(const Key('viewer-recording-mode')), findsNothing);
+
+    await tester.pump(const Duration(seconds: 7));
+    final surfaceCenter = tester.getCenter(
+      find.byKey(const Key('narrative-gesture-surface')),
+    );
+    await tester.tapAt(surfaceCenter);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('viewer-recording-mode')), findsNothing);
+
+    await tester.tapAt(surfaceCenter);
+    await tester.pump(const Duration(milliseconds: 80));
+    await tester.tapAt(surfaceCenter);
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('viewer-top-scrim')), findsOneWidget);
+    expect(find.byKey(const Key('viewer-caption-scrim')), findsOneWidget);
+    expect(find.byKey(const Key('viewer-recording-mode')), findsOneWidget);
   });
 
   testWidgets('keeps camera progress through orientation changes', (
