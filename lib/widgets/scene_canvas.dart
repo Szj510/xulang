@@ -252,9 +252,11 @@ class _StickerWidget extends StatelessWidget {
     const baseSize = 42.0;
     final size = baseSize * sticker.scale.clamp(0.6, 1.8);
     final left = (sticker.x.clamp(0.0, 1.0) * viewport.width - size / 2)
-        .clamp(6.0, math.max(6.0, viewport.width - size - 6));
+        .clamp(6.0, math.max(6.0, viewport.width - size - 6))
+        .toDouble();
     final top = (sticker.y.clamp(0.0, 1.0) * viewport.height - size / 2)
-        .clamp(6.0, math.max(6.0, viewport.height - size - 6));
+        .clamp(6.0, math.max(6.0, viewport.height - size - 6))
+        .toDouble();
     return Positioned(
       left: left,
       top: top,
@@ -869,14 +871,6 @@ StoryPathGeometry resolveCustomStoryPathGeometry({
   }
 
   return StoryPathGeometry(anchors: resolvedAnchors, segments: segments);
-}
-
-CustomPathPoint _normalizeCustomPathPoint(Offset point, Size viewport) {
-  if (viewport.isEmpty) return const CustomPathPoint(x: 0, y: 0);
-  return CustomPathPoint(
-    x: (point.dx / viewport.width).clamp(0.0, 1.0),
-    y: (point.dy / viewport.height).clamp(0.0, 1.0),
-  );
 }
 
 Offset _resolveCustomPathPoint(CustomPathPoint point, Size size) {

@@ -933,9 +933,13 @@ class _PreviewState extends State<_Preview> {
     final scale = targetScale.clamp(0.35, 3.0);
     final center = Offset(viewport.width / 2, viewport.height / 2);
     _zoomController.value = Matrix4.identity()
-      ..translate(center.dx, center.dy)
-      ..scale(scale)
-      ..translate(-center.dx, -center.dy);
+      ..setEntry(0, 0, scale)
+      ..setEntry(1, 1, scale)
+      ..setTranslationRaw(
+        center.dx * (1 - scale),
+        center.dy * (1 - scale),
+        0,
+      );
     setState(() {});
   }
 
@@ -1167,6 +1171,8 @@ class _PreviewState extends State<_Preview> {
                   ),
                 ),
               ),
+            ),
+            ),
             ),
             if (chapter.placements.length > 1)
               if (landscape)
