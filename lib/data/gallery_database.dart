@@ -246,7 +246,7 @@ class GalleryDatabase extends _$GalleryDatabase {
           title: chapter.title,
           caption: chapter.caption,
           order: chapter.sortOrder,
-          layout: GalleryLayout.values.byName(chapter.layout),
+          layout: _decodeLayout(chapter.layout),
           motion: GalleryMotion.values.byName(chapter.motion),
           pathStyle: _enumByName(
             StoryPathStyle.values,
@@ -407,6 +407,11 @@ class _DecodedCustomPath {
   final List<CustomPathAnchor>? anchors;
   final List<CustomPathConnection> connections;
   final List<GallerySticker> stickers;
+}
+
+GalleryLayout _decodeLayout(String name) {
+  if (name == 'depthWall') return GalleryLayout.collage;
+  return _enumByName(GalleryLayout.values, name, GalleryLayout.hero);
 }
 
 T _enumByName<T extends Enum>(List<T> values, String name, T fallback) {

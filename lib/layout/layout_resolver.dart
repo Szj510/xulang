@@ -17,7 +17,7 @@ class LayoutResolver {
       GalleryLayout.diptych => _diptych(chapter.placements, viewport),
       GalleryLayout.collage => _collage(chapter.placements, viewport),
       GalleryLayout.storyPath => _storyPath(chapter.placements, viewport),
-      GalleryLayout.depthWall => _depthWall(chapter.placements, viewport),
+
     };
   }
 
@@ -321,93 +321,6 @@ class LayoutResolver {
       nodes: nodes,
       primaryAxis: primaryAxis,
       contentExtent: math.max(primarySize, cursor + primarySize * .10),
-    );
-  }
-
-  static ResolvedScene _depthWall(List<GalleryPlacement> items, Size size) {
-    final axis = NarrativeAxis.fromViewport(size);
-    final primaryAxis = axis == NarrativeAxis.horizontal
-        ? Axis.horizontal
-        : Axis.vertical;
-    if (!size.width.isFinite ||
-        !size.height.isFinite ||
-        size.width <= 0 ||
-        size.height <= 0) {
-      return ResolvedScene(
-        nodes: const [],
-        primaryAxis: primaryAxis,
-        contentExtent: 0,
-      );
-    }
-
-    final portrait = axis == NarrativeAxis.vertical;
-    final primarySize = axis.primaryExtent(size);
-    final crossSize = axis.crossExtent(size);
-    final nodes = <SceneNode>[];
-    var cursor = primarySize * .18;
-
-    for (var index = 0; index < items.length; index++) {
-      final item = items[index];
-      final slot = index % 3;
-      final group = index ~/ 3;
-      final depthBase = switch (slot) {
-        0 => .62,
-        1 => 1.12,
-        _ => .68,
-      };
-      final depth = (depthBase - group * .08).clamp(.35, 1.15);
-      final scale = _sizeScale(item.size);
-      final nodeWidth =
-          size.width * (portrait ? (slot == 1 ? .46 : .45) : .30) * scale;
-      final nodeHeight =
-          size.height * (portrait ? (slot == 1 ? .38 : .48) : .62) * scale;
-      final crossStart = portrait
-          ? switch (slot) {
-              0 => -nodeWidth * .22,
-              1 => (crossSize - nodeWidth) / 2,
-              _ => crossSize - nodeWidth * .78,
-            }
-          : switch (slot) {
-              0 => 22.0,
-              1 => (crossSize - nodeHeight) / 2,
-              _ => crossSize - nodeHeight - 22,
-            };
-      final primaryShift = switch (slot) {
-        0 => primarySize * .08,
-        1 => primarySize * .16,
-        _ => primarySize * .08,
-      };
-      final rect = axis.shiftPrimary(
-        portrait
-            ? Rect.fromLTWH(crossStart, 0, nodeWidth, nodeHeight)
-            : Rect.fromLTWH(0, crossStart, nodeWidth, nodeHeight),
-        cursor + primaryShift,
-      );
-      nodes.add(
-        _applyManualTransform(
-          item: item,
-          viewport: size,
-          node: SceneNode(
-            placementId: item.id,
-            rect: rect,
-            depth: depth.clamp(0.0, 1.15),
-            rotation: switch (slot) {
-              0 => -.035,
-              1 => 0,
-              _ => .035,
-            },
-          ),
-        ),
-      );
-      if (slot == 2) {
-        cursor = axis.primaryOffset(rect.bottomRight) + primarySize * .18;
-      }
-    }
-
-    return ResolvedScene(
-      nodes: nodes,
-      primaryAxis: primaryAxis,
-      contentExtent: math.max(primarySize, cursor + primarySize * .18),
     );
   }
 
