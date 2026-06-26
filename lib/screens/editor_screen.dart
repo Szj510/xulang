@@ -381,7 +381,7 @@ class _EditorBodyState extends State<_EditorBody> {
                         onPanelOpacityChanged: _setPanelOpacity,
                         onFocusCanvas: _focusCanvas,
                         onFocusPlacement: _focusPlacement,
-                        
+
                         onFocusSticker: _focusSticker,
                         onSelectStickerKind: _selectStickerKind,
                         onDismiss: _dismissPanel,
@@ -431,7 +431,7 @@ class _EditorBodyState extends State<_EditorBody> {
                       onPanelOpacityChanged: _setPanelOpacity,
                       onFocusCanvas: _focusCanvas,
                       onFocusPlacement: _focusPlacement,
-                      
+
                       onFocusSticker: _focusSticker,
                       onSelectStickerKind: _selectStickerKind,
                       onDismiss: _dismissPanel,
@@ -787,7 +787,7 @@ class _FloatingPanelState extends State<_FloatingPanel>
                         onPanelOpacityChanged: widget.onPanelOpacityChanged,
                         onFocusCanvas: widget.onFocusCanvas,
                         onFocusPlacement: widget.onFocusPlacement,
-                        
+
                         onFocusSticker: widget.onFocusSticker,
                         onSelectStickerKind: widget.onSelectStickerKind,
                       ),
@@ -925,11 +925,7 @@ class _PreviewState extends State<_Preview> {
     _zoomController.value = Matrix4.identity()
       ..setEntry(0, 0, scale)
       ..setEntry(1, 1, scale)
-      ..setTranslationRaw(
-        center.dx * (1 - scale),
-        center.dy * (1 - scale),
-        0,
-      );
+      ..setTranslationRaw(center.dx * (1 - scale), center.dy * (1 - scale), 0);
     setState(() {});
   }
 
@@ -1046,6 +1042,7 @@ class _PreviewState extends State<_Preview> {
         final chapter = _chapterWithDrafts(session.selectedChapter!);
         final progress = _cameraProgress;
         final placementEditingEnabled = _isImageMode;
+        final canvasNavigationEnabled = _isCanvasMode || _isStickerMode;
         final canvasTap = _isCanvasMode ? widget.onCanvasTap : null;
         final placementTap = _isStickerMode ? null : widget.onPlacementTap;
         final worldSize = Size(viewport.width * 3.2, viewport.height * 3.2);
@@ -1062,8 +1059,8 @@ class _PreviewState extends State<_Preview> {
                 ),
                 constrained: false,
                 alignment: Alignment.center,
-                panEnabled: _isCanvasMode,
-                scaleEnabled: _isCanvasMode,
+                panEnabled: canvasNavigationEnabled,
+                scaleEnabled: canvasNavigationEnabled,
                 onInteractionEnd: (_) => setState(() {}),
                 child: SizedBox(
                   key: const Key('editor-infinite-world'),
@@ -1085,7 +1082,9 @@ class _PreviewState extends State<_Preview> {
                       if (event.delta.distance > 2) {
                         _previewPointerMoved = true;
                       }
-                      if (!_isCanvasMode || _previewPointerCount != 1 || _isZoomed) {
+                      if (!_isCanvasMode ||
+                          _previewPointerCount != 1 ||
+                          _isZoomed) {
                         return;
                       }
                       _beginCameraDragIfNeeded();
@@ -1139,7 +1138,7 @@ class _PreviewState extends State<_Preview> {
                         onStickerPlaced: _placeStickerAt,
                         onStickerChanged: session.updateSticker,
                         onStickerDeleted: session.removeSticker,
-                        
+
                         onPlacementTap: placementTap,
                         onPlacementTransformStart: _startPlacementTransform,
                         onPlacementTransformUpdate:
@@ -1799,6 +1798,10 @@ class _InspectorState extends State<_Inspector> {
             (item) => item?.id == widget.selectedPlacementId,
             orElse: () => null,
           );
+    final fallbackPlacement = chapter.placements.isEmpty
+        ? null
+        : chapter.placements.first;
+    final activePlacement = placement ?? fallbackPlacement;
     return SafeArea(
       top: false,
       child: Padding(
@@ -1837,19 +1840,22 @@ class _InspectorState extends State<_Inspector> {
                           ),
                         ),
                         _PanelToggleChip(
-                          selected: widget.interactionMode ==
+                          selected:
+                              widget.interactionMode ==
                               _EditorInteractionMode.canvas,
                           onSelected: (_) => widget.onFocusCanvas(),
                           label: '画布',
                         ),
                         const SizedBox(width: 6),
                         _PanelToggleChip(
-                          selected: widget.interactionMode ==
+                          selected:
+                              widget.interactionMode ==
                                   _EditorInteractionMode.image &&
-                              placement != null,
+                              activePlacement != null,
                           onSelected: (_) {
-                            if (placement != null) {
-                              widget.onFocusPlacement(placement.id);
+                            final target = activePlacement;
+                            if (target != null) {
+                              widget.onFocusPlacement(target.id);
                             }
                           },
                           label: '图片',
@@ -1857,7 +1863,8 @@ class _InspectorState extends State<_Inspector> {
                         const SizedBox(width: 6),
                         _PanelToggleChip(
                           key: const Key('editor-mode-sticker'),
-                          selected: widget.interactionMode ==
+                          selected:
+                              widget.interactionMode ==
                               _EditorInteractionMode.sticker,
                           onSelected: (_) => widget.onFocusSticker(),
                           label: '贴画',
@@ -1865,7 +1872,7 @@ class _InspectorState extends State<_Inspector> {
                       ],
                     ),
                     const SizedBox(height: 14),
-                    _buildModePanel(context, chapter, placement),
+                    _buildModePanel(context, chapter, activePlacement),
                   ],
                 ),
               ),
@@ -1983,7 +1990,6 @@ class _InspectorState extends State<_Inspector> {
       await session.updateChapter(title: title, caption: caption);
     }
   }
-
 }
 
 class _PlaybackDelayControl extends StatelessWidget {

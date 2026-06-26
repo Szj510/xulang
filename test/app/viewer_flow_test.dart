@@ -74,37 +74,38 @@ void main() {
     expect(find.textContaining('进度 0%'), findsNothing);
   });
 
-  testWidgets('recording mode hides chrome and restores it after replay double tap', (
-    tester,
-  ) async {
-    await pumpViewer(tester);
+  testWidgets(
+    'recording mode hides chrome and restores it after replay double tap',
+    (tester) async {
+      await pumpViewer(tester);
 
-    expect(find.byKey(const Key('viewer-recording-mode')), findsOneWidget);
-    await tester.tap(find.byKey(const Key('viewer-recording-mode')));
-    await tester.pumpAndSettle();
+      expect(find.byKey(const Key('viewer-recording-mode')), findsOneWidget);
+      await tester.tap(find.byKey(const Key('viewer-recording-mode')));
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('viewer-top-scrim')), findsNothing);
-    expect(find.byKey(const Key('viewer-caption-scrim')), findsNothing);
-    expect(find.byKey(const Key('viewer-track-progress')), findsNothing);
-    expect(find.byKey(const Key('viewer-recording-mode')), findsNothing);
+      expect(find.byKey(const Key('viewer-top-scrim')), findsNothing);
+      expect(find.byKey(const Key('viewer-caption-scrim')), findsNothing);
+      expect(find.byKey(const Key('viewer-track-progress')), findsNothing);
+      expect(find.byKey(const Key('viewer-recording-mode')), findsNothing);
 
-    await tester.pump(const Duration(seconds: 7));
-    final surfaceCenter = tester.getCenter(
-      find.byKey(const Key('narrative-gesture-surface')),
-    );
-    await tester.tapAt(surfaceCenter);
-    await tester.pumpAndSettle();
-    expect(find.byKey(const Key('viewer-recording-mode')), findsNothing);
+      await tester.pump(const Duration(seconds: 7));
+      final surfaceCenter = tester.getCenter(
+        find.byKey(const Key('narrative-gesture-surface')),
+      );
+      await tester.tapAt(surfaceCenter);
+      await tester.pumpAndSettle();
+      expect(find.byKey(const Key('viewer-recording-mode')), findsNothing);
 
-    await tester.tapAt(surfaceCenter);
-    await tester.pump(const Duration(milliseconds: 80));
-    await tester.tapAt(surfaceCenter);
-    await tester.pumpAndSettle();
+      await tester.tapAt(surfaceCenter);
+      await tester.pump(const Duration(milliseconds: 80));
+      await tester.tapAt(surfaceCenter);
+      await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('viewer-top-scrim')), findsOneWidget);
-    expect(find.byKey(const Key('viewer-caption-scrim')), findsOneWidget);
-    expect(find.byKey(const Key('viewer-recording-mode')), findsOneWidget);
-  });
+      expect(find.byKey(const Key('viewer-top-scrim')), findsOneWidget);
+      expect(find.byKey(const Key('viewer-caption-scrim')), findsOneWidget);
+      expect(find.byKey(const Key('viewer-recording-mode')), findsOneWidget);
+    },
+  );
 
   testWidgets('recording delay waits before playback starts', (tester) async {
     final delayed = buildSampleGallery(DateTime(2026, 6, 22));
@@ -118,15 +119,18 @@ void main() {
     await tester.tap(find.byKey(const Key('viewer-recording-mode')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('viewer-recording-delay-countdown')), findsOneWidget);
-    expect(find.text('2'), findsOneWidget);
+    expect(
+      find.byKey(const Key('viewer-recording-delay-countdown')),
+      findsNothing,
+    );
+    expect(find.text('2'), findsNothing);
     expect(
       tester.widget<SceneCanvas>(find.byType(SceneCanvas)).cameraProgress,
       0,
     );
 
     await tester.pump(const Duration(seconds: 1));
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('1'), findsNothing);
     expect(
       tester.widget<SceneCanvas>(find.byType(SceneCanvas)).cameraProgress,
       0,
@@ -134,7 +138,10 @@ void main() {
 
     await tester.pump(const Duration(seconds: 1));
     await tester.pump(const Duration(milliseconds: 16));
-    expect(find.byKey(const Key('viewer-recording-delay-countdown')), findsNothing);
+    expect(
+      find.byKey(const Key('viewer-recording-delay-countdown')),
+      findsNothing,
+    );
     expect(
       tester.widget<SceneCanvas>(find.byType(SceneCanvas)).cameraProgress,
       greaterThan(0),

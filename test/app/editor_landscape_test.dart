@@ -168,7 +168,9 @@ void main() {
       find.byKey(const Key('editor-preview-zoom')),
     );
     expect(viewer.transformationController!.value.getMaxScaleOnAxis(), 1);
-    final worldSize = tester.getSize(find.byKey(const Key('editor-infinite-world')));
+    final worldSize = tester.getSize(
+      find.byKey(const Key('editor-infinite-world')),
+    );
     expect(worldSize.width, greaterThan(390));
     expect(worldSize.height, greaterThan(844));
     expect(find.byIcon(Icons.zoom_out), findsOneWidget);
@@ -223,14 +225,22 @@ void main() {
     expect(after.dy, lessThan(before.dy - 160));
   });
 
-  testWidgets('canvas panel exposes adjustable opacity control', (tester) async {
+  testWidgets('canvas panel exposes adjustable opacity control', (
+    tester,
+  ) async {
     await pumpEditor(tester, size: const Size(390, 844));
 
     await tester.tap(find.byKey(const Key('editor-floating-ball')));
     await tester.pumpAndSettle();
 
-    expect(find.byKey(const Key('editor-floating-panel-shell')), findsOneWidget);
-    expect(find.byKey(const Key('editor-panel-opacity-slider')), findsOneWidget);
+    expect(
+      find.byKey(const Key('editor-floating-panel-shell')),
+      findsOneWidget,
+    );
+    expect(
+      find.byKey(const Key('editor-panel-opacity-slider')),
+      findsOneWidget,
+    );
     expect(find.text('面板透明度'), findsOneWidget);
 
     final shell = tester.widget<DecoratedBox>(
@@ -287,8 +297,8 @@ void main() {
       find.byKey(const Key('editor-preview-zoom')),
     );
     canvas = tester.widget<SceneCanvas>(find.byType(SceneCanvas));
-    expect(viewer.panEnabled, isFalse);
-    expect(viewer.scaleEnabled, isFalse);
+    expect(viewer.panEnabled, isTrue);
+    expect(viewer.scaleEnabled, isTrue);
     expect(canvas.placementEditingEnabled, isFalse);
     expect(find.text('贴画'), findsWidgets);
   });
@@ -324,7 +334,10 @@ void main() {
     );
 
     final beforeX = stickers.single.x;
-    await tester.drag(find.byKey(Key('scene-sticker-$stickerId')), const Offset(40, 0));
+    await tester.drag(
+      find.byKey(Key('scene-sticker-$stickerId')),
+      const Offset(40, 0),
+    );
     await tester.pumpAndSettle();
     stickers = session.selectedChapter!.stickers;
     expect(stickers.single.x, isNot(beforeX));
