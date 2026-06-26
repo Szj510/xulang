@@ -35,6 +35,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   double _recordingSpeed = 6.0;
   bool _musicPlaying = false;
   bool _changingChapter = false;
+  bool _playbackFinished = false;
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _playingMusicPath;
 
@@ -85,6 +86,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             onTap: _recordingMode
                 ? null
                 : () => setState(() => _showChrome = !_showChrome),
+            onDoubleTap: _recordingMode && _playbackFinished
+                ? () => unawaited(_restoreChromeAfterPlayback())
+                : null,
             child: Stack(
               children: [
                 Positioned.fill(
@@ -153,6 +157,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                           _chapterProgress[chapter.id] = progress,
                       onChapterIntent: (intent) =>
                           _changeChapter(chapters, intent),
+                      onPlaybackCompleted: () {
+                        if (mounted && !_playbackFinished) {
+                          setState(() => _playbackFinished = true);
+                        }
+                      },
                     ),
                   ),
                 ),
@@ -257,6 +266,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (mounted) {
       setState(() {
         _recordingMode = enabled;
+        _playbackFinished = false;
         if (enabled) _showChrome = false;
       });
     }
@@ -267,6 +277,17 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       }
     } else {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
+
+  Future<void> _restoreChromeAfterPlayback() async {
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    if (mounted) {
+      setState(() {
+        _recordingMode = false;
+        _showChrome = true;
+        _playbackFinished = false;
+      });
     }
   }
 
@@ -307,6 +328,7 @@ class _ViewerChapter extends StatefulWidget {
     required this.hasNextChapter,
     required this.onProgressChanged,
     required this.onChapterIntent,
+    required this.onPlaybackCompleted,
   });
 
   final bool recordingMode;
@@ -322,6 +344,7 @@ class _ViewerChapter extends StatefulWidget {
   final bool hasNextChapter;
   final ValueChanged<double> onProgressChanged;
   final ValueChanged<ChapterNavigationIntent> onChapterIntent;
+  final VoidCallback onPlaybackCompleted;
 
   @override
   State<_ViewerChapter> createState() => _ViewerChapterState();
@@ -356,10 +379,17 @@ class _ViewerChapterState extends State<_ViewerChapter>
         final v = _recorder.value.clamp(0.0, 1.0);
         _camera.setProgress(v);
         widget.onProgressChanged(_camera.progress);
-      });
+      })
+      ..addStatusListener(_handleRecorderStatus);
     _transform.addListener(_readScale);
     _camera.addListener(_rebuild);
     _camera.setProgress(widget.initialProgress);
+  }
+
+  void _handleRecorderStatus(AnimationStatus status) {
+    if (status == AnimationStatus.completed && widget.recordingMode) {
+      widget.onPlaybackCompleted();
+    }
   }
 
   @override
@@ -488,6 +518,7 @@ class _ViewerChapterState extends State<_ViewerChapter>
   @override
   void dispose() {
     _transform.removeListener(_readScale);
+    _recorder.removeStatusListener(_handleRecorderStatus);
     _camera.removeListener(_rebuild);
     _camera.dispose();
     _transform.dispose();
