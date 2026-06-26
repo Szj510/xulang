@@ -88,14 +88,6 @@ class _EditorBodyState extends State<_EditorBody> {
     });
   }
 
-  void _focusPath() {
-    setState(() {
-      _interactionMode = _EditorInteractionMode.path;
-      _selectedStickerKind = null;
-      _showPanel = true;
-    });
-  }
-
   void _focusSticker() {
     setState(() {
       _interactionMode = _EditorInteractionMode.sticker;
@@ -389,7 +381,7 @@ class _EditorBodyState extends State<_EditorBody> {
                         onPanelOpacityChanged: _setPanelOpacity,
                         onFocusCanvas: _focusCanvas,
                         onFocusPlacement: _focusPlacement,
-                        onFocusPath: _focusPath,
+                        
                         onFocusSticker: _focusSticker,
                         onSelectStickerKind: _selectStickerKind,
                         onDismiss: _dismissPanel,
@@ -439,7 +431,7 @@ class _EditorBodyState extends State<_EditorBody> {
                       onPanelOpacityChanged: _setPanelOpacity,
                       onFocusCanvas: _focusCanvas,
                       onFocusPlacement: _focusPlacement,
-                      onFocusPath: _focusPath,
+                      
                       onFocusSticker: _focusSticker,
                       onSelectStickerKind: _selectStickerKind,
                       onDismiss: _dismissPanel,
@@ -684,7 +676,6 @@ class _FloatingPanel extends StatefulWidget {
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
-    required this.onFocusPath,
     required this.onFocusSticker,
     required this.onSelectStickerKind,
     required this.onDismiss,
@@ -699,7 +690,6 @@ class _FloatingPanel extends StatefulWidget {
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
-  final VoidCallback onFocusPath;
   final VoidCallback onFocusSticker;
   final ValueChanged<GalleryStickerKind> onSelectStickerKind;
   final VoidCallback onDismiss;
@@ -797,7 +787,7 @@ class _FloatingPanelState extends State<_FloatingPanel>
                         onPanelOpacityChanged: widget.onPanelOpacityChanged,
                         onFocusCanvas: widget.onFocusCanvas,
                         onFocusPlacement: widget.onFocusPlacement,
-                        onFocusPath: widget.onFocusPath,
+                        
                         onFocusSticker: widget.onFocusSticker,
                         onSelectStickerKind: widget.onSelectStickerKind,
                       ),
@@ -948,7 +938,6 @@ class _PreviewState extends State<_Preview> {
       widget.interactionMode == _EditorInteractionMode.canvas;
   bool get _isImageMode =>
       widget.interactionMode == _EditorInteractionMode.image;
-  bool get _isPathMode => widget.interactionMode == _EditorInteractionMode.path;
   bool get _isStickerMode =>
       widget.interactionMode == _EditorInteractionMode.sticker;
   String get _chapterId => session.selectedChapter!.id;
@@ -1058,7 +1047,7 @@ class _PreviewState extends State<_Preview> {
         final progress = _cameraProgress;
         final placementEditingEnabled = _isImageMode;
         final canvasTap = _isCanvasMode ? widget.onCanvasTap : null;
-        final placementTap = (_isPathMode || _isStickerMode) ? null : widget.onPlacementTap;
+        final placementTap = _isStickerMode ? null : widget.onPlacementTap;
         final worldSize = Size(viewport.width * 3.2, viewport.height * 3.2);
         return Stack(
           children: [
@@ -1145,14 +1134,12 @@ class _PreviewState extends State<_Preview> {
                         cameraProgress: progress,
                         sceneTheme: session.bundle!.document.theme,
                         placementEditingEnabled: placementEditingEnabled,
-                        pathEditingEnabled: _isPathMode,
                         stickerEditingEnabled: _isStickerMode,
                         selectedStickerKind: widget.selectedStickerKind,
                         onStickerPlaced: _placeStickerAt,
                         onStickerChanged: session.updateSticker,
                         onStickerDeleted: session.removeSticker,
-                        onPathConnectionChanged:
-                            session.updateCustomPathConnection,
+                        
                         onPlacementTap: placementTap,
                         onPlacementTransformStart: _startPlacementTransform,
                         onPlacementTransformUpdate:
@@ -1427,7 +1414,6 @@ class _Inspector extends StatefulWidget {
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
-    required this.onFocusPath,
     required this.onFocusSticker,
     required this.onSelectStickerKind,
   });
@@ -1440,7 +1426,6 @@ class _Inspector extends StatefulWidget {
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
-  final VoidCallback onFocusPath;
   final VoidCallback onFocusSticker;
   final ValueChanged<GalleryStickerKind> onSelectStickerKind;
 
@@ -1597,64 +1582,6 @@ class _InspectorState extends State<_Inspector> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildPathPanel(BuildContext context, GalleryChapter chapter) {
-    return _InspectorSection(
-      title: '路径注释',
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Text(
-            '使用模板自带路径，不再手绘曲线；这里只负责添加和调整路径旁的说明文字。',
-            style: TextStyle(fontSize: 11, color: XulangColors.muted),
-          ),
-          const SizedBox(height: 10),
-          if (chapter.layout != GalleryLayout.storyPath)
-            FilledButton.tonal(
-              key: const Key('editor-enable-story-path-layout'),
-              onPressed: () => session.updateChapter(layout: GalleryLayout.storyPath),
-              child: const Text('切换到故事路径布局'),
-            )
-          else ...[
-            FilledButton.icon(
-              key: const Key('editor-add-path-note'),
-              onPressed: _addPathNote,
-              icon: const Icon(Icons.sticky_note_2_outlined, size: 17),
-              label: const Text('添加路径注释'),
-            ),
-            if (chapter.customPathConnections.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              _SectionLabel('注释列表'),
-              const SizedBox(height: 6),
-              for (final connection in chapter.customPathConnections)
-                _PathConnectionSummary(
-                  connection: connection,
-                  onNoteChanged: (note) => session.updateCustomPathConnection(
-                    connection.copyWith(note: note),
-                  ),
-                  onDelete: () => session.removeCustomPathConnection(connection.id),
-                ),
-            ],
-          ],
-        ],
-      ),
-    );
-  }
-
-  Future<void> _addPathNote() async {
-    await session.addCustomPathConnection(
-      CustomPathConnection(
-        id: session.repository.createId(),
-        fromPlacementId: 'template-path',
-        toPlacementId: 'template-path',
-        points: const [],
-        note: '',
-        noteX: 0.5,
-        noteY: 0.42,
-      ),
     );
   }
 
@@ -1924,14 +1851,6 @@ class _InspectorState extends State<_Inspector> {
                         ),
                         const SizedBox(width: 6),
                         _PanelToggleChip(
-                          key: const Key('editor-mode-path'),
-                          selected: widget.interactionMode ==
-                              _EditorInteractionMode.path,
-                          onSelected: (_) => widget.onFocusPath(),
-                          label: '路径',
-                        ),
-                        const SizedBox(width: 6),
-                        _PanelToggleChip(
                           key: const Key('editor-mode-sticker'),
                           selected: widget.interactionMode ==
                               _EditorInteractionMode.sticker,
@@ -1962,8 +1881,6 @@ class _InspectorState extends State<_Inspector> {
         return _buildCanvasPanel(context, chapter);
       case _EditorInteractionMode.image:
         return _buildPlacementPanel(context, chapter, placement);
-      case _EditorInteractionMode.path:
-        return _buildPathPanel(context, chapter);
       case _EditorInteractionMode.sticker:
         return _buildStickerPanel(context, chapter);
     }
@@ -2064,69 +1981,6 @@ class _InspectorState extends State<_Inspector> {
 
 }
 
-class _PathConnectionSummary extends StatelessWidget {
-  const _PathConnectionSummary({
-    required this.connection,
-    required this.onNoteChanged,
-    required this.onDelete,
-  });
-
-  final CustomPathConnection connection;
-  final ValueChanged<String> onNoteChanged;
-  final VoidCallback onDelete;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      key: Key('editor-path-connection-${connection.id}'),
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .22),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: .16)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.sticky_note_2_outlined, size: 17, color: XulangColors.accent),
-              const SizedBox(width: 8),
-              const Expanded(
-                child: Text(
-                  '模板路径注释',
-                  style: TextStyle(fontSize: 12, color: XulangColors.paper),
-                ),
-              ),
-              IconButton(
-                tooltip: '删除注释',
-                visualDensity: VisualDensity.compact,
-                onPressed: onDelete,
-                icon: const Icon(Icons.delete_outline, size: 18),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          TextFormField(
-            key: Key('editor-path-note-${connection.id}'),
-            initialValue: connection.note,
-            maxLength: 48,
-            style: const TextStyle(fontSize: 12, color: XulangColors.paper),
-            decoration: const InputDecoration(
-              labelText: '路径旁注释',
-              hintText: '写一句说明',
-              counterText: '',
-              isDense: true,
-            ),
-            onChanged: onNoteChanged,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _PanelToggleChip extends StatelessWidget {
   const _PanelToggleChip({
     super.key,
@@ -2191,7 +2045,7 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-enum _EditorInteractionMode { canvas, image, path, sticker }
+enum _EditorInteractionMode { canvas, image, sticker }
 
 extension _StickerKindView on GalleryStickerKind {
   String get emoji => switch (this) {

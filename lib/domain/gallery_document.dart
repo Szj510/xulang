@@ -403,7 +403,7 @@ class GalleryChapter {
   final StoryPathStyle pathStyle;
   final List<GalleryPlacement> placements;
   final List<CustomPathAnchor>? customPathAnchors; // 自定义路径锚点
-  final List<CustomPathConnection> customPathConnections; // 路径注释与旧连接数据
+  final List<CustomPathConnection> customPathConnections; // 旧路径连接数据，仅用于兼容历史作品
   final List<GallerySticker> stickers; // 画布贴画
 
   GalleryChapter copyWith({

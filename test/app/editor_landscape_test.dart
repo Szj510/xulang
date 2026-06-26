@@ -252,7 +252,7 @@ void main() {
     expect(after, greaterThan(before));
   });
 
-  testWidgets('editor modes isolate canvas image and path gestures', (
+  testWidgets('editor modes isolate canvas image and sticker gestures', (
     tester,
   ) async {
     await pumpEditor(tester, size: const Size(390, 844));
@@ -264,7 +264,8 @@ void main() {
     expect(viewer.panEnabled, isTrue);
     expect(viewer.scaleEnabled, isTrue);
     expect(canvas.placementEditingEnabled, isFalse);
-    expect(canvas.pathEditingEnabled, isFalse);
+    expect(find.byKey(const Key('editor-mode-path')), findsNothing);
+    expect(find.text('路径注释'), findsNothing);
 
     await tester.tap(
       find.byKey(const Key('scene-node-gesture-sample-placement-4')),
@@ -278,9 +279,8 @@ void main() {
     expect(viewer.panEnabled, isFalse);
     expect(viewer.scaleEnabled, isFalse);
     expect(canvas.placementEditingEnabled, isTrue);
-    expect(canvas.pathEditingEnabled, isFalse);
 
-    await tester.tap(find.byKey(const Key('editor-mode-path')));
+    await tester.tap(find.byKey(const Key('editor-mode-sticker')));
     await tester.pumpAndSettle();
 
     viewer = tester.widget<InteractiveViewer>(
@@ -290,63 +290,7 @@ void main() {
     expect(viewer.panEnabled, isFalse);
     expect(viewer.scaleEnabled, isFalse);
     expect(canvas.placementEditingEnabled, isFalse);
-    expect(canvas.pathEditingEnabled, isTrue);
-    expect(find.text('路径注释'), findsOneWidget);
-
-    await tester.tap(
-      find.byKey(const Key('scene-node-gesture-sample-placement-4')),
-    );
-    await tester.pumpAndSettle();
-    canvas = tester.widget<SceneCanvas>(find.byType(SceneCanvas));
-    expect(canvas.pathEditingEnabled, isTrue);
-    expect(find.text('路径注释'), findsOneWidget);
-  });
-
-  testWidgets('path mode edits template path notes without hand drawing', (
-    tester,
-  ) async {
-    await pumpEditor(tester, size: const Size(390, 844));
-
-    await tester.tap(find.byKey(const Key('editor-floating-ball')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const Key('editor-mode-path')));
-    await tester.pumpAndSettle();
-
-    final enableStoryPath = find.byKey(
-      const Key('editor-enable-story-path-layout'),
-    );
-    if (enableStoryPath.evaluate().isNotEmpty) {
-      await tester.tap(enableStoryPath);
-      await tester.pumpAndSettle();
-    }
-
-    expect(find.byKey(const Key('editor-create-path-connection')), findsNothing);
-    expect(find.byKey(const Key('scene-path-draw-surface')), findsNothing);
-
-    await tester.tap(find.byKey(const Key('editor-add-path-note')));
-    await tester.pumpAndSettle();
-
-    var connections = session.selectedChapter!.customPathConnections;
-    expect(connections, hasLength(1));
-    expect(connections.single.points, isEmpty);
-
-    final connectionId = connections.single.id;
-    await tester.enterText(
-      find.byKey(Key('editor-path-note-$connectionId')),
-      '潮汐回声',
-    );
-    await tester.pumpAndSettle();
-    connections = session.selectedChapter!.customPathConnections;
-    expect(connections.single.note, '潮汐回声');
-    expect(find.byKey(Key('scene-path-note-$connectionId')), findsOneWidget);
-
-    final beforeX = connections.single.noteX;
-    final beforeY = connections.single.noteY;
-    await tester.drag(find.byKey(Key('scene-path-note-$connectionId')), const Offset(48, 36));
-    await tester.pumpAndSettle();
-    connections = session.selectedChapter!.customPathConnections;
-    expect(connections.single.noteX, isNot(beforeX));
-    expect(connections.single.noteY, isNot(beforeY));
+    expect(find.text('贴画'), findsWidgets);
   });
 
   testWidgets('sticker mode places moves and deletes stickers', (tester) async {
