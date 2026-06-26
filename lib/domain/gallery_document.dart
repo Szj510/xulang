@@ -313,6 +313,7 @@ class GalleryDocument {
     this.musicPath,
     this.musicTitle,
     this.showChapterTitleInPlayback = true,
+    this.playbackDelaySeconds = 0,
   });
 
   factory GalleryDocument.create({
@@ -345,6 +346,7 @@ class GalleryDocument {
   final String? musicPath;
   final String? musicTitle;
   final bool showChapterTitleInPlayback;
+  final int playbackDelaySeconds;
   final DateTime createdAt;
   final DateTime updatedAt;
   final List<GalleryChapter> chapters;
@@ -356,6 +358,7 @@ class GalleryDocument {
     Object? musicPath = _unchanged,
     Object? musicTitle = _unchanged,
     bool? showChapterTitleInPlayback,
+    int? playbackDelaySeconds,
     DateTime? updatedAt,
     List<GalleryChapter>? chapters,
   }) {
@@ -372,6 +375,8 @@ class GalleryDocument {
           : musicTitle as String?,
       showChapterTitleInPlayback:
           showChapterTitleInPlayback ?? this.showChapterTitleInPlayback,
+      playbackDelaySeconds:
+          playbackDelaySeconds ?? this.playbackDelaySeconds,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       chapters: chapters ?? this.chapters,

@@ -18,6 +18,7 @@ class Exhibitions extends Table {
   TextColumn get musicTitle => text().nullable()();
   BoolColumn get showChapterTitleInPlayback =>
       boolean().withDefault(const Constant(true))();
+  IntColumn get playbackDelaySeconds => integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -83,7 +84,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -105,6 +106,9 @@ class GalleryDatabase extends _$GalleryDatabase {
       if (from < 5) {
         await m.addColumn(chapters, chapters.customPathData);
       }
+      if (from < 6) {
+        await m.addColumn(exhibitions, exhibitions.playbackDelaySeconds);
+      }
     },
   );
 
@@ -124,6 +128,7 @@ class GalleryDatabase extends _$GalleryDatabase {
           showChapterTitleInPlayback: Value(
             document.showChapterTitleInPlayback,
           ),
+          playbackDelaySeconds: Value(document.playbackDelaySeconds),
           createdAt: document.createdAt,
           updatedAt: document.updatedAt,
         ),
@@ -285,6 +290,7 @@ class GalleryDatabase extends _$GalleryDatabase {
       musicPath: exhibition.musicPath,
       musicTitle: exhibition.musicTitle,
       showChapterTitleInPlayback: exhibition.showChapterTitleInPlayback,
+      playbackDelaySeconds: exhibition.playbackDelaySeconds,
       createdAt: exhibition.createdAt,
       updatedAt: exhibition.updatedAt,
       chapters: restoredChapters,

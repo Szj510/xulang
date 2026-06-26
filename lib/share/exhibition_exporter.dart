@@ -12,6 +12,7 @@ class ExhibitionTemplateCodec {
       'title': document.title,
       'theme': document.theme.name,
       'showChapterTitleInPlayback': document.showChapterTitleInPlayback,
+      'playbackDelaySeconds': document.playbackDelaySeconds,
       'chapters': [
         for (final chapter in document.chapters)
           {
@@ -117,6 +118,10 @@ class ExhibitionTemplateCodec {
       showChapterTitleInPlayback:
           decoded['showChapterTitleInPlayback'] as bool? ??
           base.showChapterTitleInPlayback,
+      playbackDelaySeconds:
+          ((decoded['playbackDelaySeconds'] as num?)?.round() ??
+                  base.playbackDelaySeconds)
+              .clamp(0, 30),
       chapters: chapters,
       updatedAt: now,
     );

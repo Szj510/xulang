@@ -106,6 +106,41 @@ void main() {
     expect(find.byKey(const Key('viewer-recording-mode')), findsOneWidget);
   });
 
+  testWidgets('recording delay waits before playback starts', (tester) async {
+    final delayed = buildSampleGallery(DateTime(2026, 6, 22));
+    await repository.save(
+      delayed.copyWith(
+        document: delayed.document.copyWith(playbackDelaySeconds: 2),
+      ),
+    );
+    await pumpViewer(tester);
+
+    await tester.tap(find.byKey(const Key('viewer-recording-mode')));
+    await tester.pumpAndSettle();
+
+    expect(find.byKey(const Key('viewer-recording-delay-countdown')), findsOneWidget);
+    expect(find.text('2'), findsOneWidget);
+    expect(
+      tester.widget<SceneCanvas>(find.byType(SceneCanvas)).cameraProgress,
+      0,
+    );
+
+    await tester.pump(const Duration(seconds: 1));
+    expect(find.text('1'), findsOneWidget);
+    expect(
+      tester.widget<SceneCanvas>(find.byType(SceneCanvas)).cameraProgress,
+      0,
+    );
+
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pump(const Duration(milliseconds: 16));
+    expect(find.byKey(const Key('viewer-recording-delay-countdown')), findsNothing);
+    expect(
+      tester.widget<SceneCanvas>(find.byType(SceneCanvas)).cameraProgress,
+      greaterThan(0),
+    );
+  });
+
   testWidgets('keeps camera progress through orientation changes', (
     tester,
   ) async {

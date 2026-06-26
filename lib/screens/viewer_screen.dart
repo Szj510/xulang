@@ -36,6 +36,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   bool _musicPlaying = false;
   bool _changingChapter = false;
   bool _playbackFinished = false;
+  int _playbackDelayRemaining = 0;
+  Timer? _playbackDelayTimer;
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _playingMusicPath;
 
@@ -49,6 +51,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   @override
   void dispose() {
+    _playbackDelayTimer?.cancel();
     unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     unawaited(_audioPlayer.dispose());
     WakelockPlus.disable();
@@ -148,7 +151,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       sceneTheme: bundle.document.theme,
                       reduceMotion: MediaQuery.disableAnimationsOf(context),
                       showControls: _showChrome && !_recordingMode,
-                      recordingMode: _recordingMode,
+                      recordingMode:
+                          _recordingMode && _playbackDelayRemaining == 0,
                       recordingSpeed: _recordingSpeed,
                       initialProgress: _chapterProgress[chapter.id] ?? 0,
                       hasPreviousChapter: chapterIndex > 0,
@@ -200,6 +204,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       ),
                     ),
                   ),
+                if (_recordingMode && _playbackDelayRemaining > 0)
+                  _RecordingDelayOverlay(seconds: _playbackDelayRemaining),
                 if (_recordingMode &&
                     bundle.document.showChapterTitleInPlayback)
                   Positioned(
@@ -263,21 +269,42 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   }
 
   Future<void> _setRecordingMode(GalleryDocument document, bool enabled) async {
+    _playbackDelayTimer?.cancel();
+    final delaySeconds = enabled ? document.playbackDelaySeconds.clamp(0, 30) : 0;
     if (mounted) {
       setState(() {
         _recordingMode = enabled;
         _playbackFinished = false;
+        _playbackDelayRemaining = delaySeconds;
         if (enabled) _showChrome = false;
       });
     }
     if (enabled) {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      if (delaySeconds > 0) {
+        _startPlaybackDelayTimer();
+      }
       if (document.musicPath != null) {
         await _playMusic(document);
       }
     } else {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
+  }
+
+  void _startPlaybackDelayTimer() {
+    _playbackDelayTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted || !_recordingMode) {
+        timer.cancel();
+        return;
+      }
+      if (_playbackDelayRemaining <= 1) {
+        timer.cancel();
+        setState(() => _playbackDelayRemaining = 0);
+      } else {
+        setState(() => _playbackDelayRemaining -= 1);
+      }
+    });
   }
 
   Future<void> _restoreChromeAfterPlayback() async {
@@ -287,6 +314,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         _recordingMode = false;
         _showChrome = true;
         _playbackFinished = false;
+        _playbackDelayRemaining = 0;
       });
     }
   }
@@ -310,6 +338,57 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       await _audioPlayer.resume();
     }
     if (mounted) setState(() => _musicPlaying = true);
+  }
+}
+
+class _RecordingDelayOverlay extends StatelessWidget {
+  const _RecordingDelayOverlay({required this.seconds});
+
+  final int seconds;
+
+  @override
+  Widget build(BuildContext context) {
+    return Positioned.fill(
+      child: IgnorePointer(
+        child: DecoratedBox(
+          decoration: BoxDecoration(color: Colors.black.withValues(alpha: .34)),
+          child: Center(
+            child: Container(
+              key: const Key('viewer-recording-delay-countdown'),
+              padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 20),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: .62),
+                borderRadius: BorderRadius.circular(26),
+                border: Border.all(color: Colors.white.withValues(alpha: .18)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Text(
+                    '即将播放',
+                    style: TextStyle(
+                      color: XulangColors.muted,
+                      fontSize: 13,
+                      letterSpacing: 2,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$seconds',
+                    key: const Key('viewer-recording-delay-seconds'),
+                    style: const TextStyle(
+                      color: XulangColors.paper,
+                      fontSize: 48,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
