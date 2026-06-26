@@ -369,7 +369,15 @@ void main() {
     var stickers = session.selectedChapter!.stickers;
     expect(stickers, hasLength(1));
     final stickerId = stickers.single.id;
-    expect(find.byKey(Key('scene-sticker-$stickerId')), findsOneWidget);
+    final stickerFinder = find.byKey(Key('scene-sticker-$stickerId'));
+    expect(stickerFinder, findsOneWidget);
+    expect(
+      find.descendant(
+        of: find.byKey(const Key('editor-infinite-world')),
+        matching: stickerFinder,
+      ),
+      findsOneWidget,
+    );
 
     final beforeX = stickers.single.x;
     await tester.drag(find.byKey(Key('scene-sticker-$stickerId')), const Offset(40, 0));

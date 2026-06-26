@@ -140,14 +140,6 @@ class SceneCanvas extends StatelessWidget {
                       ),
                     ),
                   ),
-                for (final sticker in chapter.stickers)
-                  _StickerWidget(
-                    sticker: sticker,
-                    viewport: viewport,
-                    editable: stickerEditingEnabled,
-                    onChanged: onStickerChanged,
-                    onDeleted: onStickerDeleted,
-                  ),
                 for (final node in nodes)
                   if (placementsById[node.placementId] case final placement?)
                     _SceneNodeWidget(
@@ -222,6 +214,14 @@ class SceneCanvas extends StatelessWidget {
                       onTapUp: (details) =>
                           onStickerPlaced?.call(details.localPosition, viewport),
                     ),
+                  ),
+                for (final sticker in chapter.stickers)
+                  _StickerWidget(
+                    sticker: sticker,
+                    viewport: viewport,
+                    editable: stickerEditingEnabled,
+                    onChanged: onStickerChanged,
+                    onDeleted: onStickerDeleted,
                   ),
               ],
             ),
