@@ -25,6 +25,7 @@ void main() {
       musicPath: '/music/theme.mp3',
       musicTitle: 'theme.mp3',
       showChapterTitleInPlayback: false,
+      playbackDelaySeconds: 5,
       createdAt: createdAt,
       updatedAt: createdAt.add(const Duration(minutes: 3)),
       chapters: const [
@@ -101,6 +102,7 @@ void main() {
     expect(restored.musicPath, '/music/theme.mp3');
     expect(restored.musicTitle, 'theme.mp3');
     expect(restored.showChapterTitleInPlayback, isFalse);
+    expect(restored.playbackDelaySeconds, 5);
     expect(restored.chapters.single.layout, GalleryLayout.collage);
     expect(restored.chapters.single.pathStyle, StoryPathStyle.glow);
     expect(restored.chapters.single.customPathAnchors, hasLength(2));

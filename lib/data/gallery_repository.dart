@@ -143,6 +143,7 @@ class GalleryRepository {
         musicPath: copiedMusicPath,
         musicTitle: source.document.musicTitle,
         showChapterTitleInPlayback: source.document.showChapterTitleInPlayback,
+        playbackDelaySeconds: source.document.playbackDelaySeconds,
         createdAt: now,
         updatedAt: now,
         chapters: copiedChapters,

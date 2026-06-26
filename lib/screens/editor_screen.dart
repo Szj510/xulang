@@ -1545,6 +1545,11 @@ class _InspectorState extends State<_Inspector> {
                 onChanged: session.updateShowChapterTitleInPlayback,
               ),
               const SizedBox(height: 4),
+              _PlaybackDelayControl(
+                seconds: session.bundle!.document.playbackDelaySeconds,
+                onChanged: session.updatePlaybackDelaySeconds,
+              ),
+              const SizedBox(height: 4),
               ListTile(
                 key: const Key('editor-background-music'),
                 contentPadding: EdgeInsets.zero,
@@ -1979,6 +1984,70 @@ class _InspectorState extends State<_Inspector> {
     }
   }
 
+}
+
+class _PlaybackDelayControl extends StatelessWidget {
+  const _PlaybackDelayControl({required this.seconds, required this.onChanged});
+
+  final int seconds;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = seconds.clamp(0, 30);
+    return Container(
+      key: const Key('editor-playback-delay-control'),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.timer_outlined,
+                size: 18,
+                color: XulangColors.muted,
+              ),
+              const SizedBox(width: 8),
+              const Expanded(
+                child: Text(
+                  '录屏延迟播放',
+                  style: TextStyle(fontSize: 13, color: XulangColors.paper),
+                ),
+              ),
+              Text(
+                '$value 秒',
+                key: const Key('editor-playback-delay-value'),
+                style: const TextStyle(
+                  fontSize: 12,
+                  color: XulangColors.accent,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          Slider(
+            key: const Key('editor-playback-delay-slider'),
+            value: value.toDouble(),
+            min: 0,
+            max: 30,
+            divisions: 30,
+            label: '$value 秒',
+            onChanged: (next) => onChanged(next.round()),
+          ),
+          const Text(
+            '开始录屏后先等待这段时间，再自动播放。',
+            style: TextStyle(fontSize: 11, color: XulangColors.muted),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _PanelToggleChip extends StatelessWidget {
