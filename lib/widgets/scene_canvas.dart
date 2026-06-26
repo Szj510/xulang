@@ -100,7 +100,7 @@ class SceneCanvas extends StatelessWidget {
             key: const Key('scene-background'),
             painter: SceneBackgroundPainter(
               sceneTheme,
-              room: chapter.layout == GalleryLayout.depthWall,
+              room: false,
             ),
             child: Stack(
               children: [
@@ -133,7 +133,7 @@ class SceneCanvas extends StatelessWidget {
                       viewport: viewport,
                       useOriginals: useOriginals,
                       sceneTheme: sceneTheme,
-                      depthWall: chapter.layout == GalleryLayout.depthWall,
+                      
                       onTap: onPlacementTap,
                       onTransformStart: placementEditingEnabled
                           ? onPlacementTransformStart
@@ -351,7 +351,7 @@ class _SceneNodeWidget extends StatelessWidget {
     required this.viewport,
     required this.useOriginals,
     required this.sceneTheme,
-    required this.depthWall,
+    
     this.onTap,
     this.onTransformStart,
     this.onTransformUpdate,
@@ -365,7 +365,7 @@ class _SceneNodeWidget extends StatelessWidget {
   final Size viewport;
   final bool useOriginals;
   final GalleryTheme sceneTheme;
-  final bool depthWall;
+  
   final void Function(String placementId)? onTap;
   final void Function(String placementId)? onTransformStart;
   final void Function(String placementId, double scaleDelta, Offset delta)?
@@ -376,9 +376,9 @@ class _SceneNodeWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     final dx = motion.offset.dx * viewport.width;
     final dy = motion.offset.dy * viewport.height;
-    final perspective = depthWall ? .00235 : .00135;
-    final zLift = depthWall ? 28.0 : 10.0;
-    final yRotation = depthWall ? node.rotateY * 2.2 : node.rotateY;
+    const perspective = .00135;
+    const zLift = 10.0;
+    final yRotation = node.rotateY;
     final matrix = Matrix4.identity()
       ..setEntry(3, 2, perspective)
       ..translateByDouble(dx, dy, node.depth * zLift, 1)

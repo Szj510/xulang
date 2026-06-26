@@ -104,16 +104,23 @@ void main() {
     expect(scene.nodes[0].rect.overlaps(scene.nodes[1].rect), isTrue);
   });
 
-  test('depth wall creates a sequential 2.5D corridor', () {
+  test('available layouts no longer include depth wall', () {
+    expect(
+      GalleryLayout.values.map((layout) => layout.name),
+      isNot(contains('depthWall')),
+    );
+  });
+
+  test('collage remains available after removing depth wall', () {
     final portrait = LayoutResolver.resolve(
       chapter: chapter(
-        GalleryLayout.depthWall,
+        GalleryLayout.collage,
       ).copyWith(placements: storyPlacements.take(6).toList()),
       viewport: const Size(390, 844),
     );
     final landscape = LayoutResolver.resolve(
       chapter: chapter(
-        GalleryLayout.depthWall,
+        GalleryLayout.collage,
       ).copyWith(placements: storyPlacements.take(6).toList()),
       viewport: const Size(844, 390),
     );

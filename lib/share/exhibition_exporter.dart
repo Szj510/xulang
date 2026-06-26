@@ -98,11 +98,7 @@ class ExhibitionTemplateCodec {
           title: chapterJson['title'] as String? ?? '第${chapterIndex + 1}章',
           caption: chapterJson['caption'] as String? ?? '',
           order: chapterIndex,
-          layout: _byName(
-            GalleryLayout.values,
-            chapterJson['layout'],
-            GalleryLayout.hero,
-          ),
+          layout: _decodeLayout(chapterJson['layout']),
           motion: GalleryMotion.push,
           pathStyle: _byName(
             StoryPathStyle.values,
@@ -125,6 +121,11 @@ class ExhibitionTemplateCodec {
       updatedAt: now,
     );
   }
+}
+
+GalleryLayout _decodeLayout(Object? name) {
+  if (name == 'depthWall') return GalleryLayout.collage;
+  return _byName(GalleryLayout.values, name, GalleryLayout.hero);
 }
 
 T _byName<T extends Enum>(List<T> values, Object? name, T fallback) {
