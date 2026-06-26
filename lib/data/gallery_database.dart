@@ -107,10 +107,42 @@ class GalleryDatabase extends _$GalleryDatabase {
         await m.addColumn(chapters, chapters.customPathData);
       }
       if (from < 6) {
-        await m.addColumn(exhibitions, exhibitions.playbackDelaySeconds);
+        await _ensurePlaybackDelayColumn();
       }
     },
+    beforeOpen: (_) async => _ensurePlaybackDelayColumn(),
   );
+
+  Future<void> _ensurePlaybackDelayColumn() async {
+    try {
+      await customStatement(
+        'ALTER TABLE exhibitions ADD COLUMN playback_delay_seconds INTEGER NOT NULL DEFAULT 0',
+      );
+    } catch (_) {
+      // Column already exists on current installs.
+    }
+  }
+
+  Future<void> _writePlaybackDelay(String exhibitionId, int seconds) {
+    return customUpdate(
+      'UPDATE exhibitions SET playback_delay_seconds = ? WHERE id = ?',
+      variables: [
+        Variable.withInt(seconds.clamp(0, 30).toInt()),
+        Variable.withString(exhibitionId),
+      ],
+      updates: {exhibitions},
+    );
+  }
+
+  Future<int> _readPlaybackDelay(String exhibitionId) async {
+    final rows = await customSelect(
+      'SELECT playback_delay_seconds FROM exhibitions WHERE id = ? LIMIT 1',
+      variables: [Variable.withString(exhibitionId)],
+      readsFrom: {exhibitions},
+    ).get();
+    if (rows.isEmpty) return 0;
+    return rows.single.read<int>('playback_delay_seconds').clamp(0, 30).toInt();
+  }
 
   Future<void> saveDocument(
     GalleryDocument document,
@@ -128,11 +160,11 @@ class GalleryDatabase extends _$GalleryDatabase {
           showChapterTitleInPlayback: Value(
             document.showChapterTitleInPlayback,
           ),
-          playbackDelaySeconds: Value(document.playbackDelaySeconds),
           createdAt: document.createdAt,
           updatedAt: document.updatedAt,
         ),
       );
+      await _writePlaybackDelay(document.id, document.playbackDelaySeconds);
 
       final chapterIds =
           await (selectOnly(chapters)
@@ -290,7 +322,7 @@ class GalleryDatabase extends _$GalleryDatabase {
       musicPath: exhibition.musicPath,
       musicTitle: exhibition.musicTitle,
       showChapterTitleInPlayback: exhibition.showChapterTitleInPlayback,
-      playbackDelaySeconds: exhibition.playbackDelaySeconds,
+      playbackDelaySeconds: await _readPlaybackDelay(exhibition.id),
       createdAt: exhibition.createdAt,
       updatedAt: exhibition.updatedAt,
       chapters: restoredChapters,
