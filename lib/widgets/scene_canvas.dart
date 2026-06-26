@@ -21,13 +21,11 @@ class SceneCanvas extends StatelessWidget {
     this.useOriginals = false,
     this.sceneTheme = GalleryTheme.ink,
     this.placementEditingEnabled = true,
-    this.pathEditingEnabled = false,
     this.stickerEditingEnabled = false,
     this.selectedStickerKind,
     this.onStickerPlaced,
     this.onStickerChanged,
     this.onStickerDeleted,
-    this.onPathConnectionChanged,
     this.onPlacementTap,
     this.onPlacementTransformStart,
     this.onPlacementTransformUpdate,
@@ -43,13 +41,11 @@ class SceneCanvas extends StatelessWidget {
   final bool useOriginals;
   final GalleryTheme sceneTheme;
   final bool placementEditingEnabled;
-  final bool pathEditingEnabled;
   final bool stickerEditingEnabled;
   final GalleryStickerKind? selectedStickerKind;
   final void Function(Offset localPosition, Size viewport)? onStickerPlaced;
   final ValueChanged<GallerySticker>? onStickerChanged;
   final ValueChanged<String>? onStickerDeleted;
-  final ValueChanged<CustomPathConnection>? onPathConnectionChanged;
   final void Function(String placementId)? onPlacementTap;
   final void Function(String placementId)? onPlacementTransformStart;
   final void Function(String placementId, double scaleDelta, Offset delta)?
@@ -127,19 +123,6 @@ class SceneCanvas extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (chapter.customPathConnections.isNotEmpty)
-                  Positioned.fill(
-                    child: IgnorePointer(
-                      child: CustomPaint(
-                        key: const Key('custom-path-connections'),
-                        painter: CustomPathConnectionPainter(
-                          connections: chapter.customPathConnections,
-                          sceneTheme: sceneTheme,
-                          opacity: motion.opacity,
-                        ),
-                      ),
-                    ),
-                  ),
                 for (final node in nodes)
                   if (placementsById[node.placementId] case final placement?)
                     _SceneNodeWidget(
@@ -196,15 +179,6 @@ class SceneCanvas extends StatelessWidget {
                       index: index,
                       opacity: motion.opacity,
                       sceneTheme: sceneTheme,
-                    ),
-                for (final connection in chapter.customPathConnections)
-                  if (connection.note.trim().isNotEmpty || pathEditingEnabled)
-                    _CustomPathNoteLabel(
-                      connection: connection,
-                      sceneTheme: sceneTheme,
-                      viewport: viewport,
-                      editable: pathEditingEnabled,
-                      onChanged: onPathConnectionChanged,
                     ),
                 if (stickerEditingEnabled && selectedStickerKind != null)
                   Positioned.fill(
@@ -325,79 +299,6 @@ String _stickerEmoji(GalleryStickerKind kind) => switch (kind) {
   GalleryStickerKind.leaf => '🍃',
   GalleryStickerKind.flower => '🌼',
 };
-
-class _CustomPathNoteLabel extends StatelessWidget {
-  const _CustomPathNoteLabel({
-    required this.connection,
-    required this.sceneTheme,
-    required this.viewport,
-    required this.editable,
-    required this.onChanged,
-  });
-
-  final CustomPathConnection connection;
-  final GalleryTheme sceneTheme;
-  final Size viewport;
-  final bool editable;
-  final ValueChanged<CustomPathConnection>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final foreground = sceneTheme == GalleryTheme.paper
-        ? XulangColors.ink
-        : XulangColors.paper;
-    final label = connection.note.trim().isEmpty ? '添加注释' : connection.note.trim();
-    const labelSize = Size(112, 34);
-    final maxLeft = math.max(8.0, viewport.width - labelSize.width - 8);
-    final maxTop = math.max(8.0, viewport.height - labelSize.height - 8);
-    final left = (connection.noteX.clamp(0.0, 1.0) * viewport.width)
-        .clamp(8.0, maxLeft);
-    final top = (connection.noteY.clamp(0.0, 1.0) * viewport.height)
-        .clamp(8.0, maxTop);
-    return Positioned(
-      left: left,
-      top: top,
-      child: GestureDetector(
-        key: Key('scene-path-note-${connection.id}'),
-        behavior: HitTestBehavior.opaque,
-        onPanUpdate: !editable || onChanged == null
-            ? null
-            : (details) {
-                final nextLeft = (left + details.delta.dx).clamp(8.0, maxLeft);
-                final nextTop = (top + details.delta.dy).clamp(8.0, maxTop);
-                onChanged!(
-                  connection.copyWith(
-                    noteX: (nextLeft / viewport.width).clamp(0.0, 1.0),
-                    noteY: (nextTop / viewport.height).clamp(0.0, 1.0),
-                  ),
-                );
-              },
-        child: Container(
-          width: labelSize.width,
-          constraints: BoxConstraints(minHeight: labelSize.height),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: .42),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(
-              color: XulangColors.accent.withValues(alpha: editable ? .55 : .25),
-            ),
-          ),
-          child: Text(
-            label,
-            maxLines: 2,
-            overflow: TextOverflow.ellipsis,
-            style: TextStyle(
-              color: foreground.withValues(alpha: connection.note.trim().isEmpty ? .55 : .9),
-              fontSize: 11,
-              letterSpacing: .4,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
 
 class _CustomStoryPathLabel extends StatelessWidget {
   const _CustomStoryPathLabel({
@@ -871,86 +772,6 @@ StoryPathGeometry resolveCustomStoryPathGeometry({
   }
 
   return StoryPathGeometry(anchors: resolvedAnchors, segments: segments);
-}
-
-Offset _resolveCustomPathPoint(CustomPathPoint point, Size size) {
-  return Offset(point.x.clamp(0.0, 1.0) * size.width, point.y.clamp(0.0, 1.0) * size.height);
-}
-
-Path _polylinePath(List<CustomPathPoint> points, Size size) {
-  final path = Path();
-  if (points.isEmpty) return path;
-  final first = _resolveCustomPathPoint(points.first, size);
-  path.moveTo(first.dx, first.dy);
-  for (var index = 1; index < points.length; index++) {
-    final point = _resolveCustomPathPoint(points[index], size);
-    path.lineTo(point.dx, point.dy);
-  }
-  return path;
-}
-
-class CustomPathConnectionPainter extends CustomPainter {
-  const CustomPathConnectionPainter({
-    required this.connections,
-    required this.sceneTheme,
-    this.opacity = 1,
-  });
-
-  final List<CustomPathConnection> connections;
-  final GalleryTheme sceneTheme;
-  final double opacity;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (size.isEmpty) return;
-    final paint = Paint()
-      ..color = XulangColors.accent.withValues(alpha: (.72 * opacity).clamp(0, 1))
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 2.2;
-    for (final connection in connections) {
-      if (connection.points.length < 2) continue;
-      canvas.drawPath(_polylinePath(connection.points, size), paint);
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPathConnectionPainter oldDelegate) =>
-      connections != oldDelegate.connections ||
-      sceneTheme != oldDelegate.sceneTheme ||
-      opacity != oldDelegate.opacity;
-}
-
-class CustomPathDraftPainter extends CustomPainter {
-  const CustomPathDraftPainter({required this.points, required this.sceneTheme});
-
-  final List<CustomPathPoint> points;
-  final GalleryTheme sceneTheme;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    if (points.length < 2 || size.isEmpty) return;
-    final glow = Paint()
-      ..color = XulangColors.accent.withValues(alpha: .20)
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 8;
-    final stroke = Paint()
-      ..color = XulangColors.accent.withValues(alpha: .95)
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round
-      ..strokeWidth = 2.8;
-    final path = _polylinePath(points, size);
-    canvas.drawPath(path, glow);
-    canvas.drawPath(path, stroke);
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPathDraftPainter oldDelegate) =>
-      points != oldDelegate.points || sceneTheme != oldDelegate.sceneTheme;
 }
 
 class StoryPathPainter extends CustomPainter {
