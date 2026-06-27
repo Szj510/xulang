@@ -100,6 +100,44 @@ void main() {
     );
   });
 
+  testWidgets('custom canvas image is layered above the painted theme', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(
+            chapter: chapter,
+            media: [media],
+            sceneTheme: GalleryTheme.moonlight,
+            canvasBackgroundPath: 'asset://assets/sample/coast-sunset.png',
+            canvasBackgroundOpacity: 0.42,
+          ),
+        ),
+      ),
+    );
+
+    expect(
+      find.byKey(const Key('scene-custom-canvas-background')),
+      findsOneWidget,
+    );
+    final image = tester.widget<GalleryImage>(
+      find.descendant(
+        of: find.byKey(const Key('scene-custom-canvas-background')),
+        matching: find.byType(GalleryImage),
+      ),
+    );
+    expect(image.path, 'asset://assets/sample/coast-sunset.png');
+    expect(
+      tester
+          .widget<Opacity>(find.byKey(const Key('scene-custom-canvas-opacity')))
+          .opacity,
+      0.42,
+    );
+  });
+
   testWidgets('camera progress changes node transforms continuously', (
     tester,
   ) async {

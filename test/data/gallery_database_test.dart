@@ -22,6 +22,8 @@ void main() {
       title: '山海之间',
       theme: GalleryTheme.paper,
       coverMediaId: 'media-1',
+      canvasBackgroundPath: '/canvas/dusk.png',
+      canvasBackgroundOpacity: 0.58,
       musicPath: '/music/theme.mp3',
       musicTitle: 'theme.mp3',
       showChapterTitleInPlayback: false,
@@ -99,6 +101,8 @@ void main() {
     expect(restored, isNotNull);
     expect(restored!.title, '山海之间');
     expect(restored.theme, GalleryTheme.paper);
+    expect(restored.canvasBackgroundPath, '/canvas/dusk.png');
+    expect(restored.canvasBackgroundOpacity, 0.58);
     expect(restored.musicPath, '/music/theme.mp3');
     expect(restored.musicTitle, 'theme.mp3');
     expect(restored.showChapterTitleInPlayback, isFalse);
@@ -127,29 +131,33 @@ void main() {
 
   test('loads legacy custom path anchor arrays', () async {
     final now = DateTime.utc(2026, 6, 22);
-    await database.into(database.exhibitions).insert(
-      ExhibitionsCompanion.insert(
-        id: 'legacy-exhibition',
-        title: '旧路径',
-        theme: GalleryTheme.ink.name,
-        createdAt: now,
-        updatedAt: now,
-      ),
-    );
-    await database.into(database.chapters).insert(
-      ChaptersCompanion.insert(
-        id: 'legacy-chapter',
-        exhibitionId: 'legacy-exhibition',
-        title: '旧章节',
-        caption: '',
-        sortOrder: 0,
-        layout: GalleryLayout.storyPath.name,
-        motion: GalleryMotion.push.name,
-        customPathData: const Value(
-          '[{"x":0.25,"y":0.35,"label":"legacy"}]',
-        ),
-      ),
-    );
+    await database
+        .into(database.exhibitions)
+        .insert(
+          ExhibitionsCompanion.insert(
+            id: 'legacy-exhibition',
+            title: '旧路径',
+            theme: GalleryTheme.ink.name,
+            createdAt: now,
+            updatedAt: now,
+          ),
+        );
+    await database
+        .into(database.chapters)
+        .insert(
+          ChaptersCompanion.insert(
+            id: 'legacy-chapter',
+            exhibitionId: 'legacy-exhibition',
+            title: '旧章节',
+            caption: '',
+            sortOrder: 0,
+            layout: GalleryLayout.storyPath.name,
+            motion: GalleryMotion.push.name,
+            customPathData: const Value(
+              '[{"x":0.25,"y":0.35,"label":"legacy"}]',
+            ),
+          ),
+        );
 
     final restored = await database.loadDocument('legacy-exhibition');
 

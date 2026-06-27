@@ -18,7 +18,17 @@ enum GalleryFrame {
 
 enum GallerySize { small, medium, large }
 
-enum GalleryTheme { ink, paper, graphite, mist, warm }
+enum GalleryTheme {
+  ink,
+  paper,
+  graphite,
+  mist,
+  warm,
+  moonlight,
+  botanical,
+  cyanotype,
+  terracotta,
+}
 
 /// 自定义路径锚点数据
 class CustomPathAnchor {
@@ -124,7 +134,20 @@ class CustomPathPoint {
   int get hashCode => Object.hash(x, y);
 }
 
-enum GalleryStickerKind { star, sparkle, heart, leaf, flower }
+enum GalleryStickerKind {
+  star,
+  sparkle,
+  heart,
+  leaf,
+  flower,
+  crescentMoon,
+  firefly,
+  comet,
+  pressedPetal,
+  paperTape,
+  fogRibbon,
+  waxSeal,
+}
 
 class GallerySticker {
   const GallerySticker({
@@ -310,6 +333,8 @@ class GalleryDocument {
     required this.chapters,
     this.coverMediaId,
     this.theme = GalleryTheme.ink,
+    this.canvasBackgroundPath,
+    this.canvasBackgroundOpacity = 0.32,
     this.musicPath,
     this.musicTitle,
     this.showChapterTitleInPlayback = true,
@@ -343,6 +368,8 @@ class GalleryDocument {
   final String title;
   final String? coverMediaId;
   final GalleryTheme theme;
+  final String? canvasBackgroundPath;
+  final double canvasBackgroundOpacity;
   final String? musicPath;
   final String? musicTitle;
   final bool showChapterTitleInPlayback;
@@ -355,6 +382,8 @@ class GalleryDocument {
     String? title,
     String? coverMediaId,
     GalleryTheme? theme,
+    Object? canvasBackgroundPath = _unchanged,
+    double? canvasBackgroundOpacity,
     Object? musicPath = _unchanged,
     Object? musicTitle = _unchanged,
     bool? showChapterTitleInPlayback,
@@ -367,6 +396,12 @@ class GalleryDocument {
       title: title ?? this.title,
       coverMediaId: coverMediaId ?? this.coverMediaId,
       theme: theme ?? this.theme,
+      canvasBackgroundPath: identical(canvasBackgroundPath, _unchanged)
+          ? this.canvasBackgroundPath
+          : canvasBackgroundPath as String?,
+      canvasBackgroundOpacity:
+          canvasBackgroundOpacity?.clamp(0, 1).toDouble() ??
+          this.canvasBackgroundOpacity,
       musicPath: identical(musicPath, _unchanged)
           ? this.musicPath
           : musicPath as String?,
@@ -375,8 +410,7 @@ class GalleryDocument {
           : musicTitle as String?,
       showChapterTitleInPlayback:
           showChapterTitleInPlayback ?? this.showChapterTitleInPlayback,
-      playbackDelaySeconds:
-          playbackDelaySeconds ?? this.playbackDelaySeconds,
+      playbackDelaySeconds: playbackDelaySeconds ?? this.playbackDelaySeconds,
       createdAt: createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       chapters: chapters ?? this.chapters,

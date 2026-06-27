@@ -8,6 +8,8 @@ import 'package:xulang/layout/narrative_track.dart';
 import 'package:xulang/layout/narrative_track_resolver.dart';
 import 'package:xulang/layout/story_path_geometry.dart';
 import 'package:xulang/theme/xulang_theme.dart';
+import 'package:xulang/widgets/atmospheric_sticker.dart';
+import 'package:xulang/widgets/gallery_image.dart';
 import 'package:xulang/widgets/photo_frame.dart';
 
 class SceneCanvas extends StatelessWidget {
@@ -21,6 +23,8 @@ class SceneCanvas extends StatelessWidget {
     this.showStoryPath = true,
     this.useOriginals = false,
     this.sceneTheme = GalleryTheme.ink,
+    this.canvasBackgroundPath,
+    this.canvasBackgroundOpacity = 0.32,
     this.placementEditingEnabled = true,
     this.stickerEditingEnabled = false,
     this.selectedStickerKind,
@@ -41,6 +45,8 @@ class SceneCanvas extends StatelessWidget {
   final bool showStoryPath;
   final bool useOriginals;
   final GalleryTheme sceneTheme;
+  final String? canvasBackgroundPath;
+  final double canvasBackgroundOpacity;
   final bool placementEditingEnabled;
   final bool stickerEditingEnabled;
   final GalleryStickerKind? selectedStickerKind;
@@ -63,7 +69,17 @@ class SceneCanvas extends StatelessWidget {
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
         if (chapter.placements.isEmpty) {
-          return _EmptyScene(sceneTheme: sceneTheme);
+          return Stack(
+            children: [
+              Positioned.fill(child: _EmptyScene(sceneTheme: sceneTheme)),
+              if (canvasBackgroundPath != null &&
+                  canvasBackgroundPath!.trim().isNotEmpty)
+                _CustomCanvasBackground(
+                  path: canvasBackgroundPath,
+                  opacity: canvasBackgroundOpacity,
+                ),
+            ],
+          );
         }
         final track = NarrativeTrackResolver.resolve(
           chapter: chapter,
@@ -112,6 +128,12 @@ class SceneCanvas extends StatelessWidget {
             painter: SceneBackgroundPainter(sceneTheme, room: false),
             child: Stack(
               children: [
+                if (canvasBackgroundPath != null &&
+                    canvasBackgroundPath!.trim().isNotEmpty)
+                  _CustomCanvasBackground(
+                    path: canvasBackgroundPath,
+                    opacity: canvasBackgroundOpacity,
+                  ),
                 if (showStoryPath &&
                     chapter.layout == GalleryLayout.storyPath &&
                     chapter.pathStyle != StoryPathStyle.none)
@@ -282,6 +304,31 @@ Offset _stickerWorldToScreen(
   };
 }
 
+class _CustomCanvasBackground extends StatelessWidget {
+  const _CustomCanvasBackground({required this.path, required this.opacity});
+
+  final String? path;
+  final double opacity;
+
+  @override
+  Widget build(BuildContext context) {
+    final value = path;
+    if (value == null || value.trim().isEmpty) {
+      return const SizedBox.shrink();
+    }
+    return Positioned.fill(
+      key: const Key('scene-custom-canvas-background'),
+      child: IgnorePointer(
+        child: Opacity(
+          key: const Key('scene-custom-canvas-opacity'),
+          opacity: opacity.clamp(0, 1).toDouble(),
+          child: GalleryImage(path: value, cacheWidth: 1400),
+        ),
+      ),
+    );
+  }
+}
+
 class _StickerWidget extends StatelessWidget {
   const _StickerWidget({
     required this.sticker,
@@ -349,21 +396,11 @@ class _StickerWidget extends StatelessWidget {
           child: Stack(
             clipBehavior: Clip.none,
             children: [
-              Transform.rotate(
-                angle: sticker.rotation,
-                child: Text(
-                  _stickerEmoji(sticker.kind),
-                  style: TextStyle(
-                    fontSize: size,
-                    shadows: const [
-                      Shadow(
-                        color: Colors.black54,
-                        blurRadius: 5,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                ),
+              AtmosphericSticker(
+                kind: sticker.kind,
+                size: size,
+                rotation: sticker.rotation,
+                opacity: opacity,
               ),
               if (editable)
                 Positioned(
@@ -398,14 +435,6 @@ class _StickerWidget extends StatelessWidget {
   }
 }
 
-String _stickerEmoji(GalleryStickerKind kind) => switch (kind) {
-  GalleryStickerKind.star => '⭐',
-  GalleryStickerKind.sparkle => '✨',
-  GalleryStickerKind.heart => '💛',
-  GalleryStickerKind.leaf => '🍃',
-  GalleryStickerKind.flower => '🌼',
-};
-
 class _CustomStoryPathLabel extends StatelessWidget {
   const _CustomStoryPathLabel({
     required this.anchor,
@@ -423,9 +452,7 @@ class _CustomStoryPathLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = sceneTheme == GalleryTheme.paper
-        ? XulangColors.ink
-        : XulangColors.paper;
+    final foreground = sceneForegroundColor(sceneTheme);
     final text = source.label.trim().isEmpty ? '点 ${index + 1}' : source.label;
     return Positioned(
       left: anchor.point.dx + 8,
@@ -549,9 +576,7 @@ class _StoryNodeLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = sceneTheme == GalleryTheme.paper
-        ? XulangColors.ink
-        : XulangColors.paper;
+    final foreground = sceneForegroundColor(sceneTheme);
     final labelText = placement.caption.trim();
     if (labelText.isEmpty) return const SizedBox.shrink();
     final rect = resolveStoryLabelRect(anchor: anchor, viewport: viewport);
@@ -649,10 +674,15 @@ Color storyPathDotColor(GalleryTheme sceneTheme) =>
     sceneForegroundColor(sceneTheme).withValues(alpha: .85);
 
 Color sceneForegroundColor(GalleryTheme sceneTheme) => switch (sceneTheme) {
-  GalleryTheme.paper || GalleryTheme.warm => XulangColors.ink,
+  GalleryTheme.paper ||
+  GalleryTheme.warm ||
+  GalleryTheme.botanical ||
+  GalleryTheme.terracotta => XulangColors.ink,
   GalleryTheme.ink ||
   GalleryTheme.graphite ||
-  GalleryTheme.mist => XulangColors.paper,
+  GalleryTheme.mist ||
+  GalleryTheme.moonlight ||
+  GalleryTheme.cyanotype => XulangColors.paper,
 };
 
 class SceneBackgroundPainter extends CustomPainter {
@@ -671,6 +701,10 @@ class SceneBackgroundPainter extends CustomPainter {
       GalleryTheme.graphite => const [Color(0xFF111417), Color(0xFF2B3033)],
       GalleryTheme.mist => const [Color(0xFF101820), Color(0xFF263944)],
       GalleryTheme.warm => const [Color(0xFFF0DDC0), Color(0xFFB88F62)],
+      GalleryTheme.moonlight => const [Color(0xFF101421), Color(0xFF3B3155)],
+      GalleryTheme.botanical => const [Color(0xFFE2D7BC), Color(0xFF8A9B77)],
+      GalleryTheme.cyanotype => const [Color(0xFF061D37), Color(0xFF1D5C80)],
+      GalleryTheme.terracotta => const [Color(0xFFF2D7BD), Color(0xFF9C5C42)],
     };
     canvas.drawRect(
       rect,
@@ -682,8 +716,12 @@ class SceneBackgroundPainter extends CustomPainter {
         ).createShader(rect),
     );
     if (room) _paintRoom(canvas, size);
-    final vignette =
-        sceneTheme == GalleryTheme.paper || sceneTheme == GalleryTheme.warm
+    final lightCanvas =
+        sceneTheme == GalleryTheme.paper ||
+        sceneTheme == GalleryTheme.warm ||
+        sceneTheme == GalleryTheme.botanical ||
+        sceneTheme == GalleryTheme.terracotta;
+    final vignette = lightCanvas
         ? Colors.white.withValues(alpha: .10)
         : Colors.black.withValues(alpha: .28);
     canvas.drawRect(
@@ -895,11 +933,7 @@ class StoryPathPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    final color =
-        (sceneTheme == GalleryTheme.paper
-                ? XulangColors.ink
-                : XulangColors.paper)
-            .withValues(alpha: .20);
+    final color = sceneForegroundColor(sceneTheme).withValues(alpha: .20);
     if (style == StoryPathStyle.none) return;
     final stroke = Paint()
       ..color = color

@@ -30,8 +30,14 @@ class LibraryScreen extends ConsumerWidget {
                 onCreate: () => _createExhibition(context, ref),
                 onImportTemplate: () => _importTemplate(context, ref),
                 onInfo: () => _showLocalInfo(context),
+                onSettings: () => _showAppSettings(
+                  context,
+                  onImportTemplate: () => _importTemplate(context, ref),
+                ),
               ),
-              const SizedBox(height: 28),
+              const SizedBox(height: 14),
+              const _OfficialSampleNotice(),
+              const SizedBox(height: 22),
               Expanded(
                 child: exhibitions.when(
                   data: (items) => items.isEmpty
@@ -167,11 +173,13 @@ class _LibraryHeader extends StatelessWidget {
     required this.onCreate,
     required this.onImportTemplate,
     required this.onInfo,
+    required this.onSettings,
   });
 
   final VoidCallback onCreate;
   final VoidCallback onImportTemplate;
   final VoidCallback onInfo;
+  final VoidCallback onSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -218,6 +226,12 @@ class _LibraryHeader extends StatelessWidget {
         ),
         const SizedBox(width: 4),
         _HeaderIconButton(
+          tooltip: '设置与使用说明',
+          onPressed: onSettings,
+          icon: const Icon(Icons.settings_outlined, size: 20),
+        ),
+        const SizedBox(width: 4),
+        _HeaderIconButton(
           tooltip: '导入模板',
           onPressed: onImportTemplate,
           icon: const Icon(Icons.file_open_outlined, size: 20),
@@ -229,6 +243,39 @@ class _LibraryHeader extends StatelessWidget {
           label: const Text('新建'),
         ),
       ],
+    );
+  }
+}
+
+class _OfficialSampleNotice extends StatelessWidget {
+  const _OfficialSampleNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      decoration: BoxDecoration(
+        color: XulangColors.accent.withValues(alpha: .10),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: XulangColors.accent.withValues(alpha: .22)),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.verified_outlined, size: 18, color: XulangColors.accent),
+          SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              '首页内置样例为官方示例，仅用于展示效果；你的新建展览和导入图片仍只保存在本机。',
+              style: TextStyle(
+                fontSize: 12,
+                height: 1.45,
+                color: XulangColors.muted,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -819,6 +866,174 @@ Future<String?> _textDialog(
     ),
   );
   return result;
+}
+
+void _showAppSettings(
+  BuildContext context, {
+  required VoidCallback onImportTemplate,
+}) {
+  showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (sheetContext) => SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              '设置与使用说明',
+              style: TextStyle(
+                fontFamily: 'Noto Serif SC',
+                fontFamilyFallback: [
+                  'Noto Sans SC',
+                  'PingFang SC',
+                  'Microsoft YaHei',
+                ],
+                fontSize: 22,
+                letterSpacing: 1.5,
+                color: XulangColors.paper,
+              ),
+            ),
+            const SizedBox(height: 16),
+            const _SettingsSectionTitle('怎么使用'),
+            const SizedBox(height: 8),
+            const _UsageStep(
+              icon: Icons.add_photo_alternate_outlined,
+              title: '1. 新建展览并导入图片',
+              body: '每个展览都可以分章节组织图片，先把素材放进本地故事库。',
+            ),
+            const _UsageStep(
+              icon: Icons.auto_awesome_motion_outlined,
+              title: '2. 调整画布、布局、相框和贴画',
+              body: '在编辑页右侧操作面板中切换画布、图片、贴画，拖动画面即可微调位置。',
+            ),
+            const _UsageStep(
+              icon: Icons.play_circle_outline,
+              title: '3. 进入播放或导出模板',
+              body: '播放页用来预览完整叙事节奏，模板可复用当前布局。',
+            ),
+            const SizedBox(height: 16),
+            const _SettingsSectionTitle('常见设置'),
+            const SizedBox(height: 8),
+            _SettingsTile(
+              icon: Icons.file_open_outlined,
+              title: '导入展览模板',
+              subtitle: '从本地 JSON 模板快速生成一个新展览。',
+              onTap: () {
+                Navigator.pop(sheetContext);
+                onImportTemplate();
+              },
+            ),
+            _SettingsTile(
+              icon: Icons.privacy_tip_outlined,
+              title: '本地存储与隐私',
+              subtitle: '图片不会上传，卸载应用会删除应用私有空间中的展览。',
+              onTap: () {
+                Navigator.pop(sheetContext);
+                _showLocalInfo(context);
+              },
+            ),
+            const _SettingsTile(
+              icon: Icons.tune_outlined,
+              title: '编辑器常用入口',
+              subtitle: '画布主题、用户画布图片、贴画、音乐和播放延迟都在作品编辑页设置。',
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+class _SettingsSectionTitle extends StatelessWidget {
+  const _SettingsSectionTitle(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      text,
+      style: const TextStyle(
+        fontSize: 12,
+        letterSpacing: 1,
+        color: XulangColors.accent,
+        fontWeight: FontWeight.w600,
+      ),
+    );
+  }
+}
+
+class _UsageStep extends StatelessWidget {
+  const _UsageStep({
+    required this.icon,
+    required this.title,
+    required this.body,
+  });
+
+  final IconData icon;
+  final String title;
+  final String body;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: XulangColors.muted, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: const TextStyle(fontSize: 14)),
+                const SizedBox(height: 3),
+                Text(
+                  body,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    height: 1.55,
+                    color: XulangColors.muted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SettingsTile extends StatelessWidget {
+  const _SettingsTile({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ListTile(
+      contentPadding: EdgeInsets.zero,
+      leading: Icon(icon),
+      title: Text(title),
+      subtitle: Text(subtitle),
+      trailing: onTap == null ? null : const Icon(Icons.chevron_right),
+      onTap: onTap,
+    );
+  }
 }
 
 void _showLocalInfo(BuildContext context) {

@@ -68,6 +68,7 @@ class GalleryRepository {
     final mediaIdMap = <String, String>{};
     final copiedMedia = <GalleryMedia>[];
     String? copiedMusicPath;
+    String? copiedCanvasBackgroundPath;
     try {
       for (final media in source.media) {
         final newMediaId = createId();
@@ -134,6 +135,18 @@ class GalleryRepository {
           musicPath,
         ).copy(p.join(musicDirectory.path, p.basename(musicPath)))).path;
       }
+      final canvasPath = source.document.canvasBackgroundPath;
+      if (canvasPath != null && canvasPath.startsWith('asset://')) {
+        copiedCanvasBackgroundPath = canvasPath;
+      } else if (canvasPath != null && await File(canvasPath).exists()) {
+        final canvasDirectory = Directory(
+          p.join(destinationRoot.path, 'canvas'),
+        );
+        await canvasDirectory.create(recursive: true);
+        copiedCanvasBackgroundPath = (await File(
+          canvasPath,
+        ).copy(p.join(canvasDirectory.path, p.basename(canvasPath)))).path;
+      }
       final copiedDocument = GalleryDocument(
         id: newId,
         title: '${source.document.title} 副本',
@@ -141,6 +154,8 @@ class GalleryRepository {
             ? null
             : mediaIdMap[source.document.coverMediaId!],
         theme: source.document.theme,
+        canvasBackgroundPath: copiedCanvasBackgroundPath,
+        canvasBackgroundOpacity: source.document.canvasBackgroundOpacity,
         musicPath: copiedMusicPath,
         musicTitle: source.document.musicTitle,
         showChapterTitleInPlayback: source.document.showChapterTitleInPlayback,
