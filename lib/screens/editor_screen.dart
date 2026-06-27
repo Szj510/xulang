@@ -1822,6 +1822,7 @@ class _InspectorState extends State<_Inspector> {
         _InspectorSection(
           title: '说明',
           child: TextFormField(
+            key: ValueKey('placement-caption-${placement.id}'),
             initialValue: placement.caption,
             maxLength: 60,
             style: const TextStyle(fontSize: 13, color: XulangColors.paper),
