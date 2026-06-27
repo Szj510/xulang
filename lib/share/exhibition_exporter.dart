@@ -104,12 +104,25 @@ class ExhibitionTemplateCodec {
     ) {
       final chapterJson = chaptersJson[chapterIndex];
       final slots = chapterJson['placements'] as List<Object?>? ?? const [];
+      final effectiveSlots =
+          slots.isEmpty &&
+              chapterIndex == 0 &&
+              mediaIndex < existingMedia.length
+          ? [
+              for (
+                var index = mediaIndex;
+                index < existingMedia.length;
+                index++
+              )
+                <String, Object?>{'order': index - mediaIndex},
+            ]
+          : slots;
       final placementIds = <String>[];
       final templatePlacementIds = <String, String>{};
       final placements = <GalleryPlacement>[];
-      for (var slotIndex = 0; slotIndex < slots.length; slotIndex++) {
+      for (var slotIndex = 0; slotIndex < effectiveSlots.length; slotIndex++) {
         if (mediaIndex >= existingMedia.length) break;
-        final slot = slots[slotIndex] as Map<String, Object?>;
+        final slot = effectiveSlots[slotIndex] as Map<String, Object?>;
         final placementId = createId();
         placementIds.add(placementId);
         templatePlacementIds[slot['id'] as String? ?? '$slotIndex'] =

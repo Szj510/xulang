@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:math' as math;
 import 'dart:ui';
@@ -14,6 +15,7 @@ import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/viewer_screen.dart';
+import 'package:xulang/share/exhibition_exporter.dart';
 import 'package:xulang/share/export_file_service.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/gallery_image.dart';
@@ -493,8 +495,44 @@ class _EditorBodyState extends State<_EditorBody> {
             ],
           );
           if (file == null) return;
-          await session.applyTemplateJson(await file.readAsString());
-          if (context.mounted) _showSnack(context, '已套用模板');
+          final templateJson = utf8.decode(await file.readAsBytes());
+          if (!context.mounted) return;
+          final summary = const ExhibitionTemplateCodec().inspect(templateJson);
+          final exhibitionTitle = await _promptText(
+            context,
+            title: '命名新展览',
+            initialValue: session.bundle?.document.title ?? summary.title,
+            hint: '展览名称',
+            confirmText: '下一步',
+          );
+          if (exhibitionTitle == null || exhibitionTitle.trim().isEmpty) return;
+          if (!context.mounted) return;
+          final chapterTitle = await _promptText(
+            context,
+            title: summary.chapterCount > 1 ? '命名章节前缀' : '命名章节',
+            initialValue: summary.firstChapterTitle,
+            hint: summary.chapterCount > 1 ? '例如：旅行片段' : '章节名称',
+            confirmText: '选择图片',
+          );
+          if (chapterTitle == null || chapterTitle.trim().isEmpty) return;
+          if (!context.mounted) return;
+          final images = await openFiles(
+            acceptedTypeGroups: const [
+              XTypeGroup(
+                label: '图片',
+                extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
+                mimeTypes: ['image/*'],
+              ),
+            ],
+          );
+          if (images.isEmpty) return;
+          await session.applyTemplateJsonWithImages(
+            templateJson,
+            sourcePaths: [for (final image in images) image.path],
+            titleOverride: exhibitionTitle,
+            chapterTitleOverride: chapterTitle,
+          );
+          if (context.mounted) _showSnack(context, '已按模板生成新叙廊');
       }
     } catch (caught) {
       if (context.mounted) _showSnack(context, '操作失败：$caught');
@@ -510,6 +548,38 @@ class _EditorBodyState extends State<_EditorBody> {
 
   void _showSnack(BuildContext context, String text) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  Future<String?> _promptText(
+    BuildContext context, {
+    required String title,
+    required String initialValue,
+    required String hint,
+    required String confirmText,
+  }) async {
+    var value = initialValue;
+    return showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: TextFormField(
+          initialValue: initialValue,
+          autofocus: true,
+          decoration: InputDecoration(hintText: hint),
+          onChanged: (next) => value = next,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, value),
+            child: Text(confirmText),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _rename(BuildContext context) async {
@@ -920,7 +990,7 @@ class _PreviewState extends State<_Preview> {
   }
 
   void _setPreviewScale(double targetScale, Size viewport) {
-    final scale = targetScale.clamp(0.35, 3.0);
+    final scale = targetScale.clamp(1.0, 3.0);
     final center = Offset(viewport.width / 2, viewport.height / 2);
     _zoomController.value = Matrix4.identity()
       ..setEntry(0, 0, scale)
@@ -1052,10 +1122,10 @@ class _PreviewState extends State<_Preview> {
               child: InteractiveViewer(
                 key: const Key('editor-preview-zoom'),
                 transformationController: _zoomController,
-                minScale: 0.35,
+                minScale: 1.0,
                 maxScale: 3.0,
                 boundaryMargin: EdgeInsets.zero,
-                constrained: false,
+                constrained: true,
                 alignment: Alignment.center,
                 panEnabled: canvasNavigationEnabled,
                 scaleEnabled: canvasNavigationEnabled,
