@@ -1,10 +1,14 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
@@ -13,13 +17,19 @@ import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/layout/narrative_navigation_coordinator.dart';
 import 'package:xulang/providers/app_providers.dart';
+import 'package:xulang/recording/native_screen_recorder.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
 
 class ViewerScreen extends ConsumerStatefulWidget {
-  const ViewerScreen({super.key, required this.exhibitionId});
+  const ViewerScreen({
+    super.key,
+    required this.exhibitionId,
+    this.autoStartRecording = false,
+  });
 
   final String exhibitionId;
+  final bool autoStartRecording;
 
   @override
   ConsumerState<ViewerScreen> createState() => _ViewerScreenState();
@@ -36,6 +46,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   bool _musicPlaying = false;
   bool _changingChapter = false;
   bool _playbackFinished = false;
+  bool _autoRecordingQueued = false;
+  bool _recordingShareBusy = false;
+  String? _activeRecordingPath;
+  String? _recordingShareTitle;
   RecordingChapterMode _activeRecordingChapterMode =
       RecordingChapterMode.current;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -83,6 +97,13 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               onBack: () => Navigator.pop(context),
               text: '先导入图片，再开始观看',
             );
+          }
+          if (widget.autoStartRecording && !_autoRecordingQueued) {
+            _autoRecordingQueued = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (!mounted || _recordingMode) return;
+              unawaited(_setRecordingMode(bundle.document, appSettings, true));
+            });
           }
           final chapterIndex = _chapterIndex.clamp(0, chapters.length - 1);
           final chapter = chapters[chapterIndex];
@@ -284,7 +305,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             ),
           );
       if (!mounted) return;
+      final recordingPath = await _startNativeRecording(document);
+      if (recordingPath == null) return;
       setState(() {
+        _activeRecordingPath = recordingPath;
+        _recordingShareTitle = document.title;
         _recordingSpeed = options.speed;
         _recordingMode = true;
         _playbackFinished = false;
@@ -299,16 +324,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       if (options.useMusic && document.musicPath != null) {
         await _playMusic(document);
       }
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('已进入录制播放流程；原生自动录屏桥接将在 Android 端接入后直接生成视频并分享。'),
-          ),
-        );
-      }
       return;
     }
 
+    await _stopNativeRecording(share: false);
     if (mounted) {
       setState(() {
         _recordingMode = false;
@@ -320,6 +339,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   }
 
   Future<void> _restoreChromeAfterPlayback() async {
+    await _stopNativeRecording(share: false);
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     if (mounted) {
       setState(() {
@@ -345,11 +365,80 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         });
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('录制播放已结束；接入原生录屏后这里会自动生成视频并弹出分享。')),
-      );
+      setState(() => _playbackFinished = true);
+      unawaited(_stopNativeRecording(share: true));
+      return;
     }
     setState(() => _playbackFinished = true);
+  }
+
+  Future<String?> _startNativeRecording(GalleryDocument document) async {
+    if (!Platform.isAndroid) {
+      _showRecorderMessage('当前自动录屏仅支持 Android；可使用系统录屏后再分享。');
+      return null;
+    }
+    try {
+      final physicalSize = View.of(context).physicalSize;
+      final directory = Directory(
+        p.join((await getTemporaryDirectory()).path, 'xulang-recordings'),
+      );
+      await directory.create(recursive: true);
+      final fileName =
+          'xulang-${document.id}-${DateTime.now().millisecondsSinceEpoch}.mp4';
+      final outputPath = p.join(directory.path, fileName);
+      return NativeScreenRecorder.start(
+        outputPath: outputPath,
+        width: physicalSize.width.round(),
+        height: physicalSize.height.round(),
+      );
+    } on PlatformException catch (error) {
+      _showRecorderMessage(error.message ?? '无法开始录屏');
+      return null;
+    } catch (error) {
+      _showRecorderMessage('无法开始录屏：$error');
+      return null;
+    }
+  }
+
+  Future<void> _stopNativeRecording({required bool share}) async {
+    final path = _activeRecordingPath;
+    if (path == null || _recordingShareBusy) return;
+    _recordingShareBusy = true;
+    try {
+      final stoppedPath = await NativeScreenRecorder.stop();
+      final videoPath = stoppedPath ?? path;
+      if (share && mounted && await File(videoPath).exists()) {
+        await SharePlus.instance.share(
+          ShareParams(
+            text: '${_recordingShareTitle ?? '叙廊'} 录制视频',
+            files: [XFile(videoPath)],
+          ),
+        );
+      } else if (share) {
+        _showRecorderMessage('录制结束，但没有找到生成的视频文件。');
+      }
+    } on PlatformException catch (error) {
+      if (share) _showRecorderMessage(error.message ?? '录屏结束失败');
+    } catch (error) {
+      if (share) _showRecorderMessage('录屏结束失败：$error');
+    } finally {
+      _activeRecordingPath = null;
+      _recordingShareBusy = false;
+      if (mounted) {
+        setState(() {
+          _recordingMode = false;
+          _showChrome = true;
+        });
+      }
+      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    }
+  }
+
+  void _showRecorderMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   int _recordingStartIndex({
