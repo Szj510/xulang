@@ -73,18 +73,19 @@ class GalleryRepository {
         final newMediaId = createId();
         mediaIdMap[media.id] = newMediaId;
         final destination = Directory(p.join(destinationRoot.path, newMediaId));
-        await destination.create(recursive: true);
-        final original = await File(
-          media.originalPath,
-        ).copy(p.join(destination.path, p.basename(media.originalPath)));
-        final thumbnail = await File(
-          media.thumbnailPath,
-        ).copy(p.join(destination.path, p.basename(media.thumbnailPath)));
+        final originalPath = await _copyMediaPath(
+          sourcePath: media.originalPath,
+          destination: destination,
+        );
+        final thumbnailPath = await _copyMediaPath(
+          sourcePath: media.thumbnailPath,
+          destination: destination,
+        );
         copiedMedia.add(
           GalleryMedia(
             id: newMediaId,
-            originalPath: original.path,
-            thumbnailPath: thumbnail.path,
+            originalPath: originalPath,
+            thumbnailPath: thumbnailPath,
             width: media.width,
             height: media.height,
             contentHash: media.contentHash,
@@ -169,6 +170,17 @@ class GalleryRepository {
       await directory.delete(recursive: true);
     }
   }
+}
+
+Future<String> _copyMediaPath({
+  required String sourcePath,
+  required Directory destination,
+}) async {
+  if (sourcePath.startsWith('asset://')) return sourcePath;
+  await destination.create(recursive: true);
+  final targetPath = p.join(destination.path, p.basename(sourcePath));
+  await File(sourcePath).openRead().pipe(File(targetPath).openWrite());
+  return targetPath;
 }
 
 class GalleryBundle {

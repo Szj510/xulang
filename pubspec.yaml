@@ -1,5 +1,5 @@
 name: xulang
-description: "A new Flutter project."
+description: "叙廊是一款本地优先的照片叙事与微型展览创作应用。"
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev

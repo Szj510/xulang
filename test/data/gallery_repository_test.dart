@@ -89,4 +89,66 @@ void main() {
     expect(await File(duplicate.media.single.originalPath).exists(), isTrue);
     expect(await repository.load('copy'), isNotNull);
   });
+
+  test('duplicate keeps bundled sample asset media paths reusable', () async {
+    const assetPath = 'asset://assets/sample/coast-sunset.png';
+    final document = GalleryDocument(
+      id: 'sample-source',
+      title: '官方示例',
+      coverMediaId: 'sample-media',
+      createdAt: DateTime.utc(2026, 6, 24),
+      updatedAt: DateTime.utc(2026, 6, 24),
+      chapters: const [
+        GalleryChapter(
+          id: 'sample-chapter',
+          title: '潮汐',
+          order: 0,
+          layout: GalleryLayout.hero,
+          motion: GalleryMotion.push,
+          placements: [
+            GalleryPlacement(
+              id: 'sample-placement',
+              mediaId: 'sample-media',
+              order: 0,
+            ),
+          ],
+        ),
+      ],
+    );
+    const media = GalleryMedia(
+      id: 'sample-media',
+      originalPath: assetPath,
+      thumbnailPath: assetPath,
+      width: 1536,
+      height: 1024,
+      contentHash: 'sample-coast',
+    );
+    await database.saveDocument(document, [media]);
+    final ids = ['asset-media-copy', 'asset-chapter-copy', 'asset-placement-copy']
+        .iterator;
+    String nextId() {
+      ids.moveNext();
+      return ids.current;
+    }
+
+    final repository = GalleryRepository(
+      database: database,
+      mediaRoot: mediaRoot,
+      createId: nextId,
+    );
+
+    final duplicate = await repository.duplicateExhibition(
+      sourceId: 'sample-source',
+      newId: 'sample-copy',
+      now: DateTime.utc(2026, 6, 25),
+    );
+
+    expect(duplicate.document.coverMediaId, 'asset-media-copy');
+    expect(duplicate.media.single.originalPath, assetPath);
+    expect(duplicate.media.single.thumbnailPath, assetPath);
+    expect(
+      duplicate.document.chapters.single.placements.single.mediaId,
+      'asset-media-copy',
+    );
+  });
 }

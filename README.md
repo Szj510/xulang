@@ -1,17 +1,32 @@
-# xulang
+# 叙廊
 
-A new Flutter project.
+叙廊是一款本地优先的照片叙事与微型展览创作应用。用户可以把一组照片组织成章节，选择画布主题、叙事路径、画框、贴画、背景音乐和播放节奏，再以沉浸观看或录屏方式呈现。
 
-## Getting Started
+## 当前第一版定位
 
-This project is a starting point for a Flutter application.
+- **本地优先**：图片、模板和音乐保存在设备本地，不依赖账号和云端同步。
+- **照片叙事**：用章节、布局、路径线条和远近关系组织记忆。
+- **轻编辑**：支持导入图片、调整画幅、画框、裁切焦点、旋转、短注释、贴画和章节文字。
+- **沉浸观看**：支持横竖屏浏览、章节切换、录屏模式、背景音乐和播放延迟。
+- **模板分享**：可以导出叙廊模板，并用本地图片重新生成展览。
 
-A few resources to get you started if this is your first Flutter project:
+## 新用户体验
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+应用首次启动时会自动放入一个官方示例展览「山海之间」，用于展示章节、路径、画框、贴画和沉浸观看效果。示例只会种子化一次；用户删除后不会在后续启动时反复恢复。
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## 开发验证
+
+```bash
+flutter analyze
+flutter test
+flutter build appbundle --release
+```
+
+在当前本地环境中，如果从 WSL 直接调用 Flutter 可能出现 Windows 脚本行尾或环境变量问题，建议使用 Windows 终端、PowerShell 或通过 `cmd.exe /c` 调用 Flutter。
+
+## 发布前注意
+
+- Android 包名仍是 `com.example.xulang`，上架前必须改成正式 applicationId。
+- Release 构建仍使用 debug signing config，上架前必须配置正式签名。
+- Google Play 新应用应上传 Android App Bundle（AAB）。
+- 需要准备隐私政策 URL、数据安全表单、内容分级、商店截图、短/长描述和测试账号/测试说明（如适用）。
