@@ -19,16 +19,25 @@ Future<void> main() async {
     mediaRoot: Directory(p.join(support.path, 'media')),
     createId: () => const Uuid().v7(),
   );
-  if (const bool.fromEnvironment('XULANG_DEMO')) {
-    final existing = await repository.load('sample-exhibition');
-    if (existing == null) {
-      await repository.save(buildSampleGallery(DateTime.now()));
-    }
-  }
+  await _seedSampleGalleryOnce(support, repository);
   runApp(
     ProviderScope(
       overrides: [galleryRepositoryProvider.overrideWithValue(repository)],
       child: const XulangApp(),
     ),
   );
+}
+
+Future<void> _seedSampleGalleryOnce(
+  Directory support,
+  GalleryRepository repository,
+) async {
+  final marker = File(p.join(support.path, '.sample_gallery_seeded'));
+  if (await marker.exists()) return;
+
+  final existing = await repository.load('sample-exhibition');
+  if (existing == null) {
+    await repository.save(buildSampleGallery(DateTime.now()));
+  }
+  await marker.create(recursive: true);
 }
