@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:path/path.dart' as p;
@@ -16,7 +17,10 @@ class ExportFileService {
     final file = File(
       p.join(outputDirectory.path, '$name.xulang-template.json'),
     );
-    return file.writeAsString(const ExhibitionTemplateCodec().encode(document));
+    return file.writeAsString(
+      const ExhibitionTemplateCodec().encode(document),
+      encoding: utf8,
+    );
   }
 
   Future<ShareResult> shareFile(File file, {required String title}) {

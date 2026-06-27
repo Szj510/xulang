@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -83,21 +85,70 @@ class LibraryScreen extends ConsumerWidget {
         ],
       );
       if (picked == null || !context.mounted) return;
+
+      final codec = const ExhibitionTemplateCodec();
+      final templateJson = utf8.decode(await picked.readAsBytes());
+      if (!context.mounted) return;
+      final summary = codec.inspect(templateJson);
+      final exhibitionTitle = await _textDialog(
+        context,
+        title: '命名新展览',
+        hint: '展览名称',
+        initialValue: summary.title,
+        confirmText: '下一步',
+      );
+      if (exhibitionTitle == null || exhibitionTitle.trim().isEmpty) return;
+      if (!context.mounted) return;
+
+      final chapterTitle = await _textDialog(
+        context,
+        title: summary.chapterCount > 1 ? '命名章节前缀' : '命名章节',
+        hint: summary.chapterCount > 1 ? '例如：旅行片段' : '章节名称',
+        initialValue: summary.firstChapterTitle,
+        confirmText: '选择图片',
+      );
+      if (chapterTitle == null || chapterTitle.trim().isEmpty) return;
+      if (!context.mounted) return;
+
+      final pickedImages = await openFiles(
+        acceptedTypeGroups: const [
+          XTypeGroup(
+            label: '图片',
+            extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
+            mimeTypes: ['image/*'],
+          ),
+        ],
+      );
+      if (pickedImages.isEmpty || !context.mounted) return;
+
       final repository = ref.read(galleryRepositoryProvider);
+      final importer = ref.read(mediaImportServiceProvider);
       final id = repository.createId();
       final now = DateTime.now();
+      final importResult = await importer.importFiles(
+        exhibitionId: id,
+        sourcePaths: [for (final image in pickedImages) image.path],
+        existingAssets: const [],
+      );
+      if (importResult.selectionMediaIds.isEmpty) return;
+
       final base = GalleryDocument.create(
         id: id,
-        title: '导入的模板',
+        title: exhibitionTitle.trim(),
         createdAt: now,
       );
-      final document = const ExhibitionTemplateCodec().applyToDocument(
+      final document = codec.applyToDocument(
         base: base,
-        templateJson: await picked.readAsString(),
+        templateJson: templateJson,
         createId: repository.createId,
         now: now,
+        mediaIds: importResult.selectionMediaIds,
+        titleOverride: exhibitionTitle,
+        chapterTitleOverride: chapterTitle,
       );
-      await repository.save(GalleryBundle(document: document, media: const []));
+      await repository.save(
+        GalleryBundle(document: document, media: importResult.assets),
+      );
       if (!context.mounted) return;
       await Navigator.of(context).push(
         MaterialPageRoute<void>(builder: (_) => EditorScreen(exhibitionId: id)),

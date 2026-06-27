@@ -1045,7 +1045,7 @@ class _PreviewState extends State<_Preview> {
         final canvasNavigationEnabled = _isCanvasMode || _isStickerMode;
         final canvasTap = _isCanvasMode ? widget.onCanvasTap : null;
         final placementTap = _isStickerMode ? null : widget.onPlacementTap;
-        final worldSize = Size(viewport.width * 3.2, viewport.height * 3.2);
+        final worldSize = viewport;
         return Stack(
           children: [
             Positioned.fill(
@@ -1054,9 +1054,7 @@ class _PreviewState extends State<_Preview> {
                 transformationController: _zoomController,
                 minScale: 0.35,
                 maxScale: 3.0,
-                boundaryMargin: EdgeInsets.all(
-                  math.max(viewport.width, viewport.height),
-                ),
+                boundaryMargin: EdgeInsets.zero,
                 constrained: false,
                 alignment: Alignment.center,
                 panEnabled: canvasNavigationEnabled,

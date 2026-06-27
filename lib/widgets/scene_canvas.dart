@@ -98,10 +98,7 @@ class SceneCanvas extends StatelessWidget {
         return ClipRect(
           child: CustomPaint(
             key: const Key('scene-background'),
-            painter: SceneBackgroundPainter(
-              sceneTheme,
-              room: false,
-            ),
+            painter: SceneBackgroundPainter(sceneTheme, room: false),
             child: Stack(
               children: [
                 if (showStoryPath &&
@@ -133,7 +130,7 @@ class SceneCanvas extends StatelessWidget {
                       viewport: viewport,
                       useOriginals: useOriginals,
                       sceneTheme: sceneTheme,
-                      
+
                       onTap: onPlacementTap,
                       onTransformStart: placementEditingEnabled
                           ? onPlacementTransformStart
@@ -185,17 +182,22 @@ class SceneCanvas extends StatelessWidget {
                     child: GestureDetector(
                       key: const Key('scene-sticker-place-surface'),
                       behavior: HitTestBehavior.translucent,
-                      onTapUp: (details) =>
-                          onStickerPlaced?.call(details.localPosition, viewport),
+                      onTapUp: (details) => onStickerPlaced?.call(
+                        details.localPosition,
+                        viewport,
+                      ),
                     ),
                   ),
                 for (final sticker in chapter.stickers)
-                  _StickerWidget(
-                    sticker: sticker,
-                    viewport: viewport,
-                    editable: stickerEditingEnabled,
-                    onChanged: onStickerChanged,
-                    onDeleted: onStickerDeleted,
+                  Opacity(
+                    opacity: motion.opacity.clamp(0, 1),
+                    child: _StickerWidget(
+                      sticker: sticker,
+                      viewport: viewport,
+                      editable: stickerEditingEnabled,
+                      onChanged: onStickerChanged,
+                      onDeleted: onStickerDeleted,
+                    ),
                   ),
               ],
             ),
@@ -261,7 +263,11 @@ class _StickerWidget extends StatelessWidget {
                 style: TextStyle(
                   fontSize: size,
                   shadows: const [
-                    Shadow(color: Colors.black54, blurRadius: 5, offset: Offset(0, 2)),
+                    Shadow(
+                      color: Colors.black54,
+                      blurRadius: 5,
+                      offset: Offset(0, 2),
+                    ),
                   ],
                 ),
               ),
@@ -279,9 +285,15 @@ class _StickerWidget extends StatelessWidget {
                     decoration: BoxDecoration(
                       color: Colors.black.withValues(alpha: .65),
                       shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white.withValues(alpha: .26)),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: .26),
+                      ),
                     ),
-                    child: const Icon(Icons.close, size: 15, color: Colors.white),
+                    child: const Icon(
+                      Icons.close,
+                      size: 15,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ),
@@ -351,7 +363,7 @@ class _SceneNodeWidget extends StatelessWidget {
     required this.viewport,
     required this.useOriginals,
     required this.sceneTheme,
-    
+
     this.onTap,
     this.onTransformStart,
     this.onTransformUpdate,
@@ -365,7 +377,7 @@ class _SceneNodeWidget extends StatelessWidget {
   final Size viewport;
   final bool useOriginals;
   final GalleryTheme sceneTheme;
-  
+
   final void Function(String placementId)? onTap;
   final void Function(String placementId)? onTransformStart;
   final void Function(String placementId, double scaleDelta, Offset delta)?
@@ -446,6 +458,8 @@ class _StoryNodeLabel extends StatelessWidget {
     final foreground = sceneTheme == GalleryTheme.paper
         ? XulangColors.ink
         : XulangColors.paper;
+    final labelText = placement.caption.trim();
+    if (labelText.isEmpty) return const SizedBox.shrink();
     final rect = resolveStoryLabelRect(anchor: anchor, viewport: viewport);
     return Positioned.fromRect(
       rect: rect,
@@ -455,7 +469,7 @@ class _StoryNodeLabel extends StatelessWidget {
           opacity: (opacity * .82).clamp(0, 1),
           child: Text(
             '${(index + 1).toString().padLeft(2, '0')}  '
-            '${placement.caption.isEmpty ? '片段' : placement.caption}',
+            '$labelText',
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
               color: foreground.withValues(alpha: .68),
