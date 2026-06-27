@@ -18,6 +18,7 @@ import 'package:xulang/screens/viewer_screen.dart';
 import 'package:xulang/share/exhibition_exporter.dart';
 import 'package:xulang/share/export_file_service.dart';
 import 'package:xulang/theme/xulang_theme.dart';
+import 'package:xulang/widgets/atmospheric_sticker.dart';
 import 'package:xulang/widgets/gallery_image.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
 
@@ -1200,6 +1201,10 @@ class _PreviewState extends State<_Preview> {
                         media: session.bundle!.media,
                         cameraProgress: progress,
                         sceneTheme: session.bundle!.document.theme,
+                        canvasBackgroundPath:
+                            session.bundle!.document.canvasBackgroundPath,
+                        canvasBackgroundOpacity:
+                            session.bundle!.document.canvasBackgroundOpacity,
                         placementEditingEnabled: placementEditingEnabled,
                         stickerEditingEnabled: _isStickerMode,
                         selectedStickerKind: widget.selectedStickerKind,
@@ -1545,6 +1550,22 @@ class _InspectorState extends State<_Inspector> {
                         value: GalleryTheme.warm,
                         child: Text('暖沙画布'),
                       ),
+                      PopupMenuItem(
+                        value: GalleryTheme.moonlight,
+                        child: Text('月光暗房'),
+                      ),
+                      PopupMenuItem(
+                        value: GalleryTheme.botanical,
+                        child: Text('植物标本'),
+                      ),
+                      PopupMenuItem(
+                        value: GalleryTheme.cyanotype,
+                        child: Text('蓝晒纸'),
+                      ),
+                      PopupMenuItem(
+                        value: GalleryTheme.terracotta,
+                        child: Text('陶土壁龛'),
+                      ),
                     ],
                   ),
                   const SizedBox(width: 8),
@@ -1564,7 +1585,15 @@ class _InspectorState extends State<_Inspector> {
                 max: 0.62,
                 onChanged: widget.onPanelOpacityChanged,
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 12),
+              _CanvasBackgroundControl(
+                path: session.bundle!.document.canvasBackgroundPath,
+                opacity: session.bundle!.document.canvasBackgroundOpacity,
+                onPick: () => _pickCanvasBackground(context),
+                onClear: session.clearCanvasBackground,
+                onOpacityChanged: session.updateCanvasBackgroundOpacity,
+              ),
+              const SizedBox(height: 12),
               _SectionLabel('布局'),
               const SizedBox(height: 6),
               Wrap(
@@ -1839,6 +1868,25 @@ class _InspectorState extends State<_Inspector> {
     );
   }
 
+  Future<void> _pickCanvasBackground(BuildContext context) async {
+    final file = await openFile(
+      acceptedTypeGroups: const [
+        XTypeGroup(
+          label: '画布图片',
+          extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
+          mimeTypes: ['image/*'],
+        ),
+      ],
+    );
+    if (file == null) return;
+    await session.importCanvasBackground(file.path);
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('已设置自定义画布')));
+    }
+  }
+
   Future<void> _pickBackgroundMusic(BuildContext context) async {
     final file = await openFile(
       acceptedTypeGroups: const [
@@ -1988,7 +2036,14 @@ class _InspectorState extends State<_Inspector> {
                   key: Key('editor-sticker-kind-${kind.name}'),
                   selected: widget.selectedStickerKind == kind,
                   onSelected: (_) => widget.onSelectStickerKind(kind),
-                  label: Text(_stickerKindLabel(kind)),
+                  label: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      AtmosphericSticker(kind: kind, size: 22),
+                      const SizedBox(width: 6),
+                      Text(_stickerKindLabel(kind)),
+                    ],
+                  ),
                 ),
             ],
           ),
@@ -2001,10 +2056,7 @@ class _InspectorState extends State<_Inspector> {
                 key: Key('editor-sticker-item-${sticker.id}'),
                 dense: true,
                 contentPadding: EdgeInsets.zero,
-                leading: Text(
-                  sticker.kind.emoji,
-                  style: const TextStyle(fontSize: 20),
-                ),
+                leading: AtmosphericSticker(kind: sticker.kind, size: 28),
                 title: Text(_stickerKindLabel(sticker.kind)),
                 trailing: IconButton(
                   tooltip: '删除贴画',
@@ -2058,6 +2110,78 @@ class _InspectorState extends State<_Inspector> {
     if (save == true) {
       await session.updateChapter(title: title, caption: caption);
     }
+  }
+}
+
+class _CanvasBackgroundControl extends StatelessWidget {
+  const _CanvasBackgroundControl({
+    required this.path,
+    required this.opacity,
+    required this.onPick,
+    required this.onClear,
+    required this.onOpacityChanged,
+  });
+
+  final String? path;
+  final double opacity;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+  final ValueChanged<double> onOpacityChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasCustom = path != null && path!.trim().isNotEmpty;
+    return Container(
+      key: const Key('editor-canvas-background-control'),
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .18),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.wallpaper_outlined,
+                size: 18,
+                color: XulangColors.muted,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  hasCustom ? p.basename(path!) : '自定义画布图片',
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontSize: 13),
+                ),
+              ),
+              TextButton(
+                onPressed: onPick,
+                child: Text(hasCustom ? '更换' : '上传'),
+              ),
+              if (hasCustom)
+                TextButton(onPressed: onClear, child: const Text('清除')),
+            ],
+          ),
+          const SizedBox(height: 6),
+          _CropSlider(
+            key: const Key('editor-canvas-background-opacity-slider'),
+            label: '画布透明度',
+            value: opacity.clamp(0, 1).toDouble(),
+            min: 0,
+            max: 1,
+            onChanged: onOpacityChanged,
+          ),
+          const Text(
+            '上传的图片会叠在当前内置画布上，适合做纹理、纸张或氛围底图。',
+            style: TextStyle(fontSize: 11, color: XulangColors.muted),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -2191,22 +2315,19 @@ class _SectionLabel extends StatelessWidget {
 
 enum _EditorInteractionMode { canvas, image, sticker }
 
-extension _StickerKindView on GalleryStickerKind {
-  String get emoji => switch (this) {
-    GalleryStickerKind.star => '⭐',
-    GalleryStickerKind.sparkle => '✨',
-    GalleryStickerKind.heart => '💛',
-    GalleryStickerKind.leaf => '🍃',
-    GalleryStickerKind.flower => '🌼',
-  };
-}
-
 String _stickerKindLabel(GalleryStickerKind kind) => switch (kind) {
-  GalleryStickerKind.star => '星星',
-  GalleryStickerKind.sparkle => '闪光',
-  GalleryStickerKind.heart => '爱心',
-  GalleryStickerKind.leaf => '叶子',
-  GalleryStickerKind.flower => '小花',
+  GalleryStickerKind.star => '星芒标记',
+  GalleryStickerKind.sparkle => '碎光',
+  GalleryStickerKind.heart => '暖心印',
+  GalleryStickerKind.leaf => '影叶',
+  GalleryStickerKind.flower => '干花',
+  GalleryStickerKind.crescentMoon => '月弧',
+  GalleryStickerKind.firefly => '萤光',
+  GalleryStickerKind.comet => '彗尾',
+  GalleryStickerKind.pressedPetal => '压花瓣',
+  GalleryStickerKind.paperTape => '纸胶带',
+  GalleryStickerKind.fogRibbon => '雾绸',
+  GalleryStickerKind.waxSeal => '蜡封',
 };
 
 class _CropSlider extends StatefulWidget {

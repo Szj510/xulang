@@ -90,6 +90,54 @@ class EditorSession extends ChangeNotifier {
     );
   }
 
+  Future<void> importCanvasBackground(String sourcePath) async {
+    final current = bundle;
+    if (current == null) return;
+    final source = File(sourcePath);
+    if (!await source.exists()) return;
+    final directory = Directory(
+      p.join(repository.mediaRoot.path, exhibitionId, 'canvas'),
+    );
+    await directory.create(recursive: true);
+    final extension = p.extension(sourcePath);
+    final fileName = '${repository.createId()}$extension';
+    final copied = await source.copy(p.join(directory.path, fileName));
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          canvasBackgroundPath: copied.path,
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> updateCanvasBackgroundOpacity(double opacity) async {
+    final current = bundle;
+    if (current == null) return;
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          canvasBackgroundOpacity: opacity.clamp(0, 1).toDouble(),
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> clearCanvasBackground() async {
+    final current = bundle;
+    if (current == null) return;
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          canvasBackgroundPath: null,
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
   Future<void> updateShowChapterTitleInPlayback(bool value) async {
     final current = bundle;
     if (current == null) return;

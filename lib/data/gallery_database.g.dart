@@ -47,6 +47,29 @@ class $ExhibitionsTable extends Exhibitions
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _canvasBackgroundPathMeta =
+      const VerificationMeta('canvasBackgroundPath');
+  @override
+  late final GeneratedColumn<String> canvasBackgroundPath =
+      GeneratedColumn<String>(
+        'canvas_background_path',
+        aliasedName,
+        true,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+      );
+  static const VerificationMeta _canvasBackgroundOpacityMeta =
+      const VerificationMeta('canvasBackgroundOpacity');
+  @override
+  late final GeneratedColumn<double> canvasBackgroundOpacity =
+      GeneratedColumn<double>(
+        'canvas_background_opacity',
+        aliasedName,
+        false,
+        type: DriftSqlType.double,
+        requiredDuringInsert: false,
+        defaultValue: const Constant(0.32),
+      );
   static const VerificationMeta _musicPathMeta = const VerificationMeta(
     'musicPath',
   );
@@ -84,6 +107,17 @@ class $ExhibitionsTable extends Exhibitions
         ),
         defaultValue: const Constant(true),
       );
+  static const VerificationMeta _playbackDelaySecondsMeta =
+      const VerificationMeta('playbackDelaySeconds');
+  @override
+  late final GeneratedColumn<int> playbackDelaySeconds = GeneratedColumn<int>(
+    'playback_delay_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -112,9 +146,12 @@ class $ExhibitionsTable extends Exhibitions
     title,
     coverMediaId,
     theme,
+    canvasBackgroundPath,
+    canvasBackgroundOpacity,
     musicPath,
     musicTitle,
     showChapterTitleInPlayback,
+    playbackDelaySeconds,
     createdAt,
     updatedAt,
   ];
@@ -160,6 +197,24 @@ class $ExhibitionsTable extends Exhibitions
     } else if (isInserting) {
       context.missing(_themeMeta);
     }
+    if (data.containsKey('canvas_background_path')) {
+      context.handle(
+        _canvasBackgroundPathMeta,
+        canvasBackgroundPath.isAcceptableOrUnknown(
+          data['canvas_background_path']!,
+          _canvasBackgroundPathMeta,
+        ),
+      );
+    }
+    if (data.containsKey('canvas_background_opacity')) {
+      context.handle(
+        _canvasBackgroundOpacityMeta,
+        canvasBackgroundOpacity.isAcceptableOrUnknown(
+          data['canvas_background_opacity']!,
+          _canvasBackgroundOpacityMeta,
+        ),
+      );
+    }
     if (data.containsKey('music_path')) {
       context.handle(
         _musicPathMeta,
@@ -178,6 +233,15 @@ class $ExhibitionsTable extends Exhibitions
         showChapterTitleInPlayback.isAcceptableOrUnknown(
           data['show_chapter_title_in_playback']!,
           _showChapterTitleInPlaybackMeta,
+        ),
+      );
+    }
+    if (data.containsKey('playback_delay_seconds')) {
+      context.handle(
+        _playbackDelaySecondsMeta,
+        playbackDelaySeconds.isAcceptableOrUnknown(
+          data['playback_delay_seconds']!,
+          _playbackDelaySecondsMeta,
         ),
       );
     }
@@ -222,6 +286,14 @@ class $ExhibitionsTable extends Exhibitions
         DriftSqlType.string,
         data['${effectivePrefix}theme'],
       )!,
+      canvasBackgroundPath: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}canvas_background_path'],
+      ),
+      canvasBackgroundOpacity: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}canvas_background_opacity'],
+      )!,
       musicPath: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}music_path'],
@@ -233,6 +305,10 @@ class $ExhibitionsTable extends Exhibitions
       showChapterTitleInPlayback: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}show_chapter_title_in_playback'],
+      )!,
+      playbackDelaySeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}playback_delay_seconds'],
       )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
@@ -256,9 +332,12 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
   final String title;
   final String? coverMediaId;
   final String theme;
+  final String? canvasBackgroundPath;
+  final double canvasBackgroundOpacity;
   final String? musicPath;
   final String? musicTitle;
   final bool showChapterTitleInPlayback;
+  final int playbackDelaySeconds;
   final DateTime createdAt;
   final DateTime updatedAt;
   const Exhibition({
@@ -266,9 +345,12 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     required this.title,
     this.coverMediaId,
     required this.theme,
+    this.canvasBackgroundPath,
+    required this.canvasBackgroundOpacity,
     this.musicPath,
     this.musicTitle,
     required this.showChapterTitleInPlayback,
+    required this.playbackDelaySeconds,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -281,6 +363,12 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       map['cover_media_id'] = Variable<String>(coverMediaId);
     }
     map['theme'] = Variable<String>(theme);
+    if (!nullToAbsent || canvasBackgroundPath != null) {
+      map['canvas_background_path'] = Variable<String>(canvasBackgroundPath);
+    }
+    map['canvas_background_opacity'] = Variable<double>(
+      canvasBackgroundOpacity,
+    );
     if (!nullToAbsent || musicPath != null) {
       map['music_path'] = Variable<String>(musicPath);
     }
@@ -290,6 +378,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     map['show_chapter_title_in_playback'] = Variable<bool>(
       showChapterTitleInPlayback,
     );
+    map['playback_delay_seconds'] = Variable<int>(playbackDelaySeconds);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -303,6 +392,10 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           ? const Value.absent()
           : Value(coverMediaId),
       theme: Value(theme),
+      canvasBackgroundPath: canvasBackgroundPath == null && nullToAbsent
+          ? const Value.absent()
+          : Value(canvasBackgroundPath),
+      canvasBackgroundOpacity: Value(canvasBackgroundOpacity),
       musicPath: musicPath == null && nullToAbsent
           ? const Value.absent()
           : Value(musicPath),
@@ -310,6 +403,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           ? const Value.absent()
           : Value(musicTitle),
       showChapterTitleInPlayback: Value(showChapterTitleInPlayback),
+      playbackDelaySeconds: Value(playbackDelaySeconds),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -325,10 +419,19 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       title: serializer.fromJson<String>(json['title']),
       coverMediaId: serializer.fromJson<String?>(json['coverMediaId']),
       theme: serializer.fromJson<String>(json['theme']),
+      canvasBackgroundPath: serializer.fromJson<String?>(
+        json['canvasBackgroundPath'],
+      ),
+      canvasBackgroundOpacity: serializer.fromJson<double>(
+        json['canvasBackgroundOpacity'],
+      ),
       musicPath: serializer.fromJson<String?>(json['musicPath']),
       musicTitle: serializer.fromJson<String?>(json['musicTitle']),
       showChapterTitleInPlayback: serializer.fromJson<bool>(
         json['showChapterTitleInPlayback'],
+      ),
+      playbackDelaySeconds: serializer.fromJson<int>(
+        json['playbackDelaySeconds'],
       ),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
@@ -342,11 +445,16 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       'title': serializer.toJson<String>(title),
       'coverMediaId': serializer.toJson<String?>(coverMediaId),
       'theme': serializer.toJson<String>(theme),
+      'canvasBackgroundPath': serializer.toJson<String?>(canvasBackgroundPath),
+      'canvasBackgroundOpacity': serializer.toJson<double>(
+        canvasBackgroundOpacity,
+      ),
       'musicPath': serializer.toJson<String?>(musicPath),
       'musicTitle': serializer.toJson<String?>(musicTitle),
       'showChapterTitleInPlayback': serializer.toJson<bool>(
         showChapterTitleInPlayback,
       ),
+      'playbackDelaySeconds': serializer.toJson<int>(playbackDelaySeconds),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -357,9 +465,12 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     String? title,
     Value<String?> coverMediaId = const Value.absent(),
     String? theme,
+    Value<String?> canvasBackgroundPath = const Value.absent(),
+    double? canvasBackgroundOpacity,
     Value<String?> musicPath = const Value.absent(),
     Value<String?> musicTitle = const Value.absent(),
     bool? showChapterTitleInPlayback,
+    int? playbackDelaySeconds,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => Exhibition(
@@ -367,10 +478,16 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     title: title ?? this.title,
     coverMediaId: coverMediaId.present ? coverMediaId.value : this.coverMediaId,
     theme: theme ?? this.theme,
+    canvasBackgroundPath: canvasBackgroundPath.present
+        ? canvasBackgroundPath.value
+        : this.canvasBackgroundPath,
+    canvasBackgroundOpacity:
+        canvasBackgroundOpacity ?? this.canvasBackgroundOpacity,
     musicPath: musicPath.present ? musicPath.value : this.musicPath,
     musicTitle: musicTitle.present ? musicTitle.value : this.musicTitle,
     showChapterTitleInPlayback:
         showChapterTitleInPlayback ?? this.showChapterTitleInPlayback,
+    playbackDelaySeconds: playbackDelaySeconds ?? this.playbackDelaySeconds,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -382,6 +499,12 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           ? data.coverMediaId.value
           : this.coverMediaId,
       theme: data.theme.present ? data.theme.value : this.theme,
+      canvasBackgroundPath: data.canvasBackgroundPath.present
+          ? data.canvasBackgroundPath.value
+          : this.canvasBackgroundPath,
+      canvasBackgroundOpacity: data.canvasBackgroundOpacity.present
+          ? data.canvasBackgroundOpacity.value
+          : this.canvasBackgroundOpacity,
       musicPath: data.musicPath.present ? data.musicPath.value : this.musicPath,
       musicTitle: data.musicTitle.present
           ? data.musicTitle.value
@@ -389,6 +512,9 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       showChapterTitleInPlayback: data.showChapterTitleInPlayback.present
           ? data.showChapterTitleInPlayback.value
           : this.showChapterTitleInPlayback,
+      playbackDelaySeconds: data.playbackDelaySeconds.present
+          ? data.playbackDelaySeconds.value
+          : this.playbackDelaySeconds,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -401,9 +527,12 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           ..write('title: $title, ')
           ..write('coverMediaId: $coverMediaId, ')
           ..write('theme: $theme, ')
+          ..write('canvasBackgroundPath: $canvasBackgroundPath, ')
+          ..write('canvasBackgroundOpacity: $canvasBackgroundOpacity, ')
           ..write('musicPath: $musicPath, ')
           ..write('musicTitle: $musicTitle, ')
           ..write('showChapterTitleInPlayback: $showChapterTitleInPlayback, ')
+          ..write('playbackDelaySeconds: $playbackDelaySeconds, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -416,9 +545,12 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     title,
     coverMediaId,
     theme,
+    canvasBackgroundPath,
+    canvasBackgroundOpacity,
     musicPath,
     musicTitle,
     showChapterTitleInPlayback,
+    playbackDelaySeconds,
     createdAt,
     updatedAt,
   );
@@ -430,9 +562,12 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           other.title == this.title &&
           other.coverMediaId == this.coverMediaId &&
           other.theme == this.theme &&
+          other.canvasBackgroundPath == this.canvasBackgroundPath &&
+          other.canvasBackgroundOpacity == this.canvasBackgroundOpacity &&
           other.musicPath == this.musicPath &&
           other.musicTitle == this.musicTitle &&
           other.showChapterTitleInPlayback == this.showChapterTitleInPlayback &&
+          other.playbackDelaySeconds == this.playbackDelaySeconds &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -442,9 +577,12 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
   final Value<String> title;
   final Value<String?> coverMediaId;
   final Value<String> theme;
+  final Value<String?> canvasBackgroundPath;
+  final Value<double> canvasBackgroundOpacity;
   final Value<String?> musicPath;
   final Value<String?> musicTitle;
   final Value<bool> showChapterTitleInPlayback;
+  final Value<int> playbackDelaySeconds;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   final Value<int> rowid;
@@ -453,9 +591,12 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     this.title = const Value.absent(),
     this.coverMediaId = const Value.absent(),
     this.theme = const Value.absent(),
+    this.canvasBackgroundPath = const Value.absent(),
+    this.canvasBackgroundOpacity = const Value.absent(),
     this.musicPath = const Value.absent(),
     this.musicTitle = const Value.absent(),
     this.showChapterTitleInPlayback = const Value.absent(),
+    this.playbackDelaySeconds = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
     this.rowid = const Value.absent(),
@@ -465,9 +606,12 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     required String title,
     this.coverMediaId = const Value.absent(),
     required String theme,
+    this.canvasBackgroundPath = const Value.absent(),
+    this.canvasBackgroundOpacity = const Value.absent(),
     this.musicPath = const Value.absent(),
     this.musicTitle = const Value.absent(),
     this.showChapterTitleInPlayback = const Value.absent(),
+    this.playbackDelaySeconds = const Value.absent(),
     required DateTime createdAt,
     required DateTime updatedAt,
     this.rowid = const Value.absent(),
@@ -481,9 +625,12 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     Expression<String>? title,
     Expression<String>? coverMediaId,
     Expression<String>? theme,
+    Expression<String>? canvasBackgroundPath,
+    Expression<double>? canvasBackgroundOpacity,
     Expression<String>? musicPath,
     Expression<String>? musicTitle,
     Expression<bool>? showChapterTitleInPlayback,
+    Expression<int>? playbackDelaySeconds,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
     Expression<int>? rowid,
@@ -493,10 +640,16 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
       if (title != null) 'title': title,
       if (coverMediaId != null) 'cover_media_id': coverMediaId,
       if (theme != null) 'theme': theme,
+      if (canvasBackgroundPath != null)
+        'canvas_background_path': canvasBackgroundPath,
+      if (canvasBackgroundOpacity != null)
+        'canvas_background_opacity': canvasBackgroundOpacity,
       if (musicPath != null) 'music_path': musicPath,
       if (musicTitle != null) 'music_title': musicTitle,
       if (showChapterTitleInPlayback != null)
         'show_chapter_title_in_playback': showChapterTitleInPlayback,
+      if (playbackDelaySeconds != null)
+        'playback_delay_seconds': playbackDelaySeconds,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
       if (rowid != null) 'rowid': rowid,
@@ -508,9 +661,12 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     Value<String>? title,
     Value<String?>? coverMediaId,
     Value<String>? theme,
+    Value<String?>? canvasBackgroundPath,
+    Value<double>? canvasBackgroundOpacity,
     Value<String?>? musicPath,
     Value<String?>? musicTitle,
     Value<bool>? showChapterTitleInPlayback,
+    Value<int>? playbackDelaySeconds,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
     Value<int>? rowid,
@@ -520,10 +676,14 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
       title: title ?? this.title,
       coverMediaId: coverMediaId ?? this.coverMediaId,
       theme: theme ?? this.theme,
+      canvasBackgroundPath: canvasBackgroundPath ?? this.canvasBackgroundPath,
+      canvasBackgroundOpacity:
+          canvasBackgroundOpacity ?? this.canvasBackgroundOpacity,
       musicPath: musicPath ?? this.musicPath,
       musicTitle: musicTitle ?? this.musicTitle,
       showChapterTitleInPlayback:
           showChapterTitleInPlayback ?? this.showChapterTitleInPlayback,
+      playbackDelaySeconds: playbackDelaySeconds ?? this.playbackDelaySeconds,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       rowid: rowid ?? this.rowid,
@@ -545,6 +705,16 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     if (theme.present) {
       map['theme'] = Variable<String>(theme.value);
     }
+    if (canvasBackgroundPath.present) {
+      map['canvas_background_path'] = Variable<String>(
+        canvasBackgroundPath.value,
+      );
+    }
+    if (canvasBackgroundOpacity.present) {
+      map['canvas_background_opacity'] = Variable<double>(
+        canvasBackgroundOpacity.value,
+      );
+    }
     if (musicPath.present) {
       map['music_path'] = Variable<String>(musicPath.value);
     }
@@ -555,6 +725,9 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
       map['show_chapter_title_in_playback'] = Variable<bool>(
         showChapterTitleInPlayback.value,
       );
+    }
+    if (playbackDelaySeconds.present) {
+      map['playback_delay_seconds'] = Variable<int>(playbackDelaySeconds.value);
     }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
@@ -575,9 +748,12 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
           ..write('title: $title, ')
           ..write('coverMediaId: $coverMediaId, ')
           ..write('theme: $theme, ')
+          ..write('canvasBackgroundPath: $canvasBackgroundPath, ')
+          ..write('canvasBackgroundOpacity: $canvasBackgroundOpacity, ')
           ..write('musicPath: $musicPath, ')
           ..write('musicTitle: $musicTitle, ')
           ..write('showChapterTitleInPlayback: $showChapterTitleInPlayback, ')
+          ..write('playbackDelaySeconds: $playbackDelaySeconds, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt, ')
           ..write('rowid: $rowid')
@@ -2471,9 +2647,12 @@ typedef $$ExhibitionsTableCreateCompanionBuilder =
       required String title,
       Value<String?> coverMediaId,
       required String theme,
+      Value<String?> canvasBackgroundPath,
+      Value<double> canvasBackgroundOpacity,
       Value<String?> musicPath,
       Value<String?> musicTitle,
       Value<bool> showChapterTitleInPlayback,
+      Value<int> playbackDelaySeconds,
       required DateTime createdAt,
       required DateTime updatedAt,
       Value<int> rowid,
@@ -2484,9 +2663,12 @@ typedef $$ExhibitionsTableUpdateCompanionBuilder =
       Value<String> title,
       Value<String?> coverMediaId,
       Value<String> theme,
+      Value<String?> canvasBackgroundPath,
+      Value<double> canvasBackgroundOpacity,
       Value<String?> musicPath,
       Value<String?> musicTitle,
       Value<bool> showChapterTitleInPlayback,
+      Value<int> playbackDelaySeconds,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
       Value<int> rowid,
@@ -2563,6 +2745,16 @@ class $$ExhibitionsTableFilterComposer
     builder: (column) => ColumnFilters(column),
   );
 
+  ColumnFilters<String> get canvasBackgroundPath => $composableBuilder(
+    column: $table.canvasBackgroundPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get canvasBackgroundOpacity => $composableBuilder(
+    column: $table.canvasBackgroundOpacity,
+    builder: (column) => ColumnFilters(column),
+  );
+
   ColumnFilters<String> get musicPath => $composableBuilder(
     column: $table.musicPath,
     builder: (column) => ColumnFilters(column),
@@ -2575,6 +2767,11 @@ class $$ExhibitionsTableFilterComposer
 
   ColumnFilters<bool> get showChapterTitleInPlayback => $composableBuilder(
     column: $table.showChapterTitleInPlayback,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get playbackDelaySeconds => $composableBuilder(
+    column: $table.playbackDelaySeconds,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2668,6 +2865,16 @@ class $$ExhibitionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get canvasBackgroundPath => $composableBuilder(
+    column: $table.canvasBackgroundPath,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get canvasBackgroundOpacity => $composableBuilder(
+    column: $table.canvasBackgroundOpacity,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get musicPath => $composableBuilder(
     column: $table.musicPath,
     builder: (column) => ColumnOrderings(column),
@@ -2680,6 +2887,11 @@ class $$ExhibitionsTableOrderingComposer
 
   ColumnOrderings<bool> get showChapterTitleInPlayback => $composableBuilder(
     column: $table.showChapterTitleInPlayback,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get playbackDelaySeconds => $composableBuilder(
+    column: $table.playbackDelaySeconds,
     builder: (column) => ColumnOrderings(column),
   );
 
@@ -2717,6 +2929,16 @@ class $$ExhibitionsTableAnnotationComposer
   GeneratedColumn<String> get theme =>
       $composableBuilder(column: $table.theme, builder: (column) => column);
 
+  GeneratedColumn<String> get canvasBackgroundPath => $composableBuilder(
+    column: $table.canvasBackgroundPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get canvasBackgroundOpacity => $composableBuilder(
+    column: $table.canvasBackgroundOpacity,
+    builder: (column) => column,
+  );
+
   GeneratedColumn<String> get musicPath =>
       $composableBuilder(column: $table.musicPath, builder: (column) => column);
 
@@ -2727,6 +2949,11 @@ class $$ExhibitionsTableAnnotationComposer
 
   GeneratedColumn<bool> get showChapterTitleInPlayback => $composableBuilder(
     column: $table.showChapterTitleInPlayback,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get playbackDelaySeconds => $composableBuilder(
+    column: $table.playbackDelaySeconds,
     builder: (column) => column,
   );
 
@@ -2819,9 +3046,12 @@ class $$ExhibitionsTableTableManager
                 Value<String> title = const Value.absent(),
                 Value<String?> coverMediaId = const Value.absent(),
                 Value<String> theme = const Value.absent(),
+                Value<String?> canvasBackgroundPath = const Value.absent(),
+                Value<double> canvasBackgroundOpacity = const Value.absent(),
                 Value<String?> musicPath = const Value.absent(),
                 Value<String?> musicTitle = const Value.absent(),
                 Value<bool> showChapterTitleInPlayback = const Value.absent(),
+                Value<int> playbackDelaySeconds = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
@@ -2830,9 +3060,12 @@ class $$ExhibitionsTableTableManager
                 title: title,
                 coverMediaId: coverMediaId,
                 theme: theme,
+                canvasBackgroundPath: canvasBackgroundPath,
+                canvasBackgroundOpacity: canvasBackgroundOpacity,
                 musicPath: musicPath,
                 musicTitle: musicTitle,
                 showChapterTitleInPlayback: showChapterTitleInPlayback,
+                playbackDelaySeconds: playbackDelaySeconds,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,
@@ -2843,9 +3076,12 @@ class $$ExhibitionsTableTableManager
                 required String title,
                 Value<String?> coverMediaId = const Value.absent(),
                 required String theme,
+                Value<String?> canvasBackgroundPath = const Value.absent(),
+                Value<double> canvasBackgroundOpacity = const Value.absent(),
                 Value<String?> musicPath = const Value.absent(),
                 Value<String?> musicTitle = const Value.absent(),
                 Value<bool> showChapterTitleInPlayback = const Value.absent(),
+                Value<int> playbackDelaySeconds = const Value.absent(),
                 required DateTime createdAt,
                 required DateTime updatedAt,
                 Value<int> rowid = const Value.absent(),
@@ -2854,9 +3090,12 @@ class $$ExhibitionsTableTableManager
                 title: title,
                 coverMediaId: coverMediaId,
                 theme: theme,
+                canvasBackgroundPath: canvasBackgroundPath,
+                canvasBackgroundOpacity: canvasBackgroundOpacity,
                 musicPath: musicPath,
                 musicTitle: musicTitle,
                 showChapterTitleInPlayback: showChapterTitleInPlayback,
+                playbackDelaySeconds: playbackDelaySeconds,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
                 rowid: rowid,

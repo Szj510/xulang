@@ -14,11 +14,15 @@ class Exhibitions extends Table {
   TextColumn get title => text()();
   TextColumn get coverMediaId => text().nullable()();
   TextColumn get theme => text()();
+  TextColumn get canvasBackgroundPath => text().nullable()();
+  RealColumn get canvasBackgroundOpacity =>
+      real().withDefault(const Constant(0.32))();
   TextColumn get musicPath => text().nullable()();
   TextColumn get musicTitle => text().nullable()();
   BoolColumn get showChapterTitleInPlayback =>
       boolean().withDefault(const Constant(true))();
-  IntColumn get playbackDelaySeconds => integer().withDefault(const Constant(0))();
+  IntColumn get playbackDelaySeconds =>
+      integer().withDefault(const Constant(0))();
   DateTimeColumn get createdAt => dateTime()();
   DateTimeColumn get updatedAt => dateTime()();
 
@@ -84,7 +88,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 7;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -109,14 +113,37 @@ class GalleryDatabase extends _$GalleryDatabase {
       if (from < 6) {
         await _ensurePlaybackDelayColumn();
       }
+      if (from < 7) {
+        await _ensureCanvasBackgroundColumns();
+      }
     },
-    beforeOpen: (_) async => _ensurePlaybackDelayColumn(),
+    beforeOpen: (_) async {
+      await _ensurePlaybackDelayColumn();
+      await _ensureCanvasBackgroundColumns();
+    },
   );
 
   Future<void> _ensurePlaybackDelayColumn() async {
     try {
       await customStatement(
         'ALTER TABLE exhibitions ADD COLUMN playback_delay_seconds INTEGER NOT NULL DEFAULT 0',
+      );
+    } catch (_) {
+      // Column already exists on current installs.
+    }
+  }
+
+  Future<void> _ensureCanvasBackgroundColumns() async {
+    try {
+      await customStatement(
+        'ALTER TABLE exhibitions ADD COLUMN canvas_background_path TEXT',
+      );
+    } catch (_) {
+      // Column already exists on current installs.
+    }
+    try {
+      await customStatement(
+        'ALTER TABLE exhibitions ADD COLUMN canvas_background_opacity REAL NOT NULL DEFAULT 0.32',
       );
     } catch (_) {
       // Column already exists on current installs.
@@ -155,6 +182,10 @@ class GalleryDatabase extends _$GalleryDatabase {
           title: document.title,
           coverMediaId: Value(document.coverMediaId),
           theme: document.theme.name,
+          canvasBackgroundPath: Value(document.canvasBackgroundPath),
+          canvasBackgroundOpacity: Value(
+            document.canvasBackgroundOpacity.clamp(0, 1).toDouble(),
+          ),
           musicPath: Value(document.musicPath),
           musicTitle: Value(document.musicTitle),
           showChapterTitleInPlayback: Value(
@@ -318,7 +349,15 @@ class GalleryDatabase extends _$GalleryDatabase {
       id: exhibition.id,
       title: exhibition.title,
       coverMediaId: exhibition.coverMediaId,
-      theme: GalleryTheme.values.byName(exhibition.theme),
+      theme: _enumByName(
+        GalleryTheme.values,
+        exhibition.theme,
+        GalleryTheme.ink,
+      ),
+      canvasBackgroundPath: exhibition.canvasBackgroundPath,
+      canvasBackgroundOpacity: exhibition.canvasBackgroundOpacity
+          .clamp(0, 1)
+          .toDouble(),
       musicPath: exhibition.musicPath,
       musicTitle: exhibition.musicTitle,
       showChapterTitleInPlayback: exhibition.showChapterTitleInPlayback,
@@ -402,7 +441,9 @@ _DecodedCustomPath _decodeCustomPath(String? data) {
       final json = Map<String, dynamic>.from(decoded);
       return _DecodedCustomPath(
         anchors: _decodeLegacyAnchors(json['anchors'] as List? ?? const []),
-        connections: _decodeConnections(json['connections'] as List? ?? const []),
+        connections: _decodeConnections(
+          json['connections'] as List? ?? const [],
+        ),
         stickers: _decodeStickers(json['stickers'] as List? ?? const []),
       );
     }
@@ -415,7 +456,8 @@ _DecodedCustomPath _decodeCustomPath(String? data) {
 List<CustomPathAnchor>? _decodeLegacyAnchors(List data) {
   final anchors = [
     for (final item in data)
-      if (item is Map) CustomPathAnchor.fromJson(Map<String, dynamic>.from(item)),
+      if (item is Map)
+        CustomPathAnchor.fromJson(Map<String, dynamic>.from(item)),
   ];
   return anchors.isEmpty ? null : anchors;
 }

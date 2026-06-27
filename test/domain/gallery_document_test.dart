@@ -19,6 +19,38 @@ void main() {
       expect(document.updatedAt, createdAt);
     });
 
+    test('new exhibition starts without a custom canvas image', () {
+      final createdAt = DateTime.utc(2026, 6, 22);
+
+      final document = GalleryDocument.create(
+        id: 'exhibition-1',
+        title: '山海之间',
+        createdAt: createdAt,
+      );
+
+      expect(document.canvasBackgroundPath, isNull);
+      expect(document.canvasBackgroundOpacity, 0.32);
+    });
+
+    test('custom canvas image settings can be updated and cleared', () {
+      final createdAt = DateTime.utc(2026, 6, 22);
+      final document = GalleryDocument.create(
+        id: 'exhibition-1',
+        title: '山海之间',
+        createdAt: createdAt,
+      );
+
+      final withCanvas = document.copyWith(
+        canvasBackgroundPath: '/canvas/night.png',
+        canvasBackgroundOpacity: 0.7,
+      );
+      final cleared = withCanvas.copyWith(canvasBackgroundPath: null);
+
+      expect(withCanvas.canvasBackgroundPath, '/canvas/night.png');
+      expect(withCanvas.canvasBackgroundOpacity, 0.7);
+      expect(cleared.canvasBackgroundPath, isNull);
+    });
+
     test('moving a placement preserves a contiguous story order', () {
       final chapter = GalleryChapter(
         id: 'chapter-1',
