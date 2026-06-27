@@ -153,7 +153,12 @@ class EditorSession extends ChangeNotifier {
     );
   }
 
-  Future<void> applyTemplateJson(String templateJson) async {
+  Future<void> applyTemplateJson(
+    String templateJson, {
+    List<String> mediaIds = const [],
+    String? titleOverride,
+    String? chapterTitleOverride,
+  }) async {
     final current = bundle;
     if (current == null) return;
     final document = const ExhibitionTemplateCodec().applyToDocument(
@@ -161,9 +166,58 @@ class EditorSession extends ChangeNotifier {
       templateJson: templateJson,
       createId: repository.createId,
       now: DateTime.now(),
+      mediaIds: mediaIds,
+      titleOverride: titleOverride,
+      chapterTitleOverride: chapterTitleOverride,
     );
     selectedChapterIndex = 0;
     await _commit(current.copyWith(document: document));
+  }
+
+  Future<void> applyTemplateJsonWithImages(
+    String templateJson, {
+    required List<String> sourcePaths,
+    String? titleOverride,
+    String? chapterTitleOverride,
+  }) async {
+    final current = bundle;
+    if (current == null || sourcePaths.isEmpty) return;
+    importing = true;
+    _notify();
+    try {
+      final result = await importer.importFiles(
+        exhibitionId: exhibitionId,
+        sourcePaths: sourcePaths,
+        existingAssets: current.media,
+      );
+      final mediaById = {for (final media in current.media) media.id: media};
+      for (final media in result.assets) {
+        mediaById[media.id] = media;
+      }
+      final document = const ExhibitionTemplateCodec().applyToDocument(
+        base: current.document,
+        templateJson: templateJson,
+        createId: repository.createId,
+        now: DateTime.now(),
+        mediaIds: result.selectionMediaIds,
+        titleOverride: titleOverride,
+        chapterTitleOverride: chapterTitleOverride,
+      );
+      selectedChapterIndex = 0;
+      await _commit(
+        GalleryBundle(
+          document: document,
+          media: mediaById.values.toList(growable: false),
+        ),
+      );
+    } catch (caught) {
+      error = caught;
+      _notify();
+      rethrow;
+    } finally {
+      importing = false;
+      _notify();
+    }
   }
 
   Future<void> addChapter() async {
@@ -258,16 +312,11 @@ class EditorSession extends ChangeNotifier {
     await updateChapter(customPathAnchors: null);
   }
 
-  Future<void> addCustomPathConnection(
-    CustomPathConnection connection,
-  ) async {
+  Future<void> addCustomPathConnection(CustomPathConnection connection) async {
     final chapter = selectedChapter;
     if (chapter == null) return;
     await updateChapter(
-      customPathConnections: [
-        ...chapter.customPathConnections,
-        connection,
-      ],
+      customPathConnections: [...chapter.customPathConnections, connection],
     );
   }
 
@@ -299,7 +348,11 @@ class EditorSession extends ChangeNotifier {
     await updateChapter(customPathConnections: const []);
   }
 
-  Future<void> addSticker(GalleryStickerKind kind, {double x = 0.5, double y = 0.5}) async {
+  Future<void> addSticker(
+    GalleryStickerKind kind, {
+    double x = 0.5,
+    double y = 0.5,
+  }) async {
     final chapter = selectedChapter;
     if (chapter == null) return;
     await updateChapter(

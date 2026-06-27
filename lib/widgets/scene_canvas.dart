@@ -68,7 +68,10 @@ class SceneCanvas extends StatelessWidget {
           chapter: chapter,
           viewport: viewport,
         );
-        final frame = track.resolve(cameraProgress);
+        var frame = track.resolve(cameraProgress);
+        if (!_hasVisibleNode(frame, viewport)) {
+          frame = track.resolve(0);
+        }
         final motion = MotionResolver.resolve(
           motion: chapter.motion,
           progress: progress,
@@ -206,6 +209,14 @@ class SceneCanvas extends StatelessWidget {
       },
     );
   }
+}
+
+bool _hasVisibleNode(ResolvedNarrativeFrame frame, Size viewport) {
+  if (frame.nodes.isEmpty) return true;
+  final visibleRect = (Offset.zero & viewport).inflate(96);
+  return frame.nodes.any(
+    (node) => node.opacity > 0.02 && node.rect.overlaps(visibleRect),
+  );
 }
 
 class _StickerWidget extends StatelessWidget {
