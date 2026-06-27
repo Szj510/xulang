@@ -44,29 +44,28 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _LibraryHeader(
-                onCreate: () => _createExhibition(
-                  context,
-                  categoryId: selectedCategory?.id,
-                ),
-                onCreateCategory: () => _createCategory(context),
-                onImportTemplate: () => _importTemplate(context),
-                onInfo: () => _showLocalInfo(context),
-                onSettings: () => _showAppSettings(
-                  context,
-                  settings: ref
-                      .read(appSettingsProvider)
-                      .maybeWhen(
-                        data: (value) => value,
-                        orElse: () => const AppSettings(),
-                      ),
-                  onSaveSettings: (settings) => ref
-                      .read(galleryRepositoryProvider)
-                      .saveAppSettings(settings),
+              if (_selectedCategoryId == null) ...[
+                _LibraryHeader(
+                  onCreate: () => _createExhibition(context),
+                  onCreateCategory: () => _createCategory(context),
                   onImportTemplate: () => _importTemplate(context),
+                  onInfo: () => _showLocalInfo(context),
+                  onSettings: () => _showAppSettings(
+                    context,
+                    settings: ref
+                        .read(appSettingsProvider)
+                        .maybeWhen(
+                          data: (value) => value,
+                          orElse: () => const AppSettings(),
+                        ),
+                    onSaveSettings: (settings) => ref
+                        .read(galleryRepositoryProvider)
+                        .saveAppSettings(settings),
+                    onImportTemplate: () => _importTemplate(context),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 22),
+                const SizedBox(height: 22),
+              ],
               Expanded(
                 child: exhibitions.when(
                   data: (items) => categories.when(
@@ -272,10 +271,14 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       final importer = ref.read(mediaImportServiceProvider);
       final id = repository.createId();
       final now = DateTime.now();
+      final settings = ref
+          .read(appSettingsProvider)
+          .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
       final importResult = await importer.importFiles(
         exhibitionId: id,
         sourcePaths: [for (final image in pickedImages) image.path],
         existingAssets: const [],
+        importMode: settings.mediaImportMode,
       );
       if (importResult.selectionMediaIds.isEmpty) return;
 
@@ -1037,7 +1040,7 @@ class _ExhibitionCard extends ConsumerWidget {
           cover: cover == null
               ? const _CoverFallback()
               : GalleryImage(path: cover.thumbnailPath, cacheWidth: 900),
-          title: summary.title,
+          title: _displayExhibitionTitle(summary),
           meta: '$imageCount 张照片 · ${_formatDate(summary.updatedAt)}',
           actions: [
             if (imageCount > 0)
@@ -1107,7 +1110,7 @@ class _ExhibitionCard extends ConsumerWidget {
           builder: (context) => AlertDialog(
             title: const Text('删除展览？'),
             content: Text(
-              '“${summary.title}”及复制到应用中的图片会被永久删除。',
+              '“${_displayExhibitionTitle(summary)}”及复制到应用中的图片会被永久删除。',
               style: Theme.of(context).dialogTheme.contentTextStyle,
             ),
             actions: [
@@ -1487,6 +1490,30 @@ Future<String?> _textDialog(
   return result;
 }
 
+String _displayExhibitionTitle(ExhibitionSummary summary) {
+  if (summary.id == 'sample-exhibition' && !summary.title.contains('官方示例')) {
+    return '${summary.title}（官方示例）';
+  }
+  return summary.title;
+}
+
+String _mediaImportModeLabel(MediaImportMode mode) => switch (mode) {
+  MediaImportMode.copyIntoApp => '复制到应用内',
+  MediaImportMode.referenceOriginal => '直接引用本地图片',
+};
+
+String _mediaImportModeDescription(MediaImportMode mode) => switch (mode) {
+  MediaImportMode.copyIntoApp => '更稳定：展览会保存一份原图，原文件移动或删除后仍可观看；代价是占用更多应用空间。',
+  MediaImportMode.referenceOriginal =>
+    '更省空间：展览只记录原图路径并生成缩略图；如果你移动或删除原文件，展览里的大图可能无法显示。',
+};
+
+String _recordingChapterModeLabel(RecordingChapterMode mode) => switch (mode) {
+  RecordingChapterMode.current => '当前章节',
+  RecordingChapterMode.fromCurrentToEnd => '从当前到结尾',
+  RecordingChapterMode.all => '全部章节',
+};
+
 void _showAppSettings(
   BuildContext context, {
   required AppSettings settings,
@@ -1533,20 +1560,82 @@ void _showAppSettings(
                   await onSaveSettings(draft);
                 },
               ),
+              const SizedBox(height: 12),
+              const _SettingsSectionTitle('图片导入方式'),
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final mode in MediaImportMode.values)
+                    ChoiceChip(
+                      selected: draft.mediaImportMode == mode,
+                      onSelected: (_) async {
+                        draft = draft.copyWith(mediaImportMode: mode);
+                        setSheetState(() {});
+                        await onSaveSettings(draft);
+                      },
+                      label: Text(_mediaImportModeLabel(mode)),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _mediaImportModeDescription(draft.mediaImportMode),
+                style: const TextStyle(
+                  color: XulangColors.muted,
+                  fontSize: 12,
+                  height: 1.55,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const _SettingsSectionTitle('录制默认值'),
               ListTile(
                 contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.timer_outlined),
-                title: Text('录屏延迟播放 ${draft.recordingDelaySeconds} 秒'),
-                subtitle: Slider(
-                  value: draft.recordingDelaySeconds.toDouble(),
-                  min: 0,
-                  max: 10,
-                  divisions: 10,
-                  label: '${draft.recordingDelaySeconds} 秒',
+                leading: const Icon(Icons.video_camera_back_outlined),
+                title: const Text('默认录制章节'),
+                trailing: DropdownButton<RecordingChapterMode>(
+                  value: draft.recordingChapterMode,
                   onChanged: (value) async {
-                    draft = draft.copyWith(
-                      recordingDelaySeconds: value.round(),
-                    );
+                    if (value == null) return;
+                    draft = draft.copyWith(recordingChapterMode: value);
+                    setSheetState(() {});
+                    await onSaveSettings(draft);
+                  },
+                  items: [
+                    for (final mode in RecordingChapterMode.values)
+                      DropdownMenuItem(
+                        value: mode,
+                        child: Text(_recordingChapterModeLabel(mode)),
+                      ),
+                  ],
+                ),
+              ),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('默认使用背景音乐'),
+                subtitle: const Text('录制前仍会弹出确认，可临时修改。'),
+                value: draft.recordingUseMusic,
+                onChanged: (value) async {
+                  draft = draft.copyWith(recordingUseMusic: value);
+                  setSheetState(() {});
+                  await onSaveSettings(draft);
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.speed_outlined),
+                title: Text(
+                  '默认播放速度 ${draft.recordingSpeed.toStringAsFixed(1)} 秒/章',
+                ),
+                subtitle: Slider(
+                  value: draft.recordingSpeed,
+                  min: 1,
+                  max: 12,
+                  divisions: 22,
+                  label: '${draft.recordingSpeed.toStringAsFixed(1)} 秒/章',
+                  onChanged: (value) async {
+                    draft = draft.copyWith(recordingSpeed: value);
                     setSheetState(() {});
                     await onSaveSettings(draft);
                   },

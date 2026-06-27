@@ -406,11 +406,66 @@ class $AppSettingsRowsTable extends AppSettingsRows
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _mediaImportModeMeta = const VerificationMeta(
+    'mediaImportMode',
+  );
+  @override
+  late final GeneratedColumn<String> mediaImportMode = GeneratedColumn<String>(
+    'media_import_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('copyIntoApp'),
+  );
+  static const VerificationMeta _recordingSpeedMeta = const VerificationMeta(
+    'recordingSpeed',
+  );
+  @override
+  late final GeneratedColumn<double> recordingSpeed = GeneratedColumn<double>(
+    'recording_speed',
+    aliasedName,
+    false,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(6.0),
+  );
+  static const VerificationMeta _recordingUseMusicMeta = const VerificationMeta(
+    'recordingUseMusic',
+  );
+  @override
+  late final GeneratedColumn<bool> recordingUseMusic = GeneratedColumn<bool>(
+    'recording_use_music',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("recording_use_music" IN (0, 1))',
+    ),
+    defaultValue: const Constant(true),
+  );
+  static const VerificationMeta _recordingChapterModeMeta =
+      const VerificationMeta('recordingChapterMode');
+  @override
+  late final GeneratedColumn<String> recordingChapterMode =
+      GeneratedColumn<String>(
+        'recording_chapter_mode',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: false,
+        defaultValue: const Constant('current'),
+      );
   @override
   List<GeneratedColumn> get $columns => [
     id,
     recordingShowChapterTitle,
     recordingDelaySeconds,
+    mediaImportMode,
+    recordingSpeed,
+    recordingUseMusic,
+    recordingChapterMode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -447,6 +502,42 @@ class $AppSettingsRowsTable extends AppSettingsRows
         ),
       );
     }
+    if (data.containsKey('media_import_mode')) {
+      context.handle(
+        _mediaImportModeMeta,
+        mediaImportMode.isAcceptableOrUnknown(
+          data['media_import_mode']!,
+          _mediaImportModeMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recording_speed')) {
+      context.handle(
+        _recordingSpeedMeta,
+        recordingSpeed.isAcceptableOrUnknown(
+          data['recording_speed']!,
+          _recordingSpeedMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recording_use_music')) {
+      context.handle(
+        _recordingUseMusicMeta,
+        recordingUseMusic.isAcceptableOrUnknown(
+          data['recording_use_music']!,
+          _recordingUseMusicMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recording_chapter_mode')) {
+      context.handle(
+        _recordingChapterModeMeta,
+        recordingChapterMode.isAcceptableOrUnknown(
+          data['recording_chapter_mode']!,
+          _recordingChapterModeMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -468,6 +559,22 @@ class $AppSettingsRowsTable extends AppSettingsRows
         DriftSqlType.int,
         data['${effectivePrefix}recording_delay_seconds'],
       )!,
+      mediaImportMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}media_import_mode'],
+      )!,
+      recordingSpeed: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}recording_speed'],
+      )!,
+      recordingUseMusic: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}recording_use_music'],
+      )!,
+      recordingChapterMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recording_chapter_mode'],
+      )!,
     );
   }
 
@@ -481,10 +588,18 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
   final String id;
   final bool recordingShowChapterTitle;
   final int recordingDelaySeconds;
+  final String mediaImportMode;
+  final double recordingSpeed;
+  final bool recordingUseMusic;
+  final String recordingChapterMode;
   const AppSettingsRow({
     required this.id,
     required this.recordingShowChapterTitle,
     required this.recordingDelaySeconds,
+    required this.mediaImportMode,
+    required this.recordingSpeed,
+    required this.recordingUseMusic,
+    required this.recordingChapterMode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -494,6 +609,10 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       recordingShowChapterTitle,
     );
     map['recording_delay_seconds'] = Variable<int>(recordingDelaySeconds);
+    map['media_import_mode'] = Variable<String>(mediaImportMode);
+    map['recording_speed'] = Variable<double>(recordingSpeed);
+    map['recording_use_music'] = Variable<bool>(recordingUseMusic);
+    map['recording_chapter_mode'] = Variable<String>(recordingChapterMode);
     return map;
   }
 
@@ -502,6 +621,10 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       id: Value(id),
       recordingShowChapterTitle: Value(recordingShowChapterTitle),
       recordingDelaySeconds: Value(recordingDelaySeconds),
+      mediaImportMode: Value(mediaImportMode),
+      recordingSpeed: Value(recordingSpeed),
+      recordingUseMusic: Value(recordingUseMusic),
+      recordingChapterMode: Value(recordingChapterMode),
     );
   }
 
@@ -518,6 +641,12 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       recordingDelaySeconds: serializer.fromJson<int>(
         json['recordingDelaySeconds'],
       ),
+      mediaImportMode: serializer.fromJson<String>(json['mediaImportMode']),
+      recordingSpeed: serializer.fromJson<double>(json['recordingSpeed']),
+      recordingUseMusic: serializer.fromJson<bool>(json['recordingUseMusic']),
+      recordingChapterMode: serializer.fromJson<String>(
+        json['recordingChapterMode'],
+      ),
     );
   }
   @override
@@ -529,6 +658,10 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
         recordingShowChapterTitle,
       ),
       'recordingDelaySeconds': serializer.toJson<int>(recordingDelaySeconds),
+      'mediaImportMode': serializer.toJson<String>(mediaImportMode),
+      'recordingSpeed': serializer.toJson<double>(recordingSpeed),
+      'recordingUseMusic': serializer.toJson<bool>(recordingUseMusic),
+      'recordingChapterMode': serializer.toJson<String>(recordingChapterMode),
     };
   }
 
@@ -536,11 +669,19 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     String? id,
     bool? recordingShowChapterTitle,
     int? recordingDelaySeconds,
+    String? mediaImportMode,
+    double? recordingSpeed,
+    bool? recordingUseMusic,
+    String? recordingChapterMode,
   }) => AppSettingsRow(
     id: id ?? this.id,
     recordingShowChapterTitle:
         recordingShowChapterTitle ?? this.recordingShowChapterTitle,
     recordingDelaySeconds: recordingDelaySeconds ?? this.recordingDelaySeconds,
+    mediaImportMode: mediaImportMode ?? this.mediaImportMode,
+    recordingSpeed: recordingSpeed ?? this.recordingSpeed,
+    recordingUseMusic: recordingUseMusic ?? this.recordingUseMusic,
+    recordingChapterMode: recordingChapterMode ?? this.recordingChapterMode,
   );
   AppSettingsRow copyWithCompanion(AppSettingsRowsCompanion data) {
     return AppSettingsRow(
@@ -551,6 +692,18 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       recordingDelaySeconds: data.recordingDelaySeconds.present
           ? data.recordingDelaySeconds.value
           : this.recordingDelaySeconds,
+      mediaImportMode: data.mediaImportMode.present
+          ? data.mediaImportMode.value
+          : this.mediaImportMode,
+      recordingSpeed: data.recordingSpeed.present
+          ? data.recordingSpeed.value
+          : this.recordingSpeed,
+      recordingUseMusic: data.recordingUseMusic.present
+          ? data.recordingUseMusic.value
+          : this.recordingUseMusic,
+      recordingChapterMode: data.recordingChapterMode.present
+          ? data.recordingChapterMode.value
+          : this.recordingChapterMode,
     );
   }
 
@@ -559,44 +712,75 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     return (StringBuffer('AppSettingsRow(')
           ..write('id: $id, ')
           ..write('recordingShowChapterTitle: $recordingShowChapterTitle, ')
-          ..write('recordingDelaySeconds: $recordingDelaySeconds')
+          ..write('recordingDelaySeconds: $recordingDelaySeconds, ')
+          ..write('mediaImportMode: $mediaImportMode, ')
+          ..write('recordingSpeed: $recordingSpeed, ')
+          ..write('recordingUseMusic: $recordingUseMusic, ')
+          ..write('recordingChapterMode: $recordingChapterMode')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, recordingShowChapterTitle, recordingDelaySeconds);
+  int get hashCode => Object.hash(
+    id,
+    recordingShowChapterTitle,
+    recordingDelaySeconds,
+    mediaImportMode,
+    recordingSpeed,
+    recordingUseMusic,
+    recordingChapterMode,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       (other is AppSettingsRow &&
           other.id == this.id &&
           other.recordingShowChapterTitle == this.recordingShowChapterTitle &&
-          other.recordingDelaySeconds == this.recordingDelaySeconds);
+          other.recordingDelaySeconds == this.recordingDelaySeconds &&
+          other.mediaImportMode == this.mediaImportMode &&
+          other.recordingSpeed == this.recordingSpeed &&
+          other.recordingUseMusic == this.recordingUseMusic &&
+          other.recordingChapterMode == this.recordingChapterMode);
 }
 
 class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
   final Value<String> id;
   final Value<bool> recordingShowChapterTitle;
   final Value<int> recordingDelaySeconds;
+  final Value<String> mediaImportMode;
+  final Value<double> recordingSpeed;
+  final Value<bool> recordingUseMusic;
+  final Value<String> recordingChapterMode;
   final Value<int> rowid;
   const AppSettingsRowsCompanion({
     this.id = const Value.absent(),
     this.recordingShowChapterTitle = const Value.absent(),
     this.recordingDelaySeconds = const Value.absent(),
+    this.mediaImportMode = const Value.absent(),
+    this.recordingSpeed = const Value.absent(),
+    this.recordingUseMusic = const Value.absent(),
+    this.recordingChapterMode = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AppSettingsRowsCompanion.insert({
     required String id,
     this.recordingShowChapterTitle = const Value.absent(),
     this.recordingDelaySeconds = const Value.absent(),
+    this.mediaImportMode = const Value.absent(),
+    this.recordingSpeed = const Value.absent(),
+    this.recordingUseMusic = const Value.absent(),
+    this.recordingChapterMode = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id);
   static Insertable<AppSettingsRow> custom({
     Expression<String>? id,
     Expression<bool>? recordingShowChapterTitle,
     Expression<int>? recordingDelaySeconds,
+    Expression<String>? mediaImportMode,
+    Expression<double>? recordingSpeed,
+    Expression<bool>? recordingUseMusic,
+    Expression<String>? recordingChapterMode,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -605,6 +789,11 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
         'recording_show_chapter_title': recordingShowChapterTitle,
       if (recordingDelaySeconds != null)
         'recording_delay_seconds': recordingDelaySeconds,
+      if (mediaImportMode != null) 'media_import_mode': mediaImportMode,
+      if (recordingSpeed != null) 'recording_speed': recordingSpeed,
+      if (recordingUseMusic != null) 'recording_use_music': recordingUseMusic,
+      if (recordingChapterMode != null)
+        'recording_chapter_mode': recordingChapterMode,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -613,6 +802,10 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
     Value<String>? id,
     Value<bool>? recordingShowChapterTitle,
     Value<int>? recordingDelaySeconds,
+    Value<String>? mediaImportMode,
+    Value<double>? recordingSpeed,
+    Value<bool>? recordingUseMusic,
+    Value<String>? recordingChapterMode,
     Value<int>? rowid,
   }) {
     return AppSettingsRowsCompanion(
@@ -621,6 +814,10 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
           recordingShowChapterTitle ?? this.recordingShowChapterTitle,
       recordingDelaySeconds:
           recordingDelaySeconds ?? this.recordingDelaySeconds,
+      mediaImportMode: mediaImportMode ?? this.mediaImportMode,
+      recordingSpeed: recordingSpeed ?? this.recordingSpeed,
+      recordingUseMusic: recordingUseMusic ?? this.recordingUseMusic,
+      recordingChapterMode: recordingChapterMode ?? this.recordingChapterMode,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -641,6 +838,20 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
         recordingDelaySeconds.value,
       );
     }
+    if (mediaImportMode.present) {
+      map['media_import_mode'] = Variable<String>(mediaImportMode.value);
+    }
+    if (recordingSpeed.present) {
+      map['recording_speed'] = Variable<double>(recordingSpeed.value);
+    }
+    if (recordingUseMusic.present) {
+      map['recording_use_music'] = Variable<bool>(recordingUseMusic.value);
+    }
+    if (recordingChapterMode.present) {
+      map['recording_chapter_mode'] = Variable<String>(
+        recordingChapterMode.value,
+      );
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -653,6 +864,10 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
           ..write('id: $id, ')
           ..write('recordingShowChapterTitle: $recordingShowChapterTitle, ')
           ..write('recordingDelaySeconds: $recordingDelaySeconds, ')
+          ..write('mediaImportMode: $mediaImportMode, ')
+          ..write('recordingSpeed: $recordingSpeed, ')
+          ..write('recordingUseMusic: $recordingUseMusic, ')
+          ..write('recordingChapterMode: $recordingChapterMode, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3688,6 +3903,10 @@ typedef $$AppSettingsRowsTableCreateCompanionBuilder =
       required String id,
       Value<bool> recordingShowChapterTitle,
       Value<int> recordingDelaySeconds,
+      Value<String> mediaImportMode,
+      Value<double> recordingSpeed,
+      Value<bool> recordingUseMusic,
+      Value<String> recordingChapterMode,
       Value<int> rowid,
     });
 typedef $$AppSettingsRowsTableUpdateCompanionBuilder =
@@ -3695,6 +3914,10 @@ typedef $$AppSettingsRowsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<bool> recordingShowChapterTitle,
       Value<int> recordingDelaySeconds,
+      Value<String> mediaImportMode,
+      Value<double> recordingSpeed,
+      Value<bool> recordingUseMusic,
+      Value<String> recordingChapterMode,
       Value<int> rowid,
     });
 
@@ -3719,6 +3942,26 @@ class $$AppSettingsRowsTableFilterComposer
 
   ColumnFilters<int> get recordingDelaySeconds => $composableBuilder(
     column: $table.recordingDelaySeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get mediaImportMode => $composableBuilder(
+    column: $table.mediaImportMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get recordingSpeed => $composableBuilder(
+    column: $table.recordingSpeed,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get recordingUseMusic => $composableBuilder(
+    column: $table.recordingUseMusic,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordingChapterMode => $composableBuilder(
+    column: $table.recordingChapterMode,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -3746,6 +3989,26 @@ class $$AppSettingsRowsTableOrderingComposer
     column: $table.recordingDelaySeconds,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get mediaImportMode => $composableBuilder(
+    column: $table.mediaImportMode,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<double> get recordingSpeed => $composableBuilder(
+    column: $table.recordingSpeed,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get recordingUseMusic => $composableBuilder(
+    column: $table.recordingUseMusic,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get recordingChapterMode => $composableBuilder(
+    column: $table.recordingChapterMode,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AppSettingsRowsTableAnnotationComposer
@@ -3767,6 +4030,26 @@ class $$AppSettingsRowsTableAnnotationComposer
 
   GeneratedColumn<int> get recordingDelaySeconds => $composableBuilder(
     column: $table.recordingDelaySeconds,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get mediaImportMode => $composableBuilder(
+    column: $table.mediaImportMode,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get recordingSpeed => $composableBuilder(
+    column: $table.recordingSpeed,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<bool> get recordingUseMusic => $composableBuilder(
+    column: $table.recordingUseMusic,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get recordingChapterMode => $composableBuilder(
+    column: $table.recordingChapterMode,
     builder: (column) => column,
   );
 }
@@ -3811,11 +4094,19 @@ class $$AppSettingsRowsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<bool> recordingShowChapterTitle = const Value.absent(),
                 Value<int> recordingDelaySeconds = const Value.absent(),
+                Value<String> mediaImportMode = const Value.absent(),
+                Value<double> recordingSpeed = const Value.absent(),
+                Value<bool> recordingUseMusic = const Value.absent(),
+                Value<String> recordingChapterMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AppSettingsRowsCompanion(
                 id: id,
                 recordingShowChapterTitle: recordingShowChapterTitle,
                 recordingDelaySeconds: recordingDelaySeconds,
+                mediaImportMode: mediaImportMode,
+                recordingSpeed: recordingSpeed,
+                recordingUseMusic: recordingUseMusic,
+                recordingChapterMode: recordingChapterMode,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -3823,11 +4114,19 @@ class $$AppSettingsRowsTableTableManager
                 required String id,
                 Value<bool> recordingShowChapterTitle = const Value.absent(),
                 Value<int> recordingDelaySeconds = const Value.absent(),
+                Value<String> mediaImportMode = const Value.absent(),
+                Value<double> recordingSpeed = const Value.absent(),
+                Value<bool> recordingUseMusic = const Value.absent(),
+                Value<String> recordingChapterMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AppSettingsRowsCompanion.insert(
                 id: id,
                 recordingShowChapterTitle: recordingShowChapterTitle,
                 recordingDelaySeconds: recordingDelaySeconds,
+                mediaImportMode: mediaImportMode,
+                recordingSpeed: recordingSpeed,
+                recordingUseMusic: recordingUseMusic,
+                recordingChapterMode: recordingChapterMode,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

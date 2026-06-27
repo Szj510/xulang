@@ -17,6 +17,7 @@ class MediaImportService {
     required String exhibitionId,
     required List<String> sourcePaths,
     required Iterable<GalleryMedia> existingAssets,
+    MediaImportMode importMode = MediaImportMode.copyIntoApp,
   }) async {
     final byHash = {
       for (final asset in existingAssets) asset.contentHash: asset,
@@ -49,13 +50,17 @@ class MediaImportService {
         final assetStaging = Directory(p.join(stagingRoot.path, assetId));
         await assetStaging.create(recursive: true);
         final extension = p.extension(sourcePath).toLowerCase();
-        final original = File(
-          p.join(
-            assetStaging.path,
-            'original${extension.isEmpty ? '.img' : extension}',
-          ),
-        );
-        await source.openRead().pipe(original.openWrite());
+        final shouldCopyOriginal = importMode == MediaImportMode.copyIntoApp;
+        File? original;
+        if (shouldCopyOriginal) {
+          original = File(
+            p.join(
+              assetStaging.path,
+              'original${extension.isEmpty ? '.img' : extension}',
+            ),
+          );
+          await source.openRead().pipe(original.openWrite());
+        }
         final thumbnail = File(p.join(assetStaging.path, 'thumbnail.webp'));
         await thumbnail.writeAsBytes(decoded.thumbnailBytes, flush: true);
 
@@ -64,7 +69,9 @@ class MediaImportService {
         );
         final media = GalleryMedia(
           id: assetId,
-          originalPath: p.join(finalDirectory.path, p.basename(original.path)),
+          originalPath: shouldCopyOriginal
+              ? p.join(finalDirectory.path, p.basename(original!.path))
+              : sourcePath,
           thumbnailPath: p.join(finalDirectory.path, 'thumbnail.webp'),
           width: decoded.width,
           height: decoded.height,

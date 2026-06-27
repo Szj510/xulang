@@ -408,69 +408,82 @@ class _StickerWidget extends StatelessWidget {
       cameraOffset,
       usesSharedCamera,
     );
-    final left = screenCenter.dx - size / 2;
-    final top = screenCenter.dy - size / 2;
+    const deleteHitSize = 46.0;
+    final hitSize = size + 58;
+    final left = screenCenter.dx - hitSize / 2;
+    final top = screenCenter.dy - hitSize / 2;
     return Positioned(
       left: left,
       top: top,
+      width: hitSize,
+      height: hitSize,
       child: Opacity(
         opacity: opacity,
-        child: GestureDetector(
-          key: Key('scene-sticker-${sticker.id}'),
-          behavior: HitTestBehavior.opaque,
-          onPanUpdate: !editable || onChanged == null
-              ? null
-              : (details) {
-                  final nextScreenCenter = screenCenter + details.delta;
-                  final nextWorldCenter = _stickerScreenToWorld(
-                    nextScreenCenter,
-                    axis,
-                    cameraOffset,
-                    usesSharedCamera,
-                  );
-                  onChanged!(
-                    sticker.copyWith(
-                      x: nextWorldCenter.dx / viewport.width,
-                      y: nextWorldCenter.dy / viewport.height,
-                    ),
-                  );
-                },
-          child: Stack(
-            clipBehavior: Clip.none,
-            children: [
-              AtmosphericSticker(
-                kind: sticker.kind,
-                size: size,
-                rotation: sticker.rotation,
-                opacity: opacity,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Center(
+              child: GestureDetector(
+                key: Key('scene-sticker-${sticker.id}'),
+                behavior: HitTestBehavior.translucent,
+                onPanUpdate: !editable || onChanged == null
+                    ? null
+                    : (details) {
+                        final nextScreenCenter = screenCenter + details.delta;
+                        final nextWorldCenter = _stickerScreenToWorld(
+                          nextScreenCenter,
+                          axis,
+                          cameraOffset,
+                          usesSharedCamera,
+                        );
+                        onChanged!(
+                          sticker.copyWith(
+                            x: nextWorldCenter.dx / viewport.width,
+                            y: nextWorldCenter.dy / viewport.height,
+                          ),
+                        );
+                      },
+                child: AtmosphericSticker(
+                  kind: sticker.kind,
+                  size: size,
+                  rotation: sticker.rotation,
+                  opacity: opacity,
+                ),
               ),
-              if (editable)
-                Positioned(
-                  right: -13,
-                  top: -13,
-                  child: GestureDetector(
-                    key: Key('scene-sticker-delete-${sticker.id}'),
-                    onTap: () => onDeleted?.call(sticker.id),
-                    child: Container(
-                      width: 24,
-                      height: 24,
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: .65),
-                        shape: BoxShape.circle,
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: .26),
+            ),
+            if (editable)
+              Positioned(
+                right: 0,
+                top: 0,
+                child: GestureDetector(
+                  key: Key('scene-sticker-delete-${sticker.id}'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => onDeleted?.call(sticker.id),
+                  child: SizedBox(
+                    width: deleteHitSize,
+                    height: deleteHitSize,
+                    child: Center(
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: .72),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: .34),
+                          ),
                         ),
-                      ),
-                      child: const Icon(
-                        Icons.close,
-                        size: 15,
-                        color: Colors.white,
+                        child: const Icon(
+                          Icons.close,
+                          size: 17,
+                          color: Colors.white,
+                        ),
                       ),
                     ),
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

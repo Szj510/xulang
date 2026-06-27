@@ -26,6 +26,13 @@ class AppSettingsRows extends Table {
       boolean().withDefault(const Constant(true))();
   IntColumn get recordingDelaySeconds =>
       integer().withDefault(const Constant(0))();
+  TextColumn get mediaImportMode =>
+      text().withDefault(const Constant('copyIntoApp'))();
+  RealColumn get recordingSpeed => real().withDefault(const Constant(6.0))();
+  BoolColumn get recordingUseMusic =>
+      boolean().withDefault(const Constant(true))();
+  TextColumn get recordingChapterMode =>
+      text().withDefault(const Constant('current'))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -124,7 +131,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 8;
+  int get schemaVersion => 9;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -155,11 +162,15 @@ class GalleryDatabase extends _$GalleryDatabase {
       if (from < 8) {
         await _ensureCategoryAndSettingsSchema();
       }
+      if (from < 9) {
+        await _ensureAppSettingsColumns();
+      }
     },
     beforeOpen: (_) async {
       await _ensurePlaybackDelayColumn();
       await _ensureCanvasBackgroundColumns();
       await _ensureCategoryAndSettingsSchema();
+      await _ensureAppSettingsColumns();
     },
   );
 
@@ -203,7 +214,11 @@ class GalleryDatabase extends _$GalleryDatabase {
       'CREATE TABLE IF NOT EXISTS app_settings_rows ('
       'id TEXT NOT NULL PRIMARY KEY, '
       'recording_show_chapter_title INTEGER NOT NULL DEFAULT 1, '
-      'recording_delay_seconds INTEGER NOT NULL DEFAULT 0)',
+      'recording_delay_seconds INTEGER NOT NULL DEFAULT 0, '
+      "media_import_mode TEXT NOT NULL DEFAULT 'copyIntoApp', "
+      'recording_speed REAL NOT NULL DEFAULT 6.0, '
+      'recording_use_music INTEGER NOT NULL DEFAULT 1, '
+      "recording_chapter_mode TEXT NOT NULL DEFAULT 'current')",
     );
     try {
       await customStatement(
@@ -211,6 +226,29 @@ class GalleryDatabase extends _$GalleryDatabase {
       );
     } catch (_) {
       // Column already exists on current installs.
+    }
+  }
+
+  Future<void> _ensureRuntimeSchema() async {
+    await _ensurePlaybackDelayColumn();
+    await _ensureCanvasBackgroundColumns();
+    await _ensureCategoryAndSettingsSchema();
+    await _ensureAppSettingsColumns();
+  }
+
+  Future<void> _ensureAppSettingsColumns() async {
+    final statements = <String>[
+      "ALTER TABLE app_settings_rows ADD COLUMN media_import_mode TEXT NOT NULL DEFAULT 'copyIntoApp'",
+      'ALTER TABLE app_settings_rows ADD COLUMN recording_speed REAL NOT NULL DEFAULT 6.0',
+      'ALTER TABLE app_settings_rows ADD COLUMN recording_use_music INTEGER NOT NULL DEFAULT 1',
+      "ALTER TABLE app_settings_rows ADD COLUMN recording_chapter_mode TEXT NOT NULL DEFAULT 'current'",
+    ];
+    for (final statement in statements) {
+      try {
+        await customStatement(statement);
+      } catch (_) {
+        // Column already exists on current installs.
+      }
     }
   }
 
@@ -340,22 +378,25 @@ class GalleryDatabase extends _$GalleryDatabase {
   Stream<List<ExhibitionSummary>> watchExhibitions() {
     final query = select(exhibitions)
       ..orderBy([(row) => OrderingTerm.desc(row.updatedAt)]);
-    return query.watch().map(
-      (rows) => rows
-          .map(
-            (row) => ExhibitionSummary(
-              id: row.id,
-              title: row.title,
-              coverMediaId: row.coverMediaId,
-              categoryId: row.categoryId,
-              updatedAt: row.updatedAt,
-            ),
-          )
-          .toList(growable: false),
-    );
+    return Stream.fromFuture(_ensureRuntimeSchema())
+        .asyncExpand((_) => query.watch())
+        .map(
+          (rows) => rows
+              .map(
+                (row) => ExhibitionSummary(
+                  id: row.id,
+                  title: _displayTitleForSummary(row.id, row.title),
+                  coverMediaId: row.coverMediaId,
+                  categoryId: row.categoryId,
+                  updatedAt: row.updatedAt,
+                ),
+              )
+              .toList(growable: false),
+        );
   }
 
   Future<GalleryDocument?> loadDocument(String exhibitionId) async {
+    await _ensureRuntimeSchema();
     final exhibition = await (select(
       exhibitions,
     )..where((row) => row.id.equals(exhibitionId))).getSingleOrNull();
@@ -413,7 +454,7 @@ class GalleryDatabase extends _$GalleryDatabase {
     }
     return GalleryDocument(
       id: exhibition.id,
-      title: exhibition.title,
+      title: _displayTitleForSummary(exhibition.id, exhibition.title),
       coverMediaId: exhibition.coverMediaId,
       categoryId: exhibition.categoryId,
       theme: _enumByName(
@@ -517,7 +558,18 @@ class GalleryDatabase extends _$GalleryDatabase {
       if (row == null) return const AppSettings();
       return AppSettings(
         recordingShowChapterTitle: row.recordingShowChapterTitle,
-        recordingDelaySeconds: row.recordingDelaySeconds.clamp(0, 30).toInt(),
+        mediaImportMode: _enumByName(
+          MediaImportMode.values,
+          row.mediaImportMode,
+          MediaImportMode.copyIntoApp,
+        ),
+        recordingSpeed: row.recordingSpeed.clamp(1.0, 12.0).toDouble(),
+        recordingUseMusic: row.recordingUseMusic,
+        recordingChapterMode: _enumByName(
+          RecordingChapterMode.values,
+          row.recordingChapterMode,
+          RecordingChapterMode.current,
+        ),
       );
     });
   }
@@ -527,9 +579,12 @@ class GalleryDatabase extends _$GalleryDatabase {
       AppSettingsRowsCompanion.insert(
         id: _appSettingsId,
         recordingShowChapterTitle: Value(settings.recordingShowChapterTitle),
-        recordingDelaySeconds: Value(
-          settings.recordingDelaySeconds.clamp(0, 30).toInt(),
+        mediaImportMode: Value(settings.mediaImportMode.name),
+        recordingSpeed: Value(
+          settings.recordingSpeed.clamp(1.0, 12.0).toDouble(),
         ),
+        recordingUseMusic: Value(settings.recordingUseMusic),
+        recordingChapterMode: Value(settings.recordingChapterMode.name),
       ),
     );
   }
@@ -648,6 +703,13 @@ T _enumByName<T extends Enum>(List<T> values, String name, T fallback) {
     if (value.name == name) return value;
   }
   return fallback;
+}
+
+String _displayTitleForSummary(String id, String title) {
+  if (id == 'sample-exhibition' && !title.contains('官方示例')) {
+    return '$title（官方示例）';
+  }
+  return title;
 }
 
 class ExhibitionSummary {

@@ -36,8 +36,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   bool _musicPlaying = false;
   bool _changingChapter = false;
   bool _playbackFinished = false;
-  int _playbackDelayRemaining = 0;
-  Timer? _playbackDelayTimer;
+  RecordingChapterMode _activeRecordingChapterMode =
+      RecordingChapterMode.current;
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _playingMusicPath;
 
@@ -51,7 +51,6 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   @override
   void dispose() {
-    _playbackDelayTimer?.cancel();
     unawaited(SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge));
     unawaited(_audioPlayer.dispose());
     WakelockPlus.disable();
@@ -154,8 +153,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       sceneTheme: bundle.document.theme,
                       reduceMotion: MediaQuery.disableAnimationsOf(context),
                       showControls: _showChrome && !_recordingMode,
-                      recordingMode:
-                          _recordingMode && _playbackDelayRemaining == 0,
+                      recordingMode: _recordingMode,
                       recordingSpeed: _recordingSpeed,
                       initialProgress: _chapterProgress[chapter.id] ?? 0,
                       hasPreviousChapter: chapterIndex > 0,
@@ -164,11 +162,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                           _chapterProgress[chapter.id] = progress,
                       onChapterIntent: (intent) =>
                           _changeChapter(chapters, intent),
-                      onPlaybackCompleted: () {
-                        if (mounted && !_playbackFinished) {
-                          setState(() => _playbackFinished = true);
-                        }
-                      },
+                      onPlaybackCompleted: () =>
+                          _handlePlaybackCompleted(chapters),
                     ),
                   ),
                 ),
@@ -276,46 +271,52 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     AppSettings appSettings,
     bool enabled,
   ) async {
-    _playbackDelayTimer?.cancel();
-    final delaySeconds = enabled
-        ? appSettings.recordingDelaySeconds.clamp(0, 30)
-        : 0;
-    if (mounted) {
-      setState(() {
-        _recordingMode = enabled;
-        _playbackFinished = false;
-        _playbackDelayRemaining = delaySeconds;
-        if (enabled) _showChrome = false;
-      });
-    }
     if (enabled) {
+      final options = await _showRecordingOptions(document, appSettings);
+      if (options == null) return;
+      await ref
+          .read(galleryRepositoryProvider)
+          .saveAppSettings(
+            appSettings.copyWith(
+              recordingChapterMode: options.chapterMode,
+              recordingSpeed: options.speed,
+              recordingUseMusic: options.useMusic,
+            ),
+          );
+      if (!mounted) return;
+      setState(() {
+        _recordingSpeed = options.speed;
+        _recordingMode = true;
+        _playbackFinished = false;
+        _showChrome = false;
+        _activeRecordingChapterMode = options.chapterMode;
+        _chapterIndex = _recordingStartIndex(
+          currentIndex: _chapterIndex,
+          mode: options.chapterMode,
+        );
+      });
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-      if (delaySeconds > 0) {
-        _startPlaybackDelayTimer(document);
-      } else if (document.musicPath != null) {
+      if (options.useMusic && document.musicPath != null) {
         await _playMusic(document);
       }
-    } else {
-      await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('已进入录制播放流程；原生自动录屏桥接将在 Android 端接入后直接生成视频并分享。'),
+          ),
+        );
+      }
+      return;
     }
-  }
 
-  void _startPlaybackDelayTimer(GalleryDocument document) {
-    _playbackDelayTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted || !_recordingMode) {
-        timer.cancel();
-        return;
-      }
-      if (_playbackDelayRemaining <= 1) {
-        timer.cancel();
-        setState(() => _playbackDelayRemaining = 0);
-        if (document.musicPath != null) {
-          unawaited(_playMusic(document));
-        }
-      } else {
-        setState(() => _playbackDelayRemaining -= 1);
-      }
-    });
+    if (mounted) {
+      setState(() {
+        _recordingMode = false;
+        _showChrome = true;
+        _playbackFinished = false;
+      });
+    }
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
   Future<void> _restoreChromeAfterPlayback() async {
@@ -325,9 +326,154 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         _recordingMode = false;
         _showChrome = true;
         _playbackFinished = false;
-        _playbackDelayRemaining = 0;
       });
     }
+  }
+
+  void _handlePlaybackCompleted(List<GalleryChapter> chapters) {
+    if (!mounted || _playbackFinished) return;
+    if (_recordingMode) {
+      final endIndex = _recordingEndIndex(
+        chapterCount: chapters.length,
+        currentIndex: _chapterIndex,
+        mode: _activeRecordingChapterMode,
+      );
+      if (_chapterIndex < endIndex) {
+        setState(() {
+          _slideDirection = 1;
+          _chapterIndex += 1;
+        });
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('录制播放已结束；接入原生录屏后这里会自动生成视频并弹出分享。')),
+      );
+    }
+    setState(() => _playbackFinished = true);
+  }
+
+  int _recordingStartIndex({
+    required int currentIndex,
+    required RecordingChapterMode mode,
+  }) {
+    return switch (mode) {
+      RecordingChapterMode.all => 0,
+      RecordingChapterMode.current ||
+      RecordingChapterMode.fromCurrentToEnd => currentIndex,
+    };
+  }
+
+  int _recordingEndIndex({
+    required int chapterCount,
+    required int currentIndex,
+    required RecordingChapterMode mode,
+  }) {
+    return switch (mode) {
+      RecordingChapterMode.current => currentIndex,
+      RecordingChapterMode.fromCurrentToEnd ||
+      RecordingChapterMode.all => chapterCount - 1,
+    };
+  }
+
+  Future<_RecordingOptions?> _showRecordingOptions(
+    GalleryDocument document,
+    AppSettings settings,
+  ) {
+    var chapterMode = settings.recordingChapterMode;
+    var speed = settings.recordingSpeed;
+    var useMusic = settings.recordingUseMusic && document.musicPath != null;
+    return showModalBottomSheet<_RecordingOptions>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => StatefulBuilder(
+        builder: (context, setSheetState) => SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  '录制与分享',
+                  style: TextStyle(
+                    color: XulangColors.paper,
+                    fontFamily: 'Noto Serif SC',
+                    fontSize: 22,
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                const Text(
+                  '确认后会进入沉浸播放。Android 原生自动录屏接入后，会在播放结束时自动生成视频并弹出系统分享面板。',
+                  style: TextStyle(
+                    color: XulangColors.muted,
+                    fontSize: 12,
+                    height: 1.55,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                const Text('章节范围'),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final mode in RecordingChapterMode.values)
+                      ChoiceChip(
+                        selected: chapterMode == mode,
+                        label: Text(_recordingChapterModeLabel(mode)),
+                        onSelected: (_) =>
+                            setSheetState(() => chapterMode = mode),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                Text('播放速度 ${speed.toStringAsFixed(1)} 秒/章'),
+                Slider(
+                  value: speed,
+                  min: 1,
+                  max: 12,
+                  divisions: 22,
+                  label: '${speed.toStringAsFixed(1)} 秒/章',
+                  onChanged: (value) => setSheetState(() => speed = value),
+                ),
+                SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  value: useMusic,
+                  onChanged: document.musicPath == null
+                      ? null
+                      : (value) => setSheetState(() => useMusic = value),
+                  title: const Text('使用背景音乐'),
+                  subtitle: Text(document.musicTitle ?? '当前展览没有背景音乐'),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(sheetContext),
+                      child: const Text('取消'),
+                    ),
+                    const Spacer(),
+                    FilledButton.icon(
+                      onPressed: () => Navigator.pop(
+                        sheetContext,
+                        _RecordingOptions(
+                          chapterMode: chapterMode,
+                          speed: speed,
+                          useMusic: useMusic,
+                        ),
+                      ),
+                      icon: const Icon(Icons.videocam_outlined, size: 18),
+                      label: const Text('开始录制播放'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _toggleMusic(GalleryDocument document) async {
@@ -351,6 +497,24 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (mounted) setState(() => _musicPlaying = true);
   }
 }
+
+class _RecordingOptions {
+  const _RecordingOptions({
+    required this.chapterMode,
+    required this.speed,
+    required this.useMusic,
+  });
+
+  final RecordingChapterMode chapterMode;
+  final double speed;
+  final bool useMusic;
+}
+
+String _recordingChapterModeLabel(RecordingChapterMode mode) => switch (mode) {
+  RecordingChapterMode.current => '当前章节',
+  RecordingChapterMode.fromCurrentToEnd => '从当前到结尾',
+  RecordingChapterMode.all => '全部章节',
+};
 
 class _ViewerChapter extends StatefulWidget {
   const _ViewerChapter({
