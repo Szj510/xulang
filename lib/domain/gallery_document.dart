@@ -32,25 +32,52 @@ enum GalleryTheme {
 
 enum ExhibitionSortMode { updatedDesc, titleAsc }
 
+enum MediaImportMode { copyIntoApp, referenceOriginal }
+
+enum RecordingChapterMode { current, fromCurrentToEnd, all }
+
 class AppSettings {
   const AppSettings({
     this.recordingShowChapterTitle = true,
     this.recordingDelaySeconds = 0,
+    this.mediaImportMode = MediaImportMode.copyIntoApp,
+    this.recordingSpeed = 6.0,
+    this.recordingUseMusic = true,
+    this.recordingChapterMode = RecordingChapterMode.current,
   });
 
   final bool recordingShowChapterTitle;
+
+  /// Legacy hot-reload compatibility field.
+  ///
+  /// The app no longer uses a manual recording delay, but keeping this field
+  /// avoids Flutter rejecting hot reload for already-running sessions that still
+  /// have the old const class shape in memory.
   final int recordingDelaySeconds;
+  final MediaImportMode mediaImportMode;
+  final double recordingSpeed;
+  final bool recordingUseMusic;
+  final RecordingChapterMode recordingChapterMode;
 
   AppSettings copyWith({
     bool? recordingShowChapterTitle,
     int? recordingDelaySeconds,
+    MediaImportMode? mediaImportMode,
+    double? recordingSpeed,
+    bool? recordingUseMusic,
+    RecordingChapterMode? recordingChapterMode,
   }) {
     return AppSettings(
       recordingShowChapterTitle:
           recordingShowChapterTitle ?? this.recordingShowChapterTitle,
       recordingDelaySeconds:
-          recordingDelaySeconds?.clamp(0, 30).toInt() ??
+          recordingDelaySeconds?.clamp(0, 0).toInt() ??
           this.recordingDelaySeconds,
+      mediaImportMode: mediaImportMode ?? this.mediaImportMode,
+      recordingSpeed:
+          recordingSpeed?.clamp(1.0, 12.0).toDouble() ?? this.recordingSpeed,
+      recordingUseMusic: recordingUseMusic ?? this.recordingUseMusic,
+      recordingChapterMode: recordingChapterMode ?? this.recordingChapterMode,
     );
   }
 }

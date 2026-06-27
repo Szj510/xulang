@@ -19,7 +19,11 @@ Future<void> main() async {
     mediaRoot: Directory(p.join(support.path, 'media')),
     createId: () => const Uuid().v7(),
   );
-  await _seedSampleGalleryOnce(support, repository);
+  try {
+    await _seedSampleGalleryOnce(support, repository);
+  } catch (error) {
+    debugPrint('Failed to seed the official sample gallery: $error');
+  }
   runApp(
     ProviderScope(
       overrides: [galleryRepositoryProvider.overrideWithValue(repository)],
@@ -35,8 +39,9 @@ Future<void> _seedSampleGalleryOnce(
   final marker = File(p.join(support.path, '.sample_gallery_seeded'));
   if (await marker.exists()) return;
 
-  final existing = await repository.load('sample-exhibition');
-  if (existing == null) {
+  final summaries = await repository.watchExhibitions().first;
+  final existing = summaries.any((item) => item.id == 'sample-exhibition');
+  if (!existing) {
     await repository.save(buildSampleGallery(DateTime.now()));
   }
   await marker.create(recursive: true);

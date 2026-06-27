@@ -233,10 +233,12 @@ class EditorSession extends ChangeNotifier {
     importing = true;
     _notify();
     try {
+      final settings = await repository.watchAppSettings().first;
       final result = await importer.importFiles(
         exhibitionId: exhibitionId,
         sourcePaths: sourcePaths,
         existingAssets: current.media,
+        importMode: settings.mediaImportMode,
       );
       final mediaById = {for (final media in current.media) media.id: media};
       for (final media in result.assets) {
@@ -504,10 +506,12 @@ class EditorSession extends ChangeNotifier {
     _notify();
     try {
       final current = bundle!;
+      final settings = await repository.watchAppSettings().first;
       final result = await importer.importFiles(
         exhibitionId: exhibitionId,
         sourcePaths: paths,
         existingAssets: current.media,
+        importMode: settings.mediaImportMode,
       );
       final mediaById = {for (final media in current.media) media.id: media};
       for (final media in result.assets) {

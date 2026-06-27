@@ -211,6 +211,16 @@ class _EditorBodyState extends State<_EditorBody> {
                           ),
                         ),
                         PopupMenuItem(
+                          value: _EditorExportAction.recordAndShare,
+                          child: Row(
+                            children: [
+                              Icon(Icons.video_camera_back_outlined, size: 18),
+                              SizedBox(width: 12),
+                              Text('录制并分享视频'),
+                            ],
+                          ),
+                        ),
+                        PopupMenuItem(
                           value: _EditorExportAction.importTemplate,
                           child: Row(
                             children: [
@@ -328,6 +338,19 @@ class _EditorBodyState extends State<_EditorBody> {
                                           ),
                                           SizedBox(width: 12),
                                           Text('分享模板'),
+                                        ],
+                                      ),
+                                    ),
+                                    PopupMenuItem(
+                                      value: _EditorExportAction.recordAndShare,
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.video_camera_back_outlined,
+                                            size: 18,
+                                          ),
+                                          SizedBox(width: 12),
+                                          Text('录制并分享视频'),
                                         ],
                                       ),
                                     ),
@@ -485,6 +508,13 @@ class _EditorBodyState extends State<_EditorBody> {
           if (context.mounted) {
             _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
           }
+        case _EditorExportAction.recordAndShare:
+          if (!context.mounted) return;
+          await Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (_) => ViewerScreen(exhibitionId: bundle.document.id),
+            ),
+          );
         case _EditorExportAction.importTemplate:
           final file = await openFile(
             acceptedTypeGroups: const [
@@ -610,7 +640,7 @@ class _EditorBodyState extends State<_EditorBody> {
   }
 }
 
-enum _EditorExportAction { template, importTemplate }
+enum _EditorExportAction { template, recordAndShare, importTemplate }
 
 class _EditorIconButton extends StatelessWidget {
   const _EditorIconButton({
