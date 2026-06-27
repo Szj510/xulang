@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/layout/motion_resolver.dart';
+import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_track.dart';
 import 'package:xulang/layout/narrative_track_resolver.dart';
 import 'package:xulang/layout/story_path_geometry.dart';
@@ -68,10 +69,17 @@ class SceneCanvas extends StatelessWidget {
           chapter: chapter,
           viewport: viewport,
         );
-        var frame = track.resolve(cameraProgress);
+        var effectiveCameraProgress = cameraProgress;
+        var frame = track.resolve(effectiveCameraProgress);
         if (!_hasVisibleNode(frame, viewport)) {
-          frame = track.resolve(0);
+          effectiveCameraProgress = 0;
+          frame = track.resolve(effectiveCameraProgress);
         }
+        final stickerCameraOffset = _stickerCameraOffset(
+          track,
+          viewport,
+          effectiveCameraProgress,
+        );
         final motion = MotionResolver.resolve(
           motion: chapter.motion,
           progress: progress,
@@ -186,17 +194,24 @@ class SceneCanvas extends StatelessWidget {
                       key: const Key('scene-sticker-place-surface'),
                       behavior: HitTestBehavior.translucent,
                       onTapUp: (details) => onStickerPlaced?.call(
-                        details.localPosition,
+                        _stickerScreenToWorld(
+                          details.localPosition,
+                          track.axis,
+                          stickerCameraOffset,
+                          track.sharedCamera,
+                        ),
                         viewport,
                       ),
                     ),
                   ),
                 for (final sticker in chapter.stickers)
                   _StickerWidget(
-                    opacity: motion.opacity.clamp(0, 1),
-
                     sticker: sticker,
                     viewport: viewport,
+                    opacity: motion.opacity.clamp(0, 1),
+                    axis: track.axis,
+                    cameraOffset: stickerCameraOffset,
+                    usesSharedCamera: track.sharedCamera,
                     editable: stickerEditingEnabled,
                     onChanged: onStickerChanged,
                     onDeleted: onStickerDeleted,
@@ -218,11 +233,63 @@ bool _hasVisibleNode(ResolvedNarrativeFrame frame, Size viewport) {
   );
 }
 
+double _stickerCameraOffset(
+  ResolvedNarrativeTrack track,
+  Size viewport,
+  double progress,
+) {
+  if (!track.sharedCamera) return 0;
+  final viewportPrimary = track.axis.primaryExtent(viewport);
+  final travel = math.max(0.0, track.contentExtent - viewportPrimary);
+  return travel * progress.clamp(0.0, 1.0);
+}
+
+Offset _stickerScreenToWorld(
+  Offset screenPoint,
+  NarrativeAxis axis,
+  double cameraOffset,
+  bool usesSharedCamera,
+) {
+  if (!usesSharedCamera) return screenPoint;
+  return switch (axis) {
+    NarrativeAxis.horizontal => Offset(
+      screenPoint.dx + cameraOffset,
+      screenPoint.dy,
+    ),
+    NarrativeAxis.vertical => Offset(
+      screenPoint.dx,
+      screenPoint.dy + cameraOffset,
+    ),
+  };
+}
+
+Offset _stickerWorldToScreen(
+  Offset worldPoint,
+  NarrativeAxis axis,
+  double cameraOffset,
+  bool usesSharedCamera,
+) {
+  if (!usesSharedCamera) return worldPoint;
+  return switch (axis) {
+    NarrativeAxis.horizontal => Offset(
+      worldPoint.dx - cameraOffset,
+      worldPoint.dy,
+    ),
+    NarrativeAxis.vertical => Offset(
+      worldPoint.dx,
+      worldPoint.dy - cameraOffset,
+    ),
+  };
+}
+
 class _StickerWidget extends StatelessWidget {
   const _StickerWidget({
     required this.sticker,
     required this.viewport,
     required this.opacity,
+    required this.axis,
+    required this.cameraOffset,
+    required this.usesSharedCamera,
     required this.editable,
     required this.onChanged,
     required this.onDeleted,
@@ -231,6 +298,9 @@ class _StickerWidget extends StatelessWidget {
   final GallerySticker sticker;
   final Size viewport;
   final double opacity;
+  final NarrativeAxis axis;
+  final double cameraOffset;
+  final bool usesSharedCamera;
   final bool editable;
   final ValueChanged<GallerySticker>? onChanged;
   final ValueChanged<String>? onDeleted;
@@ -239,12 +309,18 @@ class _StickerWidget extends StatelessWidget {
   Widget build(BuildContext context) {
     const baseSize = 42.0;
     final size = baseSize * sticker.scale.clamp(0.6, 1.8);
-    final left = (sticker.x.clamp(0.0, 1.0) * viewport.width - size / 2)
-        .clamp(6.0, math.max(6.0, viewport.width - size - 6))
-        .toDouble();
-    final top = (sticker.y.clamp(0.0, 1.0) * viewport.height - size / 2)
-        .clamp(6.0, math.max(6.0, viewport.height - size - 6))
-        .toDouble();
+    final worldCenter = Offset(
+      sticker.x * viewport.width,
+      sticker.y * viewport.height,
+    );
+    final screenCenter = _stickerWorldToScreen(
+      worldCenter,
+      axis,
+      cameraOffset,
+      usesSharedCamera,
+    );
+    final left = screenCenter.dx - size / 2;
+    final top = screenCenter.dy - size / 2;
     return Positioned(
       left: left,
       top: top,
@@ -256,14 +332,17 @@ class _StickerWidget extends StatelessWidget {
           onPanUpdate: !editable || onChanged == null
               ? null
               : (details) {
-                  final nextCenter = Offset(
-                    left + size / 2 + details.delta.dx,
-                    top + size / 2 + details.delta.dy,
+                  final nextScreenCenter = screenCenter + details.delta;
+                  final nextWorldCenter = _stickerScreenToWorld(
+                    nextScreenCenter,
+                    axis,
+                    cameraOffset,
+                    usesSharedCamera,
                   );
                   onChanged!(
                     sticker.copyWith(
-                      x: (nextCenter.dx / viewport.width).clamp(0.0, 1.0),
-                      y: (nextCenter.dy / viewport.height).clamp(0.0, 1.0),
+                      x: nextWorldCenter.dx / viewport.width,
+                      y: nextWorldCenter.dy / viewport.height,
                     ),
                   );
                 },

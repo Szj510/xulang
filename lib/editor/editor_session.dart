@@ -358,12 +358,7 @@ class EditorSession extends ChangeNotifier {
     await updateChapter(
       stickers: [
         ...chapter.stickers,
-        GallerySticker(
-          id: repository.createId(),
-          kind: kind,
-          x: x.clamp(0.0, 1.0),
-          y: y.clamp(0.0, 1.0),
-        ),
+        GallerySticker(id: repository.createId(), kind: kind, x: x, y: y),
       ],
     );
   }

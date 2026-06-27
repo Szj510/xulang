@@ -1096,8 +1096,8 @@ class _PreviewState extends State<_Preview> {
       return;
     }
     final point = CustomPathPoint(
-      x: (localPosition.dx / viewport.width).clamp(0.0, 1.0),
-      y: (localPosition.dy / viewport.height).clamp(0.0, 1.0),
+      x: localPosition.dx / viewport.width,
+      y: localPosition.dy / viewport.height,
     );
     unawaited(widget.onStickerPlaced!(point));
   }
