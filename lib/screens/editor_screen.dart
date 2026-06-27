@@ -21,6 +21,7 @@ import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/atmospheric_sticker.dart';
 import 'package:xulang/widgets/gallery_image.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
+import 'package:xulang/widgets/sticker_control_tile.dart';
 
 class EditorScreen extends ConsumerWidget {
   const EditorScreen({super.key, required this.exhibitionId});
@@ -512,7 +513,10 @@ class _EditorBodyState extends State<_EditorBody> {
           if (!context.mounted) return;
           await Navigator.of(context).push(
             MaterialPageRoute<void>(
-              builder: (_) => ViewerScreen(exhibitionId: bundle.document.id),
+              builder: (_) => ViewerScreen(
+                exhibitionId: bundle.document.id,
+                autoStartRecording: true,
+              ),
             ),
           );
         case _EditorExportAction.importTemplate:
@@ -2053,7 +2057,7 @@ class _InspectorState extends State<_Inspector> {
         mainAxisSize: MainAxisSize.min,
         children: [
           const Text(
-            '选择一个小物品后，点击画布放置；已放置的贴画可以拖动，点垃圾桶删除。',
+            '选择一个小物品后，点击画布放置；已放置的贴画可以拖动、旋转，点右上角叉删除。',
             style: TextStyle(fontSize: 11, color: XulangColors.muted),
           ),
           const SizedBox(height: 10),
@@ -2082,13 +2086,13 @@ class _InspectorState extends State<_Inspector> {
             _SectionLabel('已添加贴画'),
             const SizedBox(height: 6),
             for (final sticker in chapter.stickers)
-              ListTile(
+              StickerControlTile(
                 key: Key('editor-sticker-item-${sticker.id}'),
-                dense: true,
-                contentPadding: EdgeInsets.zero,
-                leading: AtmosphericSticker(kind: sticker.kind, size: 28),
-                title: Text(_stickerKindLabel(sticker.kind)),
-                subtitle: const Text('在画布上点叉删除'),
+                sticker: sticker,
+                label: _stickerKindLabel(sticker.kind),
+                onRotationChanged: (degrees) => session.updateSticker(
+                  sticker.copyWith(rotation: degrees * math.pi / 180),
+                ),
               ),
           ],
         ],
