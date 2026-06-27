@@ -192,15 +192,14 @@ class SceneCanvas extends StatelessWidget {
                     ),
                   ),
                 for (final sticker in chapter.stickers)
-                  Opacity(
+                  _StickerWidget(
                     opacity: motion.opacity.clamp(0, 1),
-                    child: _StickerWidget(
-                      sticker: sticker,
-                      viewport: viewport,
-                      editable: stickerEditingEnabled,
-                      onChanged: onStickerChanged,
-                      onDeleted: onStickerDeleted,
-                    ),
+
+                    sticker: sticker,
+                    viewport: viewport,
+                    editable: stickerEditingEnabled,
+                    onChanged: onStickerChanged,
+                    onDeleted: onStickerDeleted,
                   ),
               ],
             ),
@@ -223,6 +222,7 @@ class _StickerWidget extends StatelessWidget {
   const _StickerWidget({
     required this.sticker,
     required this.viewport,
+    required this.opacity,
     required this.editable,
     required this.onChanged,
     required this.onDeleted,
@@ -230,6 +230,7 @@ class _StickerWidget extends StatelessWidget {
 
   final GallerySticker sticker;
   final Size viewport;
+  final double opacity;
   final bool editable;
   final ValueChanged<GallerySticker>? onChanged;
   final ValueChanged<String>? onDeleted;
@@ -247,68 +248,71 @@ class _StickerWidget extends StatelessWidget {
     return Positioned(
       left: left,
       top: top,
-      child: GestureDetector(
-        key: Key('scene-sticker-${sticker.id}'),
-        behavior: HitTestBehavior.opaque,
-        onPanUpdate: !editable || onChanged == null
-            ? null
-            : (details) {
-                final nextCenter = Offset(
-                  left + size / 2 + details.delta.dx,
-                  top + size / 2 + details.delta.dy,
-                );
-                onChanged!(
-                  sticker.copyWith(
-                    x: (nextCenter.dx / viewport.width).clamp(0.0, 1.0),
-                    y: (nextCenter.dy / viewport.height).clamp(0.0, 1.0),
-                  ),
-                );
-              },
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Transform.rotate(
-              angle: sticker.rotation,
-              child: Text(
-                _stickerEmoji(sticker.kind),
-                style: TextStyle(
-                  fontSize: size,
-                  shadows: const [
-                    Shadow(
-                      color: Colors.black54,
-                      blurRadius: 5,
-                      offset: Offset(0, 2),
+      child: Opacity(
+        opacity: opacity,
+        child: GestureDetector(
+          key: Key('scene-sticker-${sticker.id}'),
+          behavior: HitTestBehavior.opaque,
+          onPanUpdate: !editable || onChanged == null
+              ? null
+              : (details) {
+                  final nextCenter = Offset(
+                    left + size / 2 + details.delta.dx,
+                    top + size / 2 + details.delta.dy,
+                  );
+                  onChanged!(
+                    sticker.copyWith(
+                      x: (nextCenter.dx / viewport.width).clamp(0.0, 1.0),
+                      y: (nextCenter.dy / viewport.height).clamp(0.0, 1.0),
                     ),
-                  ],
+                  );
+                },
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Transform.rotate(
+                angle: sticker.rotation,
+                child: Text(
+                  _stickerEmoji(sticker.kind),
+                  style: TextStyle(
+                    fontSize: size,
+                    shadows: const [
+                      Shadow(
+                        color: Colors.black54,
+                        blurRadius: 5,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
-            if (editable)
-              Positioned(
-                right: -13,
-                top: -13,
-                child: GestureDetector(
-                  key: Key('scene-sticker-delete-${sticker.id}'),
-                  onTap: () => onDeleted?.call(sticker.id),
-                  child: Container(
-                    width: 24,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: .65),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: Colors.white.withValues(alpha: .26),
+              if (editable)
+                Positioned(
+                  right: -13,
+                  top: -13,
+                  child: GestureDetector(
+                    key: Key('scene-sticker-delete-${sticker.id}'),
+                    onTap: () => onDeleted?.call(sticker.id),
+                    child: Container(
+                      width: 24,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: .65),
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: .26),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.close,
+                        size: 15,
+                        color: Colors.white,
                       ),
                     ),
-                    child: const Icon(
-                      Icons.close,
-                      size: 15,
-                      color: Colors.white,
-                    ),
                   ),
                 ),
-              ),
-          ],
+            ],
+          ),
         ),
       ),
     );
