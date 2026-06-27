@@ -60,6 +60,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final appSettings = ref
+        .watch(appSettingsProvider)
+        .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
     return Scaffold(
       backgroundColor: Colors.black,
       body: FutureBuilder<GalleryBundle?>(
@@ -193,8 +196,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                                 chapters,
                                 ChapterNavigationIntent.next,
                               ),
-                        onStartRecording: () =>
-                            _setRecordingMode(bundle.document, true),
+                        onStartRecording: () => _setRecordingMode(
+                          bundle.document,
+                          appSettings,
+                          true,
+                        ),
                         onToggleMusic: bundle.document.musicPath == null
                             ? null
                             : () => _toggleMusic(bundle.document),
@@ -204,8 +210,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       ),
                     ),
                   ),
-                if (_recordingMode &&
-                    bundle.document.showChapterTitleInPlayback)
+                if (_recordingMode && appSettings.recordingShowChapterTitle)
                   Positioned(
                     key: const Key('viewer-recording-chapter-title'),
                     top: MediaQuery.paddingOf(context).top + 18,
@@ -266,10 +271,14 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (mounted) setState(() => _changingChapter = false);
   }
 
-  Future<void> _setRecordingMode(GalleryDocument document, bool enabled) async {
+  Future<void> _setRecordingMode(
+    GalleryDocument document,
+    AppSettings appSettings,
+    bool enabled,
+  ) async {
     _playbackDelayTimer?.cancel();
     final delaySeconds = enabled
-        ? document.playbackDelaySeconds.clamp(0, 30)
+        ? appSettings.recordingDelaySeconds.clamp(0, 30)
         : 0;
     if (mounted) {
       setState(() {

@@ -215,15 +215,27 @@ class SceneCanvas extends StatelessWidget {
                     child: GestureDetector(
                       key: const Key('scene-sticker-place-surface'),
                       behavior: HitTestBehavior.translucent,
-                      onTapUp: (details) => onStickerPlaced?.call(
-                        _stickerScreenToWorld(
-                          details.localPosition,
-                          track.axis,
-                          stickerCameraOffset,
-                          track.sharedCamera,
-                        ),
-                        viewport,
-                      ),
+                      onTapUp: (details) {
+                        if (_isStickerTapTarget(
+                          screenPoint: details.localPosition,
+                          stickers: chapter.stickers,
+                          viewport: viewport,
+                          axis: track.axis,
+                          cameraOffset: stickerCameraOffset,
+                          usesSharedCamera: track.sharedCamera,
+                        )) {
+                          return;
+                        }
+                        onStickerPlaced?.call(
+                          _stickerScreenToWorld(
+                            details.localPosition,
+                            track.axis,
+                            stickerCameraOffset,
+                            track.sharedCamera,
+                          ),
+                          viewport,
+                        );
+                      },
                     ),
                   ),
                 for (final sticker in chapter.stickers)
@@ -302,6 +314,36 @@ Offset _stickerWorldToScreen(
       worldPoint.dy - cameraOffset,
     ),
   };
+}
+
+bool _isStickerTapTarget({
+  required Offset screenPoint,
+  required List<GallerySticker> stickers,
+  required Size viewport,
+  required NarrativeAxis axis,
+  required double cameraOffset,
+  required bool usesSharedCamera,
+}) {
+  for (final sticker in stickers) {
+    final size = 42.0 * sticker.scale.clamp(0.6, 1.8);
+    final worldCenter = Offset(
+      sticker.x * viewport.width,
+      sticker.y * viewport.height,
+    );
+    final screenCenter = _stickerWorldToScreen(
+      worldCenter,
+      axis,
+      cameraOffset,
+      usesSharedCamera,
+    );
+    final hitRect = Rect.fromCenter(
+      center: screenCenter,
+      width: size + 52,
+      height: size + 52,
+    );
+    if (hitRect.contains(screenPoint)) return true;
+  }
+  return false;
 }
 
 class _CustomCanvasBackground extends StatelessWidget {

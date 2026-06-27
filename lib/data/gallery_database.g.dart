@@ -3,6 +3,662 @@
 part of 'gallery_database.dart';
 
 // ignore_for_file: type=lint
+class $ExhibitionCategoriesTable extends ExhibitionCategories
+    with TableInfo<$ExhibitionCategoriesTable, ExhibitionCategory> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExhibitionCategoriesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _sortOrderMeta = const VerificationMeta(
+    'sortOrder',
+  );
+  @override
+  late final GeneratedColumn<int> sortOrder = GeneratedColumn<int>(
+    'sort_order',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _updatedAtMeta = const VerificationMeta(
+    'updatedAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> updatedAt = GeneratedColumn<DateTime>(
+    'updated_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    title,
+    sortOrder,
+    createdAt,
+    updatedAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'exhibition_categories';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<ExhibitionCategory> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('sort_order')) {
+      context.handle(
+        _sortOrderMeta,
+        sortOrder.isAcceptableOrUnknown(data['sort_order']!, _sortOrderMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_sortOrderMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    if (data.containsKey('updated_at')) {
+      context.handle(
+        _updatedAtMeta,
+        updatedAt.isAcceptableOrUnknown(data['updated_at']!, _updatedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_updatedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  ExhibitionCategory map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return ExhibitionCategory(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      sortOrder: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}sort_order'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+      updatedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}updated_at'],
+      )!,
+    );
+  }
+
+  @override
+  $ExhibitionCategoriesTable createAlias(String alias) {
+    return $ExhibitionCategoriesTable(attachedDatabase, alias);
+  }
+}
+
+class ExhibitionCategory extends DataClass
+    implements Insertable<ExhibitionCategory> {
+  final String id;
+  final String title;
+  final int sortOrder;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  const ExhibitionCategory({
+    required this.id,
+    required this.title,
+    required this.sortOrder,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['title'] = Variable<String>(title);
+    map['sort_order'] = Variable<int>(sortOrder);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    map['updated_at'] = Variable<DateTime>(updatedAt);
+    return map;
+  }
+
+  ExhibitionCategoriesCompanion toCompanion(bool nullToAbsent) {
+    return ExhibitionCategoriesCompanion(
+      id: Value(id),
+      title: Value(title),
+      sortOrder: Value(sortOrder),
+      createdAt: Value(createdAt),
+      updatedAt: Value(updatedAt),
+    );
+  }
+
+  factory ExhibitionCategory.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return ExhibitionCategory(
+      id: serializer.fromJson<String>(json['id']),
+      title: serializer.fromJson<String>(json['title']),
+      sortOrder: serializer.fromJson<int>(json['sortOrder']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+      updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'title': serializer.toJson<String>(title),
+      'sortOrder': serializer.toJson<int>(sortOrder),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+      'updatedAt': serializer.toJson<DateTime>(updatedAt),
+    };
+  }
+
+  ExhibitionCategory copyWith({
+    String? id,
+    String? title,
+    int? sortOrder,
+    DateTime? createdAt,
+    DateTime? updatedAt,
+  }) => ExhibitionCategory(
+    id: id ?? this.id,
+    title: title ?? this.title,
+    sortOrder: sortOrder ?? this.sortOrder,
+    createdAt: createdAt ?? this.createdAt,
+    updatedAt: updatedAt ?? this.updatedAt,
+  );
+  ExhibitionCategory copyWithCompanion(ExhibitionCategoriesCompanion data) {
+    return ExhibitionCategory(
+      id: data.id.present ? data.id.value : this.id,
+      title: data.title.present ? data.title.value : this.title,
+      sortOrder: data.sortOrder.present ? data.sortOrder.value : this.sortOrder,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExhibitionCategory(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(id, title, sortOrder, createdAt, updatedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is ExhibitionCategory &&
+          other.id == this.id &&
+          other.title == this.title &&
+          other.sortOrder == this.sortOrder &&
+          other.createdAt == this.createdAt &&
+          other.updatedAt == this.updatedAt);
+}
+
+class ExhibitionCategoriesCompanion
+    extends UpdateCompanion<ExhibitionCategory> {
+  final Value<String> id;
+  final Value<String> title;
+  final Value<int> sortOrder;
+  final Value<DateTime> createdAt;
+  final Value<DateTime> updatedAt;
+  final Value<int> rowid;
+  const ExhibitionCategoriesCompanion({
+    this.id = const Value.absent(),
+    this.title = const Value.absent(),
+    this.sortOrder = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.updatedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExhibitionCategoriesCompanion.insert({
+    required String id,
+    required String title,
+    required int sortOrder,
+    required DateTime createdAt,
+    required DateTime updatedAt,
+    this.rowid = const Value.absent(),
+  }) : id = Value(id),
+       title = Value(title),
+       sortOrder = Value(sortOrder),
+       createdAt = Value(createdAt),
+       updatedAt = Value(updatedAt);
+  static Insertable<ExhibitionCategory> custom({
+    Expression<String>? id,
+    Expression<String>? title,
+    Expression<int>? sortOrder,
+    Expression<DateTime>? createdAt,
+    Expression<DateTime>? updatedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (title != null) 'title': title,
+      if (sortOrder != null) 'sort_order': sortOrder,
+      if (createdAt != null) 'created_at': createdAt,
+      if (updatedAt != null) 'updated_at': updatedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExhibitionCategoriesCompanion copyWith({
+    Value<String>? id,
+    Value<String>? title,
+    Value<int>? sortOrder,
+    Value<DateTime>? createdAt,
+    Value<DateTime>? updatedAt,
+    Value<int>? rowid,
+  }) {
+    return ExhibitionCategoriesCompanion(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      sortOrder: sortOrder ?? this.sortOrder,
+      createdAt: createdAt ?? this.createdAt,
+      updatedAt: updatedAt ?? this.updatedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (sortOrder.present) {
+      map['sort_order'] = Variable<int>(sortOrder.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    if (updatedAt.present) {
+      map['updated_at'] = Variable<DateTime>(updatedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExhibitionCategoriesCompanion(')
+          ..write('id: $id, ')
+          ..write('title: $title, ')
+          ..write('sortOrder: $sortOrder, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('updatedAt: $updatedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
+class $AppSettingsRowsTable extends AppSettingsRows
+    with TableInfo<$AppSettingsRowsTable, AppSettingsRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $AppSettingsRowsTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+    'id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _recordingShowChapterTitleMeta =
+      const VerificationMeta('recordingShowChapterTitle');
+  @override
+  late final GeneratedColumn<bool> recordingShowChapterTitle =
+      GeneratedColumn<bool>(
+        'recording_show_chapter_title',
+        aliasedName,
+        false,
+        type: DriftSqlType.bool,
+        requiredDuringInsert: false,
+        defaultConstraints: GeneratedColumn.constraintIsAlways(
+          'CHECK ("recording_show_chapter_title" IN (0, 1))',
+        ),
+        defaultValue: const Constant(true),
+      );
+  static const VerificationMeta _recordingDelaySecondsMeta =
+      const VerificationMeta('recordingDelaySeconds');
+  @override
+  late final GeneratedColumn<int> recordingDelaySeconds = GeneratedColumn<int>(
+    'recording_delay_seconds',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(0),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    recordingShowChapterTitle,
+    recordingDelaySeconds,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'app_settings_rows';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<AppSettingsRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('recording_show_chapter_title')) {
+      context.handle(
+        _recordingShowChapterTitleMeta,
+        recordingShowChapterTitle.isAcceptableOrUnknown(
+          data['recording_show_chapter_title']!,
+          _recordingShowChapterTitleMeta,
+        ),
+      );
+    }
+    if (data.containsKey('recording_delay_seconds')) {
+      context.handle(
+        _recordingDelaySecondsMeta,
+        recordingDelaySeconds.isAcceptableOrUnknown(
+          data['recording_delay_seconds']!,
+          _recordingDelaySecondsMeta,
+        ),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  AppSettingsRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return AppSettingsRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}id'],
+      )!,
+      recordingShowChapterTitle: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}recording_show_chapter_title'],
+      )!,
+      recordingDelaySeconds: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}recording_delay_seconds'],
+      )!,
+    );
+  }
+
+  @override
+  $AppSettingsRowsTable createAlias(String alias) {
+    return $AppSettingsRowsTable(attachedDatabase, alias);
+  }
+}
+
+class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
+  final String id;
+  final bool recordingShowChapterTitle;
+  final int recordingDelaySeconds;
+  const AppSettingsRow({
+    required this.id,
+    required this.recordingShowChapterTitle,
+    required this.recordingDelaySeconds,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['recording_show_chapter_title'] = Variable<bool>(
+      recordingShowChapterTitle,
+    );
+    map['recording_delay_seconds'] = Variable<int>(recordingDelaySeconds);
+    return map;
+  }
+
+  AppSettingsRowsCompanion toCompanion(bool nullToAbsent) {
+    return AppSettingsRowsCompanion(
+      id: Value(id),
+      recordingShowChapterTitle: Value(recordingShowChapterTitle),
+      recordingDelaySeconds: Value(recordingDelaySeconds),
+    );
+  }
+
+  factory AppSettingsRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return AppSettingsRow(
+      id: serializer.fromJson<String>(json['id']),
+      recordingShowChapterTitle: serializer.fromJson<bool>(
+        json['recordingShowChapterTitle'],
+      ),
+      recordingDelaySeconds: serializer.fromJson<int>(
+        json['recordingDelaySeconds'],
+      ),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'recordingShowChapterTitle': serializer.toJson<bool>(
+        recordingShowChapterTitle,
+      ),
+      'recordingDelaySeconds': serializer.toJson<int>(recordingDelaySeconds),
+    };
+  }
+
+  AppSettingsRow copyWith({
+    String? id,
+    bool? recordingShowChapterTitle,
+    int? recordingDelaySeconds,
+  }) => AppSettingsRow(
+    id: id ?? this.id,
+    recordingShowChapterTitle:
+        recordingShowChapterTitle ?? this.recordingShowChapterTitle,
+    recordingDelaySeconds: recordingDelaySeconds ?? this.recordingDelaySeconds,
+  );
+  AppSettingsRow copyWithCompanion(AppSettingsRowsCompanion data) {
+    return AppSettingsRow(
+      id: data.id.present ? data.id.value : this.id,
+      recordingShowChapterTitle: data.recordingShowChapterTitle.present
+          ? data.recordingShowChapterTitle.value
+          : this.recordingShowChapterTitle,
+      recordingDelaySeconds: data.recordingDelaySeconds.present
+          ? data.recordingDelaySeconds.value
+          : this.recordingDelaySeconds,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppSettingsRow(')
+          ..write('id: $id, ')
+          ..write('recordingShowChapterTitle: $recordingShowChapterTitle, ')
+          ..write('recordingDelaySeconds: $recordingDelaySeconds')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, recordingShowChapterTitle, recordingDelaySeconds);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is AppSettingsRow &&
+          other.id == this.id &&
+          other.recordingShowChapterTitle == this.recordingShowChapterTitle &&
+          other.recordingDelaySeconds == this.recordingDelaySeconds);
+}
+
+class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
+  final Value<String> id;
+  final Value<bool> recordingShowChapterTitle;
+  final Value<int> recordingDelaySeconds;
+  final Value<int> rowid;
+  const AppSettingsRowsCompanion({
+    this.id = const Value.absent(),
+    this.recordingShowChapterTitle = const Value.absent(),
+    this.recordingDelaySeconds = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  AppSettingsRowsCompanion.insert({
+    required String id,
+    this.recordingShowChapterTitle = const Value.absent(),
+    this.recordingDelaySeconds = const Value.absent(),
+    this.rowid = const Value.absent(),
+  }) : id = Value(id);
+  static Insertable<AppSettingsRow> custom({
+    Expression<String>? id,
+    Expression<bool>? recordingShowChapterTitle,
+    Expression<int>? recordingDelaySeconds,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (recordingShowChapterTitle != null)
+        'recording_show_chapter_title': recordingShowChapterTitle,
+      if (recordingDelaySeconds != null)
+        'recording_delay_seconds': recordingDelaySeconds,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  AppSettingsRowsCompanion copyWith({
+    Value<String>? id,
+    Value<bool>? recordingShowChapterTitle,
+    Value<int>? recordingDelaySeconds,
+    Value<int>? rowid,
+  }) {
+    return AppSettingsRowsCompanion(
+      id: id ?? this.id,
+      recordingShowChapterTitle:
+          recordingShowChapterTitle ?? this.recordingShowChapterTitle,
+      recordingDelaySeconds:
+          recordingDelaySeconds ?? this.recordingDelaySeconds,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (recordingShowChapterTitle.present) {
+      map['recording_show_chapter_title'] = Variable<bool>(
+        recordingShowChapterTitle.value,
+      );
+    }
+    if (recordingDelaySeconds.present) {
+      map['recording_delay_seconds'] = Variable<int>(
+        recordingDelaySeconds.value,
+      );
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('AppSettingsRowsCompanion(')
+          ..write('id: $id, ')
+          ..write('recordingShowChapterTitle: $recordingShowChapterTitle, ')
+          ..write('recordingDelaySeconds: $recordingDelaySeconds, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 class $ExhibitionsTable extends Exhibitions
     with TableInfo<$ExhibitionsTable, Exhibition> {
   @override
@@ -37,6 +693,20 @@ class $ExhibitionsTable extends Exhibitions
     true,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
+  );
+  static const VerificationMeta _categoryIdMeta = const VerificationMeta(
+    'categoryId',
+  );
+  @override
+  late final GeneratedColumn<String> categoryId = GeneratedColumn<String>(
+    'category_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'REFERENCES exhibition_categories (id) ON DELETE SET NULL',
+    ),
   );
   static const VerificationMeta _themeMeta = const VerificationMeta('theme');
   @override
@@ -145,6 +815,7 @@ class $ExhibitionsTable extends Exhibitions
     id,
     title,
     coverMediaId,
+    categoryId,
     theme,
     canvasBackgroundPath,
     canvasBackgroundOpacity,
@@ -187,6 +858,12 @@ class $ExhibitionsTable extends Exhibitions
           data['cover_media_id']!,
           _coverMediaIdMeta,
         ),
+      );
+    }
+    if (data.containsKey('category_id')) {
+      context.handle(
+        _categoryIdMeta,
+        categoryId.isAcceptableOrUnknown(data['category_id']!, _categoryIdMeta),
       );
     }
     if (data.containsKey('theme')) {
@@ -282,6 +959,10 @@ class $ExhibitionsTable extends Exhibitions
         DriftSqlType.string,
         data['${effectivePrefix}cover_media_id'],
       ),
+      categoryId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}category_id'],
+      ),
       theme: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}theme'],
@@ -331,6 +1012,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
   final String id;
   final String title;
   final String? coverMediaId;
+  final String? categoryId;
   final String theme;
   final String? canvasBackgroundPath;
   final double canvasBackgroundOpacity;
@@ -344,6 +1026,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     required this.id,
     required this.title,
     this.coverMediaId,
+    this.categoryId,
     required this.theme,
     this.canvasBackgroundPath,
     required this.canvasBackgroundOpacity,
@@ -361,6 +1044,9 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     map['title'] = Variable<String>(title);
     if (!nullToAbsent || coverMediaId != null) {
       map['cover_media_id'] = Variable<String>(coverMediaId);
+    }
+    if (!nullToAbsent || categoryId != null) {
+      map['category_id'] = Variable<String>(categoryId);
     }
     map['theme'] = Variable<String>(theme);
     if (!nullToAbsent || canvasBackgroundPath != null) {
@@ -391,6 +1077,9 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       coverMediaId: coverMediaId == null && nullToAbsent
           ? const Value.absent()
           : Value(coverMediaId),
+      categoryId: categoryId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(categoryId),
       theme: Value(theme),
       canvasBackgroundPath: canvasBackgroundPath == null && nullToAbsent
           ? const Value.absent()
@@ -418,6 +1107,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       id: serializer.fromJson<String>(json['id']),
       title: serializer.fromJson<String>(json['title']),
       coverMediaId: serializer.fromJson<String?>(json['coverMediaId']),
+      categoryId: serializer.fromJson<String?>(json['categoryId']),
       theme: serializer.fromJson<String>(json['theme']),
       canvasBackgroundPath: serializer.fromJson<String?>(
         json['canvasBackgroundPath'],
@@ -444,6 +1134,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       'id': serializer.toJson<String>(id),
       'title': serializer.toJson<String>(title),
       'coverMediaId': serializer.toJson<String?>(coverMediaId),
+      'categoryId': serializer.toJson<String?>(categoryId),
       'theme': serializer.toJson<String>(theme),
       'canvasBackgroundPath': serializer.toJson<String?>(canvasBackgroundPath),
       'canvasBackgroundOpacity': serializer.toJson<double>(
@@ -464,6 +1155,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     String? id,
     String? title,
     Value<String?> coverMediaId = const Value.absent(),
+    Value<String?> categoryId = const Value.absent(),
     String? theme,
     Value<String?> canvasBackgroundPath = const Value.absent(),
     double? canvasBackgroundOpacity,
@@ -477,6 +1169,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     id: id ?? this.id,
     title: title ?? this.title,
     coverMediaId: coverMediaId.present ? coverMediaId.value : this.coverMediaId,
+    categoryId: categoryId.present ? categoryId.value : this.categoryId,
     theme: theme ?? this.theme,
     canvasBackgroundPath: canvasBackgroundPath.present
         ? canvasBackgroundPath.value
@@ -498,6 +1191,9 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
       coverMediaId: data.coverMediaId.present
           ? data.coverMediaId.value
           : this.coverMediaId,
+      categoryId: data.categoryId.present
+          ? data.categoryId.value
+          : this.categoryId,
       theme: data.theme.present ? data.theme.value : this.theme,
       canvasBackgroundPath: data.canvasBackgroundPath.present
           ? data.canvasBackgroundPath.value
@@ -526,6 +1222,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('coverMediaId: $coverMediaId, ')
+          ..write('categoryId: $categoryId, ')
           ..write('theme: $theme, ')
           ..write('canvasBackgroundPath: $canvasBackgroundPath, ')
           ..write('canvasBackgroundOpacity: $canvasBackgroundOpacity, ')
@@ -544,6 +1241,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
     id,
     title,
     coverMediaId,
+    categoryId,
     theme,
     canvasBackgroundPath,
     canvasBackgroundOpacity,
@@ -561,6 +1259,7 @@ class Exhibition extends DataClass implements Insertable<Exhibition> {
           other.id == this.id &&
           other.title == this.title &&
           other.coverMediaId == this.coverMediaId &&
+          other.categoryId == this.categoryId &&
           other.theme == this.theme &&
           other.canvasBackgroundPath == this.canvasBackgroundPath &&
           other.canvasBackgroundOpacity == this.canvasBackgroundOpacity &&
@@ -576,6 +1275,7 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
   final Value<String> id;
   final Value<String> title;
   final Value<String?> coverMediaId;
+  final Value<String?> categoryId;
   final Value<String> theme;
   final Value<String?> canvasBackgroundPath;
   final Value<double> canvasBackgroundOpacity;
@@ -590,6 +1290,7 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     this.id = const Value.absent(),
     this.title = const Value.absent(),
     this.coverMediaId = const Value.absent(),
+    this.categoryId = const Value.absent(),
     this.theme = const Value.absent(),
     this.canvasBackgroundPath = const Value.absent(),
     this.canvasBackgroundOpacity = const Value.absent(),
@@ -605,6 +1306,7 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     required String id,
     required String title,
     this.coverMediaId = const Value.absent(),
+    this.categoryId = const Value.absent(),
     required String theme,
     this.canvasBackgroundPath = const Value.absent(),
     this.canvasBackgroundOpacity = const Value.absent(),
@@ -624,6 +1326,7 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     Expression<String>? id,
     Expression<String>? title,
     Expression<String>? coverMediaId,
+    Expression<String>? categoryId,
     Expression<String>? theme,
     Expression<String>? canvasBackgroundPath,
     Expression<double>? canvasBackgroundOpacity,
@@ -639,6 +1342,7 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
       if (id != null) 'id': id,
       if (title != null) 'title': title,
       if (coverMediaId != null) 'cover_media_id': coverMediaId,
+      if (categoryId != null) 'category_id': categoryId,
       if (theme != null) 'theme': theme,
       if (canvasBackgroundPath != null)
         'canvas_background_path': canvasBackgroundPath,
@@ -660,6 +1364,7 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     Value<String>? id,
     Value<String>? title,
     Value<String?>? coverMediaId,
+    Value<String?>? categoryId,
     Value<String>? theme,
     Value<String?>? canvasBackgroundPath,
     Value<double>? canvasBackgroundOpacity,
@@ -675,6 +1380,7 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
       id: id ?? this.id,
       title: title ?? this.title,
       coverMediaId: coverMediaId ?? this.coverMediaId,
+      categoryId: categoryId ?? this.categoryId,
       theme: theme ?? this.theme,
       canvasBackgroundPath: canvasBackgroundPath ?? this.canvasBackgroundPath,
       canvasBackgroundOpacity:
@@ -701,6 +1407,9 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
     }
     if (coverMediaId.present) {
       map['cover_media_id'] = Variable<String>(coverMediaId.value);
+    }
+    if (categoryId.present) {
+      map['category_id'] = Variable<String>(categoryId.value);
     }
     if (theme.present) {
       map['theme'] = Variable<String>(theme.value);
@@ -747,6 +1456,7 @@ class ExhibitionsCompanion extends UpdateCompanion<Exhibition> {
           ..write('id: $id, ')
           ..write('title: $title, ')
           ..write('coverMediaId: $coverMediaId, ')
+          ..write('categoryId: $categoryId, ')
           ..write('theme: $theme, ')
           ..write('canvasBackgroundPath: $canvasBackgroundPath, ')
           ..write('canvasBackgroundOpacity: $canvasBackgroundOpacity, ')
@@ -2601,6 +3311,11 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
 abstract class _$GalleryDatabase extends GeneratedDatabase {
   _$GalleryDatabase(QueryExecutor e) : super(e);
   $GalleryDatabaseManager get managers => $GalleryDatabaseManager(this);
+  late final $ExhibitionCategoriesTable exhibitionCategories =
+      $ExhibitionCategoriesTable(this);
+  late final $AppSettingsRowsTable appSettingsRows = $AppSettingsRowsTable(
+    this,
+  );
   late final $ExhibitionsTable exhibitions = $ExhibitionsTable(this);
   late final $ChaptersTable chapters = $ChaptersTable(this);
   late final $MediaAssetsTable mediaAssets = $MediaAssetsTable(this);
@@ -2610,6 +3325,8 @@ abstract class _$GalleryDatabase extends GeneratedDatabase {
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
   @override
   List<DatabaseSchemaEntity> get allSchemaEntities => [
+    exhibitionCategories,
+    appSettingsRows,
     exhibitions,
     chapters,
     mediaAssets,
@@ -2617,6 +3334,13 @@ abstract class _$GalleryDatabase extends GeneratedDatabase {
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
+    WritePropagation(
+      on: TableUpdateQuery.onTableName(
+        'exhibition_categories',
+        limitUpdateKind: UpdateKind.delete,
+      ),
+      result: [TableUpdate('exhibitions', kind: UpdateKind.update)],
+    ),
     WritePropagation(
       on: TableUpdateQuery.onTableName(
         'exhibitions',
@@ -2641,11 +3365,506 @@ abstract class _$GalleryDatabase extends GeneratedDatabase {
   ]);
 }
 
+typedef $$ExhibitionCategoriesTableCreateCompanionBuilder =
+    ExhibitionCategoriesCompanion Function({
+      required String id,
+      required String title,
+      required int sortOrder,
+      required DateTime createdAt,
+      required DateTime updatedAt,
+      Value<int> rowid,
+    });
+typedef $$ExhibitionCategoriesTableUpdateCompanionBuilder =
+    ExhibitionCategoriesCompanion Function({
+      Value<String> id,
+      Value<String> title,
+      Value<int> sortOrder,
+      Value<DateTime> createdAt,
+      Value<DateTime> updatedAt,
+      Value<int> rowid,
+    });
+
+final class $$ExhibitionCategoriesTableReferences
+    extends
+        BaseReferences<
+          _$GalleryDatabase,
+          $ExhibitionCategoriesTable,
+          ExhibitionCategory
+        > {
+  $$ExhibitionCategoriesTableReferences(
+    super.$_db,
+    super.$_table,
+    super.$_typedResult,
+  );
+
+  static MultiTypedResultKey<$ExhibitionsTable, List<Exhibition>>
+  _exhibitionsRefsTable(_$GalleryDatabase db) => MultiTypedResultKey.fromTable(
+    db.exhibitions,
+    aliasName: 'exhibition_categories__id__exhibitions__category_id',
+  );
+
+  $$ExhibitionsTableProcessedTableManager get exhibitionsRefs {
+    final manager = $$ExhibitionsTableTableManager(
+      $_db,
+      $_db.exhibitions,
+    ).filter((f) => f.categoryId.id.sqlEquals($_itemColumn<String>('id')!));
+
+    final cache = $_typedResult.readTableOrNull(_exhibitionsRefsTable($_db));
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: cache),
+    );
+  }
+}
+
+class $$ExhibitionCategoriesTableFilterComposer
+    extends Composer<_$GalleryDatabase, $ExhibitionCategoriesTable> {
+  $$ExhibitionCategoriesTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  Expression<bool> exhibitionsRefs(
+    Expression<bool> Function($$ExhibitionsTableFilterComposer f) f,
+  ) {
+    final $$ExhibitionsTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.exhibitions,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExhibitionsTableFilterComposer(
+            $db: $db,
+            $table: $db.exhibitions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ExhibitionCategoriesTableOrderingComposer
+    extends Composer<_$GalleryDatabase, $ExhibitionCategoriesTable> {
+  $$ExhibitionCategoriesTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get sortOrder => $composableBuilder(
+    column: $table.sortOrder,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get updatedAt => $composableBuilder(
+    column: $table.updatedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$ExhibitionCategoriesTableAnnotationComposer
+    extends Composer<_$GalleryDatabase, $ExhibitionCategoriesTable> {
+  $$ExhibitionCategoriesTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<int> get sortOrder =>
+      $composableBuilder(column: $table.sortOrder, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get updatedAt =>
+      $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  Expression<T> exhibitionsRefs<T extends Object>(
+    Expression<T> Function($$ExhibitionsTableAnnotationComposer a) f,
+  ) {
+    final $$ExhibitionsTableAnnotationComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.id,
+      referencedTable: $db.exhibitions,
+      getReferencedColumn: (t) => t.categoryId,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExhibitionsTableAnnotationComposer(
+            $db: $db,
+            $table: $db.exhibitions,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return f(composer);
+  }
+}
+
+class $$ExhibitionCategoriesTableTableManager
+    extends
+        RootTableManager<
+          _$GalleryDatabase,
+          $ExhibitionCategoriesTable,
+          ExhibitionCategory,
+          $$ExhibitionCategoriesTableFilterComposer,
+          $$ExhibitionCategoriesTableOrderingComposer,
+          $$ExhibitionCategoriesTableAnnotationComposer,
+          $$ExhibitionCategoriesTableCreateCompanionBuilder,
+          $$ExhibitionCategoriesTableUpdateCompanionBuilder,
+          (ExhibitionCategory, $$ExhibitionCategoriesTableReferences),
+          ExhibitionCategory,
+          PrefetchHooks Function({bool exhibitionsRefs})
+        > {
+  $$ExhibitionCategoriesTableTableManager(
+    _$GalleryDatabase db,
+    $ExhibitionCategoriesTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$ExhibitionCategoriesTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$ExhibitionCategoriesTableOrderingComposer(
+                $db: db,
+                $table: table,
+              ),
+          createComputedFieldComposer: () =>
+              $$ExhibitionCategoriesTableAnnotationComposer(
+                $db: db,
+                $table: table,
+              ),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<int> sortOrder = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+                Value<DateTime> updatedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => ExhibitionCategoriesCompanion(
+                id: id,
+                title: title,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                required String title,
+                required int sortOrder,
+                required DateTime createdAt,
+                required DateTime updatedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => ExhibitionCategoriesCompanion.insert(
+                id: id,
+                title: title,
+                sortOrder: sortOrder,
+                createdAt: createdAt,
+                updatedAt: updatedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable(table),
+                  $$ExhibitionCategoriesTableReferences(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: ({exhibitionsRefs = false}) {
+            return PrefetchHooks(
+              db: db,
+              explicitlyWatchedTables: [if (exhibitionsRefs) db.exhibitions],
+              addJoins: null,
+              getPrefetchedDataCallback: (items) async {
+                return [
+                  if (exhibitionsRefs)
+                    await $_getPrefetchedData<
+                      ExhibitionCategory,
+                      $ExhibitionCategoriesTable,
+                      Exhibition
+                    >(
+                      currentTable: table,
+                      referencedTable: $$ExhibitionCategoriesTableReferences
+                          ._exhibitionsRefsTable(db),
+                      managerFromTypedResult: (p0) =>
+                          $$ExhibitionCategoriesTableReferences(
+                            db,
+                            table,
+                            p0,
+                          ).exhibitionsRefs,
+                      referencedItemsForCurrentItem: (item, referencedItems) =>
+                          referencedItems.where((e) => e.categoryId == item.id),
+                      typedResults: items,
+                    ),
+                ];
+              },
+            );
+          },
+        ),
+      );
+}
+
+typedef $$ExhibitionCategoriesTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GalleryDatabase,
+      $ExhibitionCategoriesTable,
+      ExhibitionCategory,
+      $$ExhibitionCategoriesTableFilterComposer,
+      $$ExhibitionCategoriesTableOrderingComposer,
+      $$ExhibitionCategoriesTableAnnotationComposer,
+      $$ExhibitionCategoriesTableCreateCompanionBuilder,
+      $$ExhibitionCategoriesTableUpdateCompanionBuilder,
+      (ExhibitionCategory, $$ExhibitionCategoriesTableReferences),
+      ExhibitionCategory,
+      PrefetchHooks Function({bool exhibitionsRefs})
+    >;
+typedef $$AppSettingsRowsTableCreateCompanionBuilder =
+    AppSettingsRowsCompanion Function({
+      required String id,
+      Value<bool> recordingShowChapterTitle,
+      Value<int> recordingDelaySeconds,
+      Value<int> rowid,
+    });
+typedef $$AppSettingsRowsTableUpdateCompanionBuilder =
+    AppSettingsRowsCompanion Function({
+      Value<String> id,
+      Value<bool> recordingShowChapterTitle,
+      Value<int> recordingDelaySeconds,
+      Value<int> rowid,
+    });
+
+class $$AppSettingsRowsTableFilterComposer
+    extends Composer<_$GalleryDatabase, $AppSettingsRowsTable> {
+  $$AppSettingsRowsTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get recordingShowChapterTitle => $composableBuilder(
+    column: $table.recordingShowChapterTitle,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get recordingDelaySeconds => $composableBuilder(
+    column: $table.recordingDelaySeconds,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$AppSettingsRowsTableOrderingComposer
+    extends Composer<_$GalleryDatabase, $AppSettingsRowsTable> {
+  $$AppSettingsRowsTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get recordingShowChapterTitle => $composableBuilder(
+    column: $table.recordingShowChapterTitle,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get recordingDelaySeconds => $composableBuilder(
+    column: $table.recordingDelaySeconds,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$AppSettingsRowsTableAnnotationComposer
+    extends Composer<_$GalleryDatabase, $AppSettingsRowsTable> {
+  $$AppSettingsRowsTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<bool> get recordingShowChapterTitle => $composableBuilder(
+    column: $table.recordingShowChapterTitle,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get recordingDelaySeconds => $composableBuilder(
+    column: $table.recordingDelaySeconds,
+    builder: (column) => column,
+  );
+}
+
+class $$AppSettingsRowsTableTableManager
+    extends
+        RootTableManager<
+          _$GalleryDatabase,
+          $AppSettingsRowsTable,
+          AppSettingsRow,
+          $$AppSettingsRowsTableFilterComposer,
+          $$AppSettingsRowsTableOrderingComposer,
+          $$AppSettingsRowsTableAnnotationComposer,
+          $$AppSettingsRowsTableCreateCompanionBuilder,
+          $$AppSettingsRowsTableUpdateCompanionBuilder,
+          (
+            AppSettingsRow,
+            BaseReferences<
+              _$GalleryDatabase,
+              $AppSettingsRowsTable,
+              AppSettingsRow
+            >,
+          ),
+          AppSettingsRow,
+          PrefetchHooks Function()
+        > {
+  $$AppSettingsRowsTableTableManager(
+    _$GalleryDatabase db,
+    $AppSettingsRowsTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$AppSettingsRowsTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$AppSettingsRowsTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$AppSettingsRowsTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> id = const Value.absent(),
+                Value<bool> recordingShowChapterTitle = const Value.absent(),
+                Value<int> recordingDelaySeconds = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AppSettingsRowsCompanion(
+                id: id,
+                recordingShowChapterTitle: recordingShowChapterTitle,
+                recordingDelaySeconds: recordingDelaySeconds,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String id,
+                Value<bool> recordingShowChapterTitle = const Value.absent(),
+                Value<int> recordingDelaySeconds = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => AppSettingsRowsCompanion.insert(
+                id: id,
+                recordingShowChapterTitle: recordingShowChapterTitle,
+                recordingDelaySeconds: recordingDelaySeconds,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$AppSettingsRowsTableProcessedTableManager =
+    ProcessedTableManager<
+      _$GalleryDatabase,
+      $AppSettingsRowsTable,
+      AppSettingsRow,
+      $$AppSettingsRowsTableFilterComposer,
+      $$AppSettingsRowsTableOrderingComposer,
+      $$AppSettingsRowsTableAnnotationComposer,
+      $$AppSettingsRowsTableCreateCompanionBuilder,
+      $$AppSettingsRowsTableUpdateCompanionBuilder,
+      (
+        AppSettingsRow,
+        BaseReferences<
+          _$GalleryDatabase,
+          $AppSettingsRowsTable,
+          AppSettingsRow
+        >,
+      ),
+      AppSettingsRow,
+      PrefetchHooks Function()
+    >;
 typedef $$ExhibitionsTableCreateCompanionBuilder =
     ExhibitionsCompanion Function({
       required String id,
       required String title,
       Value<String?> coverMediaId,
+      Value<String?> categoryId,
       required String theme,
       Value<String?> canvasBackgroundPath,
       Value<double> canvasBackgroundOpacity,
@@ -2662,6 +3881,7 @@ typedef $$ExhibitionsTableUpdateCompanionBuilder =
       Value<String> id,
       Value<String> title,
       Value<String?> coverMediaId,
+      Value<String?> categoryId,
       Value<String> theme,
       Value<String?> canvasBackgroundPath,
       Value<double> canvasBackgroundOpacity,
@@ -2677,6 +3897,24 @@ typedef $$ExhibitionsTableUpdateCompanionBuilder =
 final class $$ExhibitionsTableReferences
     extends BaseReferences<_$GalleryDatabase, $ExhibitionsTable, Exhibition> {
   $$ExhibitionsTableReferences(super.$_db, super.$_table, super.$_typedResult);
+
+  static $ExhibitionCategoriesTable _categoryIdTable(_$GalleryDatabase db) => db
+      .exhibitionCategories
+      .createAlias('exhibitions__category_id__exhibition_categories__id');
+
+  $$ExhibitionCategoriesTableProcessedTableManager? get categoryId {
+    final $_column = $_itemColumn<String>('category_id');
+    if ($_column == null) return null;
+    final manager = $$ExhibitionCategoriesTableTableManager(
+      $_db,
+      $_db.exhibitionCategories,
+    ).filter((f) => f.id.sqlEquals($_column));
+    final item = $_typedResult.readTableOrNull(_categoryIdTable($_db));
+    if (item == null) return manager;
+    return ProcessedTableManager(
+      manager.$state.copyWith(prefetchedData: [item]),
+    );
+  }
 
   static MultiTypedResultKey<$ChaptersTable, List<Chapter>> _chaptersRefsTable(
     _$GalleryDatabase db,
@@ -2784,6 +4022,29 @@ class $$ExhibitionsTableFilterComposer
     column: $table.updatedAt,
     builder: (column) => ColumnFilters(column),
   );
+
+  $$ExhibitionCategoriesTableFilterComposer get categoryId {
+    final $$ExhibitionCategoriesTableFilterComposer composer = $composerBuilder(
+      composer: this,
+      getCurrentColumn: (t) => t.categoryId,
+      referencedTable: $db.exhibitionCategories,
+      getReferencedColumn: (t) => t.id,
+      builder:
+          (
+            joinBuilder, {
+            $addJoinBuilderToRootComposer,
+            $removeJoinBuilderFromRootComposer,
+          }) => $$ExhibitionCategoriesTableFilterComposer(
+            $db: $db,
+            $table: $db.exhibitionCategories,
+            $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+            joinBuilder: joinBuilder,
+            $removeJoinBuilderFromRootComposer:
+                $removeJoinBuilderFromRootComposer,
+          ),
+    );
+    return composer;
+  }
 
   Expression<bool> chaptersRefs(
     Expression<bool> Function($$ChaptersTableFilterComposer f) f,
@@ -2904,6 +4165,30 @@ class $$ExhibitionsTableOrderingComposer
     column: $table.updatedAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  $$ExhibitionCategoriesTableOrderingComposer get categoryId {
+    final $$ExhibitionCategoriesTableOrderingComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.categoryId,
+          referencedTable: $db.exhibitionCategories,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ExhibitionCategoriesTableOrderingComposer(
+                $db: $db,
+                $table: $db.exhibitionCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 }
 
 class $$ExhibitionsTableAnnotationComposer
@@ -2962,6 +4247,30 @@ class $$ExhibitionsTableAnnotationComposer
 
   GeneratedColumn<DateTime> get updatedAt =>
       $composableBuilder(column: $table.updatedAt, builder: (column) => column);
+
+  $$ExhibitionCategoriesTableAnnotationComposer get categoryId {
+    final $$ExhibitionCategoriesTableAnnotationComposer composer =
+        $composerBuilder(
+          composer: this,
+          getCurrentColumn: (t) => t.categoryId,
+          referencedTable: $db.exhibitionCategories,
+          getReferencedColumn: (t) => t.id,
+          builder:
+              (
+                joinBuilder, {
+                $addJoinBuilderToRootComposer,
+                $removeJoinBuilderFromRootComposer,
+              }) => $$ExhibitionCategoriesTableAnnotationComposer(
+                $db: $db,
+                $table: $db.exhibitionCategories,
+                $addJoinBuilderToRootComposer: $addJoinBuilderToRootComposer,
+                joinBuilder: joinBuilder,
+                $removeJoinBuilderFromRootComposer:
+                    $removeJoinBuilderFromRootComposer,
+              ),
+        );
+    return composer;
+  }
 
   Expression<T> chaptersRefs<T extends Object>(
     Expression<T> Function($$ChaptersTableAnnotationComposer a) f,
@@ -3027,7 +4336,11 @@ class $$ExhibitionsTableTableManager
           $$ExhibitionsTableUpdateCompanionBuilder,
           (Exhibition, $$ExhibitionsTableReferences),
           Exhibition,
-          PrefetchHooks Function({bool chaptersRefs, bool mediaAssetsRefs})
+          PrefetchHooks Function({
+            bool categoryId,
+            bool chaptersRefs,
+            bool mediaAssetsRefs,
+          })
         > {
   $$ExhibitionsTableTableManager(_$GalleryDatabase db, $ExhibitionsTable table)
     : super(
@@ -3045,6 +4358,7 @@ class $$ExhibitionsTableTableManager
                 Value<String> id = const Value.absent(),
                 Value<String> title = const Value.absent(),
                 Value<String?> coverMediaId = const Value.absent(),
+                Value<String?> categoryId = const Value.absent(),
                 Value<String> theme = const Value.absent(),
                 Value<String?> canvasBackgroundPath = const Value.absent(),
                 Value<double> canvasBackgroundOpacity = const Value.absent(),
@@ -3059,6 +4373,7 @@ class $$ExhibitionsTableTableManager
                 id: id,
                 title: title,
                 coverMediaId: coverMediaId,
+                categoryId: categoryId,
                 theme: theme,
                 canvasBackgroundPath: canvasBackgroundPath,
                 canvasBackgroundOpacity: canvasBackgroundOpacity,
@@ -3075,6 +4390,7 @@ class $$ExhibitionsTableTableManager
                 required String id,
                 required String title,
                 Value<String?> coverMediaId = const Value.absent(),
+                Value<String?> categoryId = const Value.absent(),
                 required String theme,
                 Value<String?> canvasBackgroundPath = const Value.absent(),
                 Value<double> canvasBackgroundOpacity = const Value.absent(),
@@ -3089,6 +4405,7 @@ class $$ExhibitionsTableTableManager
                 id: id,
                 title: title,
                 coverMediaId: coverMediaId,
+                categoryId: categoryId,
                 theme: theme,
                 canvasBackgroundPath: canvasBackgroundPath,
                 canvasBackgroundOpacity: canvasBackgroundOpacity,
@@ -3109,14 +4426,51 @@ class $$ExhibitionsTableTableManager
               )
               .toList(),
           prefetchHooksCallback:
-              ({chaptersRefs = false, mediaAssetsRefs = false}) {
+              ({
+                categoryId = false,
+                chaptersRefs = false,
+                mediaAssetsRefs = false,
+              }) {
                 return PrefetchHooks(
                   db: db,
                   explicitlyWatchedTables: [
                     if (chaptersRefs) db.chapters,
                     if (mediaAssetsRefs) db.mediaAssets,
                   ],
-                  addJoins: null,
+                  addJoins:
+                      <
+                        T extends TableManagerState<
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic,
+                          dynamic
+                        >
+                      >(state) {
+                        if (categoryId) {
+                          state =
+                              state.withJoin(
+                                    currentTable: table,
+                                    currentColumn: table.categoryId,
+                                    referencedTable:
+                                        $$ExhibitionsTableReferences
+                                            ._categoryIdTable(db),
+                                    referencedColumn:
+                                        $$ExhibitionsTableReferences
+                                            ._categoryIdTable(db)
+                                            .id,
+                                  )
+                                  as T;
+                        }
+
+                        return state;
+                      },
                   getPrefetchedDataCallback: (items) async {
                     return [
                       if (chaptersRefs)
@@ -3181,7 +4535,11 @@ typedef $$ExhibitionsTableProcessedTableManager =
       $$ExhibitionsTableUpdateCompanionBuilder,
       (Exhibition, $$ExhibitionsTableReferences),
       Exhibition,
-      PrefetchHooks Function({bool chaptersRefs, bool mediaAssetsRefs})
+      PrefetchHooks Function({
+        bool categoryId,
+        bool chaptersRefs,
+        bool mediaAssetsRefs,
+      })
     >;
 typedef $$ChaptersTableCreateCompanionBuilder =
     ChaptersCompanion Function({
@@ -4702,6 +6060,10 @@ typedef $$PlacementsTableProcessedTableManager =
 class $GalleryDatabaseManager {
   final _$GalleryDatabase _db;
   $GalleryDatabaseManager(this._db);
+  $$ExhibitionCategoriesTableTableManager get exhibitionCategories =>
+      $$ExhibitionCategoriesTableTableManager(_db, _db.exhibitionCategories);
+  $$AppSettingsRowsTableTableManager get appSettingsRows =>
+      $$AppSettingsRowsTableTableManager(_db, _db.appSettingsRows);
   $$ExhibitionsTableTableManager get exhibitions =>
       $$ExhibitionsTableTableManager(_db, _db.exhibitions);
   $$ChaptersTableTableManager get chapters =>

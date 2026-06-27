@@ -2058,11 +2058,7 @@ class _InspectorState extends State<_Inspector> {
                 contentPadding: EdgeInsets.zero,
                 leading: AtmosphericSticker(kind: sticker.kind, size: 28),
                 title: Text(_stickerKindLabel(sticker.kind)),
-                trailing: IconButton(
-                  tooltip: '删除贴画',
-                  icon: const Icon(Icons.delete_outline, size: 18),
-                  onPressed: () => session.removeSticker(sticker.id),
-                ),
+                subtitle: const Text('在画布上点叉删除'),
               ),
           ],
         ],

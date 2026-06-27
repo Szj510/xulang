@@ -4,6 +4,7 @@ import 'package:xulang/data/gallery_database.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/data/image_selection_service.dart';
 import 'package:xulang/data/media_import_service.dart';
+import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/editor/editor_session.dart';
 
 final galleryRepositoryProvider = Provider<GalleryRepository>((ref) {
@@ -28,6 +29,16 @@ final exhibitionSummariesProvider = StreamProvider<List<ExhibitionSummary>>((
   ref,
 ) {
   return ref.watch(galleryRepositoryProvider).watchExhibitions();
+});
+
+final exhibitionCategoriesProvider = StreamProvider<List<GalleryCategoryInfo>>((
+  ref,
+) {
+  return ref.watch(galleryRepositoryProvider).watchCategories();
+});
+
+final appSettingsProvider = StreamProvider<AppSettings>((ref) {
+  return ref.watch(galleryRepositoryProvider).watchAppSettings();
 });
 
 final editorSessionProvider = Provider.autoDispose

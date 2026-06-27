@@ -30,6 +30,47 @@ enum GalleryTheme {
   terracotta,
 }
 
+enum ExhibitionSortMode { updatedDesc, titleAsc }
+
+class AppSettings {
+  const AppSettings({
+    this.recordingShowChapterTitle = true,
+    this.recordingDelaySeconds = 0,
+  });
+
+  final bool recordingShowChapterTitle;
+  final int recordingDelaySeconds;
+
+  AppSettings copyWith({
+    bool? recordingShowChapterTitle,
+    int? recordingDelaySeconds,
+  }) {
+    return AppSettings(
+      recordingShowChapterTitle:
+          recordingShowChapterTitle ?? this.recordingShowChapterTitle,
+      recordingDelaySeconds:
+          recordingDelaySeconds?.clamp(0, 30).toInt() ??
+          this.recordingDelaySeconds,
+    );
+  }
+}
+
+class GalleryCategoryInfo {
+  const GalleryCategoryInfo({
+    required this.id,
+    required this.title,
+    required this.sortOrder,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final String id;
+  final String title;
+  final int sortOrder;
+  final DateTime createdAt;
+  final DateTime updatedAt;
+}
+
 /// 自定义路径锚点数据
 class CustomPathAnchor {
   const CustomPathAnchor({
@@ -332,6 +373,7 @@ class GalleryDocument {
     required this.updatedAt,
     required this.chapters,
     this.coverMediaId,
+    this.categoryId,
     this.theme = GalleryTheme.ink,
     this.canvasBackgroundPath,
     this.canvasBackgroundOpacity = 0.32,
@@ -367,6 +409,7 @@ class GalleryDocument {
   final String id;
   final String title;
   final String? coverMediaId;
+  final String? categoryId;
   final GalleryTheme theme;
   final String? canvasBackgroundPath;
   final double canvasBackgroundOpacity;
@@ -381,6 +424,7 @@ class GalleryDocument {
   GalleryDocument copyWith({
     String? title,
     String? coverMediaId,
+    Object? categoryId = _unchanged,
     GalleryTheme? theme,
     Object? canvasBackgroundPath = _unchanged,
     double? canvasBackgroundOpacity,
@@ -395,6 +439,9 @@ class GalleryDocument {
       id: id,
       title: title ?? this.title,
       coverMediaId: coverMediaId ?? this.coverMediaId,
+      categoryId: identical(categoryId, _unchanged)
+          ? this.categoryId
+          : categoryId as String?,
       theme: theme ?? this.theme,
       canvasBackgroundPath: identical(canvasBackgroundPath, _unchanged)
           ? this.canvasBackgroundPath
