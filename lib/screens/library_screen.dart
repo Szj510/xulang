@@ -13,12 +13,30 @@ import 'package:xulang/share/exhibition_exporter.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/gallery_image.dart';
 
-class LibraryScreen extends ConsumerWidget {
+class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<LibraryScreen> createState() => _LibraryScreenState();
+}
+
+class _LibraryScreenState extends ConsumerState<LibraryScreen> {
+  String? _selectedCategoryId;
+  String _searchQuery = '';
+  ExhibitionSortMode _sortMode = ExhibitionSortMode.updatedDesc;
+
+  @override
+  Widget build(BuildContext context) {
     final exhibitions = ref.watch(exhibitionSummariesProvider);
+    final categories = ref.watch(exhibitionCategoriesProvider);
+    final selectedCategory = _selectedCategoryId == null
+        ? null
+        : categories.maybeWhen(
+            data: (items) => items
+                .where((item) => item.id == _selectedCategoryId)
+                .firstOrNull,
+            orElse: () => null,
+          );
     return Scaffold(
       body: SafeArea(
         child: Padding(
@@ -27,25 +45,66 @@ class LibraryScreen extends ConsumerWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _LibraryHeader(
-                onCreate: () => _createExhibition(context, ref),
-                onImportTemplate: () => _importTemplate(context, ref),
+                onCreate: () => _createExhibition(
+                  context,
+                  categoryId: selectedCategory?.id,
+                ),
+                onCreateCategory: () => _createCategory(context),
+                onImportTemplate: () => _importTemplate(context),
                 onInfo: () => _showLocalInfo(context),
                 onSettings: () => _showAppSettings(
                   context,
-                  onImportTemplate: () => _importTemplate(context, ref),
+                  settings: ref
+                      .read(appSettingsProvider)
+                      .maybeWhen(
+                        data: (value) => value,
+                        orElse: () => const AppSettings(),
+                      ),
+                  onSaveSettings: (settings) => ref
+                      .read(galleryRepositoryProvider)
+                      .saveAppSettings(settings),
+                  onImportTemplate: () => _importTemplate(context),
                 ),
               ),
-              const SizedBox(height: 14),
-              const _OfficialSampleNotice(),
               const SizedBox(height: 22),
               Expanded(
                 child: exhibitions.when(
-                  data: (items) => items.isEmpty
-                      ? _EmptyLibrary(
-                          onCreate: () => _createExhibition(context, ref),
-                          onImportTemplate: () => _importTemplate(context, ref),
-                        )
-                      : _ExhibitionGrid(items: items),
+                  data: (items) => categories.when(
+                    data: (categoryItems) => _selectedCategoryId == null
+                        ? _CategoryHome(
+                            categories: _buildBuckets(categoryItems, items),
+                            onOpenCategory: (id) =>
+                                setState(() => _selectedCategoryId = id),
+                            onCreate: () => _createExhibition(context),
+                            onCreateCategory: () => _createCategory(context),
+                            onImportTemplate: () => _importTemplate(context),
+                          )
+                        : _CategoryDetail(
+                            title: selectedCategory?.title ?? '未分类',
+                            searchQuery: _searchQuery,
+                            sortMode: _sortMode,
+                            items: _filterAndSort(
+                              _itemsForCategory(items, selectedCategory?.id),
+                            ),
+                            categories: categoryItems,
+                            onBack: () => setState(() {
+                              _selectedCategoryId = null;
+                              _searchQuery = '';
+                            }),
+                            onSearchChanged: (value) =>
+                                setState(() => _searchQuery = value),
+                            onSortChanged: (value) =>
+                                setState(() => _sortMode = value),
+                            onCreate: () => _createExhibition(
+                              context,
+                              categoryId: selectedCategory?.id,
+                            ),
+                            onMoveCategory: _moveExhibition,
+                          ),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (error, stackTrace) => _LibraryError(error: error),
+                  ),
                   loading: () =>
                       const Center(child: CircularProgressIndicator()),
                   error: (error, stackTrace) => _LibraryError(error: error),
@@ -58,7 +117,55 @@ class LibraryScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _createExhibition(BuildContext context, WidgetRef ref) async {
+  List<LibraryCategoryBucket> _buildBuckets(
+    List<GalleryCategoryInfo> categories,
+    List<ExhibitionSummary> exhibitions,
+  ) {
+    final buckets = <LibraryCategoryBucket>[
+      for (final category in categories)
+        LibraryCategoryBucket(
+          category: category,
+          exhibitions: _itemsForCategory(exhibitions, category.id),
+        ),
+    ];
+    final uncategorized = _itemsForCategory(exhibitions, null);
+    if (uncategorized.isNotEmpty || buckets.isEmpty) {
+      buckets.add(
+        LibraryCategoryBucket(category: null, exhibitions: uncategorized),
+      );
+    }
+    return buckets;
+  }
+
+  List<ExhibitionSummary> _itemsForCategory(
+    List<ExhibitionSummary> items,
+    String? categoryId,
+  ) {
+    return items
+        .where((item) => item.categoryId == categoryId)
+        .toList(growable: false);
+  }
+
+  List<ExhibitionSummary> _filterAndSort(List<ExhibitionSummary> items) {
+    final query = _searchQuery.trim().toLowerCase();
+    final filtered = query.isEmpty
+        ? [...items]
+        : items
+              .where((item) => item.title.toLowerCase().contains(query))
+              .toList();
+    switch (_sortMode) {
+      case ExhibitionSortMode.updatedDesc:
+        filtered.sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+      case ExhibitionSortMode.titleAsc:
+        filtered.sort((a, b) => a.title.compareTo(b.title));
+    }
+    return filtered;
+  }
+
+  Future<void> _createExhibition(
+    BuildContext context, {
+    String? categoryId,
+  }) async {
     final title = await _textDialog(
       context,
       title: '新建展览',
@@ -72,6 +179,7 @@ class LibraryScreen extends ConsumerWidget {
       id: id,
       title: title.trim(),
       now: DateTime.now(),
+      categoryId: categoryId,
     );
     if (!context.mounted) return;
     await Navigator.of(context).push(
@@ -79,7 +187,40 @@ class LibraryScreen extends ConsumerWidget {
     );
   }
 
-  Future<void> _importTemplate(BuildContext context, WidgetRef ref) async {
+  Future<void> _createCategory(BuildContext context) async {
+    final title = await _textDialog(
+      context,
+      title: '新建分类',
+      hint: '例如：旅行、运动、家庭、毕业季',
+      confirmText: '创建',
+    );
+    if (title == null || title.trim().isEmpty) return;
+    final repository = ref.read(galleryRepositoryProvider);
+    final existing = ref
+        .read(exhibitionCategoriesProvider)
+        .maybeWhen(
+          data: (items) => items,
+          orElse: () => const <GalleryCategoryInfo>[],
+        );
+    await repository.createCategory(
+      id: repository.createId(),
+      title: title.trim(),
+      sortOrder: existing.length,
+      now: DateTime.now(),
+    );
+  }
+
+  Future<void> _moveExhibition(ExhibitionSummary summary, String? categoryId) {
+    return ref
+        .read(galleryRepositoryProvider)
+        .moveExhibitionToCategory(
+          exhibitionId: summary.id,
+          categoryId: categoryId,
+          now: DateTime.now(),
+        );
+  }
+
+  Future<void> _importTemplate(BuildContext context) async {
     try {
       final picked = await openFile(
         acceptedTypeGroups: const [
@@ -142,7 +283,7 @@ class LibraryScreen extends ConsumerWidget {
         id: id,
         title: exhibitionTitle.trim(),
         createdAt: now,
-      );
+      ).copyWith(categoryId: _selectedCategoryId);
       final document = codec.applyToDocument(
         base: base,
         templateJson: templateJson,
@@ -163,7 +304,7 @@ class LibraryScreen extends ConsumerWidget {
       if (!context.mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text('导入模板失败：$caught')));
+      ).showSnackBar(SnackBar(content: Text('导入模板失败：')));
     }
   }
 }
@@ -171,12 +312,14 @@ class LibraryScreen extends ConsumerWidget {
 class _LibraryHeader extends StatelessWidget {
   const _LibraryHeader({
     required this.onCreate,
+    required this.onCreateCategory,
     required this.onImportTemplate,
     required this.onInfo,
     required this.onSettings,
   });
 
   final VoidCallback onCreate;
+  final VoidCallback onCreateCategory;
   final VoidCallback onImportTemplate;
   final VoidCallback onInfo;
   final VoidCallback onSettings;
@@ -236,6 +379,12 @@ class _LibraryHeader extends StatelessWidget {
           onPressed: onImportTemplate,
           icon: const Icon(Icons.file_open_outlined, size: 20),
         ),
+        const SizedBox(width: 4),
+        _HeaderIconButton(
+          tooltip: '新建分类',
+          onPressed: onCreateCategory,
+          icon: const Icon(Icons.create_new_folder_outlined, size: 20),
+        ),
         const SizedBox(width: 10),
         FilledButton.icon(
           onPressed: onCreate,
@@ -243,39 +392,6 @@ class _LibraryHeader extends StatelessWidget {
           label: const Text('新建'),
         ),
       ],
-    );
-  }
-}
-
-class _OfficialSampleNotice extends StatelessWidget {
-  const _OfficialSampleNotice();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-      decoration: BoxDecoration(
-        color: XulangColors.accent.withValues(alpha: .10),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: XulangColors.accent.withValues(alpha: .22)),
-      ),
-      child: const Row(
-        children: [
-          Icon(Icons.verified_outlined, size: 18, color: XulangColors.accent),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              '首页内置样例为官方示例，仅用于展示效果；你的新建展览和导入图片仍只保存在本机。',
-              style: TextStyle(
-                fontSize: 12,
-                height: 1.45,
-                color: XulangColors.muted,
-              ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
@@ -444,10 +560,414 @@ class _EmptyGalleryFrame extends StatelessWidget {
   }
 }
 
+class LibraryCategoryBucket {
+  const LibraryCategoryBucket({
+    required this.category,
+    required this.exhibitions,
+  });
+
+  final GalleryCategoryInfo? category;
+  final List<ExhibitionSummary> exhibitions;
+
+  String get id => category?.id ?? uncategorizedId;
+  String get title => category?.title ?? '未分类';
+  bool get isUncategorized => category == null;
+
+  static const uncategorizedId = '__uncategorized__';
+}
+
+class _CategoryHome extends StatelessWidget {
+  const _CategoryHome({
+    required this.categories,
+    required this.onOpenCategory,
+    required this.onCreate,
+    required this.onCreateCategory,
+    required this.onImportTemplate,
+  });
+
+  final List<LibraryCategoryBucket> categories;
+  final ValueChanged<String> onOpenCategory;
+  final VoidCallback onCreate;
+  final VoidCallback onCreateCategory;
+  final VoidCallback onImportTemplate;
+
+  @override
+  Widget build(BuildContext context) {
+    final hasAnyExhibition = categories.any(
+      (bucket) => bucket.exhibitions.isNotEmpty,
+    );
+    if (!hasAnyExhibition &&
+        categories.length == 1 &&
+        categories.single.isUncategorized) {
+      return _EmptyLibrary(
+        onCreate: onCreate,
+        onImportTemplate: onImportTemplate,
+      );
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth > 900
+            ? 3
+            : constraints.maxWidth > 560
+            ? 2
+            : 1;
+        return GridView.builder(
+          padding: const EdgeInsets.only(bottom: 28),
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: columns,
+            mainAxisSpacing: 18,
+            crossAxisSpacing: 18,
+            childAspectRatio: columns == 1 ? 1.85 : 1.22,
+          ),
+          itemCount: categories.length + 1,
+          itemBuilder: (context, index) {
+            if (index == categories.length) {
+              return _NewCategoryCard(onTap: onCreateCategory);
+            }
+            return _CategoryBoxCard(
+              bucket: categories[index],
+              onTap: () => onOpenCategory(categories[index].id),
+            );
+          },
+        );
+      },
+    );
+  }
+}
+
+class _CategoryBoxCard extends StatelessWidget {
+  const _CategoryBoxCard({required this.bucket, required this.onTap});
+
+  final LibraryCategoryBucket bucket;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final previews = bucket.exhibitions.take(4).toList(growable: false);
+    return Material(
+      color: XulangColors.surface,
+      borderRadius: BorderRadius.circular(22),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: onTap,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: RadialGradient(
+                    center: const Alignment(-.45, -.55),
+                    radius: 1.4,
+                    colors: [
+                      XulangColors.paper.withValues(alpha: .10),
+                      XulangColors.elevated,
+                      XulangColors.ink,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 22,
+              right: 22,
+              top: 20,
+              bottom: 64,
+              child: _StackedEnvelopePreview(previews: previews),
+            ),
+            Positioned(
+              left: 18,
+              right: 18,
+              bottom: 16,
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          bucket.title,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: XulangColors.paper,
+                            fontFamily: 'Noto Serif SC',
+                            fontSize: 18,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                        const SizedBox(height: 3),
+                        Text(
+                          '${bucket.exhibitions.length} 个展览',
+                          style: const TextStyle(
+                            color: XulangColors.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right, color: XulangColors.muted),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _StackedEnvelopePreview extends StatelessWidget {
+  const _StackedEnvelopePreview({required this.previews});
+
+  final List<ExhibitionSummary> previews;
+
+  @override
+  Widget build(BuildContext context) {
+    if (previews.isEmpty) {
+      return const _EmptyCategoryBox();
+    }
+    final rotations = [-.12, .08, -.04, .13];
+    final offsets = [
+      const Offset(-26, 14),
+      const Offset(18, 4),
+      const Offset(-4, -4),
+      const Offset(34, 18),
+    ];
+    return Stack(
+      alignment: Alignment.center,
+      children: [
+        for (var index = previews.length - 1; index >= 0; index--)
+          Transform.translate(
+            offset: offsets[index % offsets.length],
+            child: Transform.rotate(
+              angle: rotations[index % rotations.length],
+              child: _EnvelopeThumbnail(summary: previews[index]),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _EnvelopeThumbnail extends ConsumerWidget {
+  const _EnvelopeThumbnail({required this.summary});
+
+  final ExhibitionSummary summary;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final repository = ref.read(galleryRepositoryProvider);
+    return FutureBuilder<GalleryBundle?>(
+      future: repository.load(summary.id),
+      builder: (context, snapshot) {
+        final bundle = snapshot.data;
+        final cover = bundle == null || summary.coverMediaId == null
+            ? null
+            : bundle.media
+                  .where((item) => item.id == summary.coverMediaId)
+                  .firstOrNull;
+        return Container(
+          width: 112,
+          height: 144,
+          padding: const EdgeInsets.all(7),
+          decoration: BoxDecoration(
+            color: const Color(0xFFE8DFCE),
+            borderRadius: BorderRadius.circular(5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .38),
+                blurRadius: 18,
+                offset: const Offset(0, 9),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(3),
+            child: cover == null
+                ? const ColoredBox(
+                    color: XulangColors.elevated,
+                    child: Icon(
+                      Icons.photo_outlined,
+                      color: XulangColors.muted,
+                    ),
+                  )
+                : GalleryImage(path: cover.thumbnailPath, cacheWidth: 400),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _EmptyCategoryBox extends StatelessWidget {
+  const _EmptyCategoryBox();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.black.withValues(alpha: .20),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: XulangColors.paper.withValues(alpha: .10)),
+      ),
+      child: const Center(
+        child: Icon(
+          Icons.inventory_2_outlined,
+          color: XulangColors.muted,
+          size: 36,
+        ),
+      ),
+    );
+  }
+}
+
+class _NewCategoryCard extends StatelessWidget {
+  const _NewCategoryCard({required this.onTap});
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return OutlinedButton(
+      onPressed: onTap,
+      style: OutlinedButton.styleFrom(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
+        side: BorderSide(color: XulangColors.paper.withValues(alpha: .16)),
+      ),
+      child: const Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.create_new_folder_outlined, size: 30),
+          SizedBox(height: 10),
+          Text('新建分类'),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryDetail extends StatelessWidget {
+  const _CategoryDetail({
+    required this.title,
+    required this.searchQuery,
+    required this.sortMode,
+    required this.items,
+    required this.categories,
+    required this.onBack,
+    required this.onSearchChanged,
+    required this.onSortChanged,
+    required this.onCreate,
+    required this.onMoveCategory,
+  });
+
+  final String title;
+  final String searchQuery;
+  final ExhibitionSortMode sortMode;
+  final List<ExhibitionSummary> items;
+  final List<GalleryCategoryInfo> categories;
+  final VoidCallback onBack;
+  final ValueChanged<String> onSearchChanged;
+  final ValueChanged<ExhibitionSortMode> onSortChanged;
+  final VoidCallback onCreate;
+  final Future<void> Function(ExhibitionSummary summary, String? categoryId)
+  onMoveCategory;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            IconButton(
+              tooltip: '返回分类',
+              onPressed: onBack,
+              icon: const Icon(Icons.arrow_back_ios_new, size: 18),
+            ),
+            Expanded(
+              child: Text(
+                title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: XulangColors.paper,
+                  fontFamily: 'Noto Serif SC',
+                  fontSize: 24,
+                  letterSpacing: 1.4,
+                ),
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: onCreate,
+              icon: const Icon(Icons.add, size: 17),
+              label: const Text('新建'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                decoration: const InputDecoration(
+                  hintText: '搜索展览',
+                  prefixIcon: Icon(Icons.search),
+                ),
+                onChanged: onSearchChanged,
+              ),
+            ),
+            const SizedBox(width: 12),
+            DropdownButton<ExhibitionSortMode>(
+              value: sortMode,
+              onChanged: (value) {
+                if (value != null) onSortChanged(value);
+              },
+              items: const [
+                DropdownMenuItem(
+                  value: ExhibitionSortMode.updatedDesc,
+                  child: Text('按时间'),
+                ),
+                DropdownMenuItem(
+                  value: ExhibitionSortMode.titleAsc,
+                  child: Text('按名称'),
+                ),
+              ],
+            ),
+          ],
+        ),
+        const SizedBox(height: 14),
+        Expanded(
+          child: items.isEmpty
+              ? const Center(
+                  child: Text(
+                    '这里还没有展览',
+                    style: TextStyle(color: XulangColors.muted),
+                  ),
+                )
+              : _ExhibitionGrid(
+                  items: items,
+                  categories: categories,
+                  onMoveCategory: onMoveCategory,
+                ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ExhibitionGrid extends ConsumerWidget {
-  const _ExhibitionGrid({required this.items});
+  const _ExhibitionGrid({
+    required this.items,
+    required this.categories,
+    required this.onMoveCategory,
+  });
 
   final List<ExhibitionSummary> items;
+  final List<GalleryCategoryInfo> categories;
+  final Future<void> Function(ExhibitionSummary summary, String? categoryId)
+  onMoveCategory;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -467,8 +987,11 @@ class _ExhibitionGrid extends ConsumerWidget {
             childAspectRatio: columns == 1 ? 1.45 : .86,
           ),
           itemCount: items.length,
-          itemBuilder: (context, index) =>
-              _ExhibitionCard(summary: items[index]),
+          itemBuilder: (context, index) => _ExhibitionCard(
+            summary: items[index],
+            categories: categories,
+            onMoveCategory: onMoveCategory,
+          ),
         );
       },
     );
@@ -476,9 +999,16 @@ class _ExhibitionGrid extends ConsumerWidget {
 }
 
 class _ExhibitionCard extends ConsumerWidget {
-  const _ExhibitionCard({required this.summary});
+  const _ExhibitionCard({
+    required this.summary,
+    required this.categories,
+    required this.onMoveCategory,
+  });
 
   final ExhibitionSummary summary;
+  final List<GalleryCategoryInfo> categories;
+  final Future<void> Function(ExhibitionSummary summary, String? categoryId)
+  onMoveCategory;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -557,6 +1087,20 @@ class _ExhibitionCard extends ConsumerWidget {
           newId: repository.createId(),
           now: DateTime.now(),
         );
+      case _CardAction.move:
+        final nextCategoryId = await _pickCategoryForExhibition(
+          context,
+          categories,
+          summary.categoryId,
+        );
+        if (nextCategoryId != _categoryDialogCancelled) {
+          await onMoveCategory(
+            summary,
+            nextCategoryId == LibraryCategoryBucket.uncategorizedId
+                ? null
+                : nextCategoryId,
+          );
+        }
       case _CardAction.delete:
         final confirmed = await showDialog<bool>(
           context: context,
@@ -787,6 +1331,16 @@ class _CardMenuButton extends StatelessWidget {
           ),
         ),
         PopupMenuItem(
+          value: _CardAction.move,
+          child: Row(
+            children: [
+              Icon(Icons.drive_file_move_outlined, size: 18),
+              SizedBox(width: 12),
+              Text('移动分类'),
+            ],
+          ),
+        ),
+        PopupMenuItem(
           value: _CardAction.delete,
           child: Row(
             children: [
@@ -833,7 +1387,72 @@ class _LibraryError extends StatelessWidget {
   }
 }
 
-enum _CardAction { rename, duplicate, delete }
+enum _CardAction { rename, duplicate, move, delete }
+
+const _categoryDialogCancelled = '__category_dialog_cancelled__';
+
+Future<String?> _pickCategoryForExhibition(
+  BuildContext context,
+  List<GalleryCategoryInfo> categories,
+  String? currentCategoryId,
+) {
+  return showDialog<String>(
+    context: context,
+    builder: (context) => SimpleDialog(
+      title: const Text('移动到分类'),
+      children: [
+        _CategoryChoiceOption(
+          id: LibraryCategoryBucket.uncategorizedId,
+          title: '未分类',
+          currentId: currentCategoryId ?? LibraryCategoryBucket.uncategorizedId,
+        ),
+        for (final category in categories)
+          _CategoryChoiceOption(
+            id: category.id,
+            title: category.title,
+            currentId:
+                currentCategoryId ?? LibraryCategoryBucket.uncategorizedId,
+          ),
+        const Divider(),
+        TextButton(
+          onPressed: () => Navigator.pop(context, _categoryDialogCancelled),
+          child: const Text('取消'),
+        ),
+      ],
+    ),
+  );
+}
+
+class _CategoryChoiceOption extends StatelessWidget {
+  const _CategoryChoiceOption({
+    required this.id,
+    required this.title,
+    required this.currentId,
+  });
+
+  final String id;
+  final String title;
+  final String currentId;
+
+  @override
+  Widget build(BuildContext context) {
+    final selected = id == currentId;
+    return SimpleDialogOption(
+      onPressed: () => Navigator.pop(context, id),
+      child: Row(
+        children: [
+          Icon(
+            selected ? Icons.radio_button_checked : Icons.radio_button_off,
+            size: 20,
+            color: selected ? XulangColors.accent : XulangColors.muted,
+          ),
+          const SizedBox(width: 12),
+          Expanded(child: Text(title)),
+        ],
+      ),
+    );
+  }
+}
 
 Future<String?> _textDialog(
   BuildContext context, {
@@ -870,78 +1489,114 @@ Future<String?> _textDialog(
 
 void _showAppSettings(
   BuildContext context, {
+  required AppSettings settings,
+  required Future<void> Function(AppSettings settings) onSaveSettings,
   required VoidCallback onImportTemplate,
 }) {
+  var draft = settings;
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
-    builder: (sheetContext) => SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              '设置与使用说明',
-              style: TextStyle(
-                fontFamily: 'Noto Serif SC',
-                fontFamilyFallback: [
-                  'Noto Sans SC',
-                  'PingFang SC',
-                  'Microsoft YaHei',
-                ],
-                fontSize: 22,
-                letterSpacing: 1.5,
-                color: XulangColors.paper,
+    builder: (sheetContext) => StatefulBuilder(
+      builder: (context, setSheetState) => SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text(
+                '设置与使用说明',
+                style: TextStyle(
+                  fontFamily: 'Noto Serif SC',
+                  fontFamilyFallback: [
+                    'Noto Sans SC',
+                    'PingFang SC',
+                    'Microsoft YaHei',
+                  ],
+                  fontSize: 22,
+                  letterSpacing: 1.5,
+                  color: XulangColors.paper,
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
-            const _SettingsSectionTitle('怎么使用'),
-            const SizedBox(height: 8),
-            const _UsageStep(
-              icon: Icons.add_photo_alternate_outlined,
-              title: '1. 新建展览并导入图片',
-              body: '每个展览都可以分章节组织图片，先把素材放进本地故事库。',
-            ),
-            const _UsageStep(
-              icon: Icons.auto_awesome_motion_outlined,
-              title: '2. 调整画布、布局、相框和贴画',
-              body: '在编辑页右侧操作面板中切换画布、图片、贴画，拖动画面即可微调位置。',
-            ),
-            const _UsageStep(
-              icon: Icons.play_circle_outline,
-              title: '3. 进入播放或导出模板',
-              body: '播放页用来预览完整叙事节奏，模板可复用当前布局。',
-            ),
-            const SizedBox(height: 16),
-            const _SettingsSectionTitle('常见设置'),
-            const SizedBox(height: 8),
-            _SettingsTile(
-              icon: Icons.file_open_outlined,
-              title: '导入展览模板',
-              subtitle: '从本地 JSON 模板快速生成一个新展览。',
-              onTap: () {
-                Navigator.pop(sheetContext);
-                onImportTemplate();
-              },
-            ),
-            _SettingsTile(
-              icon: Icons.privacy_tip_outlined,
-              title: '本地存储与隐私',
-              subtitle: '图片不会上传，卸载应用会删除应用私有空间中的展览。',
-              onTap: () {
-                Navigator.pop(sheetContext);
-                _showLocalInfo(context);
-              },
-            ),
-            const _SettingsTile(
-              icon: Icons.tune_outlined,
-              title: '编辑器常用入口',
-              subtitle: '画布主题、用户画布图片、贴画、音乐和播放延迟都在作品编辑页设置。',
-            ),
-          ],
+              const SizedBox(height: 16),
+              const _SettingsSectionTitle('录屏播放'),
+              SwitchListTile(
+                contentPadding: EdgeInsets.zero,
+                title: const Text('录屏时显示章节名'),
+                subtitle: const Text('关闭后，沉浸录屏只保留画布和图片。'),
+                value: draft.recordingShowChapterTitle,
+                onChanged: (value) async {
+                  draft = draft.copyWith(recordingShowChapterTitle: value);
+                  setSheetState(() {});
+                  await onSaveSettings(draft);
+                },
+              ),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.timer_outlined),
+                title: Text('录屏延迟播放 ${draft.recordingDelaySeconds} 秒'),
+                subtitle: Slider(
+                  value: draft.recordingDelaySeconds.toDouble(),
+                  min: 0,
+                  max: 10,
+                  divisions: 10,
+                  label: '${draft.recordingDelaySeconds} 秒',
+                  onChanged: (value) async {
+                    draft = draft.copyWith(
+                      recordingDelaySeconds: value.round(),
+                    );
+                    setSheetState(() {});
+                    await onSaveSettings(draft);
+                  },
+                ),
+              ),
+              const SizedBox(height: 16),
+              const _SettingsSectionTitle('怎么使用'),
+              const SizedBox(height: 8),
+              const _UsageStep(
+                icon: Icons.category_outlined,
+                title: '1. 先按主题建立分类',
+                body: '分类像盒子，适合把旅行、运动、家庭等展览分开收纳。',
+              ),
+              const _UsageStep(
+                icon: Icons.add_photo_alternate_outlined,
+                title: '2. 在分类里新建展览并导入图片',
+                body: '每个展览都可以分章节组织图片，素材仍保存在本机。',
+              ),
+              const _UsageStep(
+                icon: Icons.auto_awesome_motion_outlined,
+                title: '3. 调整画布、布局、相框和贴画',
+                body: '编辑页右侧操作面板可切换画布、图片、贴画和音乐设置。',
+              ),
+              const _UsageStep(
+                icon: Icons.play_circle_outline,
+                title: '4. 进入播放或导出模板',
+                body: '播放页用来预览完整叙事节奏，模板可复用当前布局。',
+              ),
+              const SizedBox(height: 16),
+              const _SettingsSectionTitle('常见入口'),
+              _SettingsTile(
+                icon: Icons.file_open_outlined,
+                title: '导入展览模板',
+                subtitle: '从本地 JSON 模板快速生成一个新展览。',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  onImportTemplate();
+                },
+              ),
+              _SettingsTile(
+                icon: Icons.privacy_tip_outlined,
+                title: '本地存储与隐私',
+                subtitle: '图片不会上传，卸载应用会删除应用私有空间中的展览。',
+                onTap: () {
+                  Navigator.pop(sheetContext);
+                  _showLocalInfo(context);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     ),

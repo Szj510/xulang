@@ -9,10 +9,37 @@ import 'package:xulang/domain/gallery_document.dart';
 
 part 'gallery_database.g.dart';
 
+class ExhibitionCategories extends Table {
+  TextColumn get id => text()();
+  TextColumn get title => text()();
+  IntColumn get sortOrder => integer()();
+  DateTimeColumn get createdAt => dateTime()();
+  DateTimeColumn get updatedAt => dateTime()();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
+class AppSettingsRows extends Table {
+  TextColumn get id => text()();
+  BoolColumn get recordingShowChapterTitle =>
+      boolean().withDefault(const Constant(true))();
+  IntColumn get recordingDelaySeconds =>
+      integer().withDefault(const Constant(0))();
+
+  @override
+  Set<Column<Object>> get primaryKey => {id};
+}
+
 class Exhibitions extends Table {
   TextColumn get id => text()();
   TextColumn get title => text()();
   TextColumn get coverMediaId => text().nullable()();
+  TextColumn get categoryId => text().nullable().references(
+    ExhibitionCategories,
+    #id,
+    onDelete: KeyAction.setNull,
+  )();
   TextColumn get theme => text()();
   TextColumn get canvasBackgroundPath => text().nullable()();
   RealColumn get canvasBackgroundOpacity =>
@@ -81,14 +108,23 @@ class Placements extends Table {
   Set<Column<Object>> get primaryKey => {id};
 }
 
-@DriftDatabase(tables: [Exhibitions, Chapters, MediaAssets, Placements])
+@DriftDatabase(
+  tables: [
+    ExhibitionCategories,
+    AppSettingsRows,
+    Exhibitions,
+    Chapters,
+    MediaAssets,
+    Placements,
+  ],
+)
 class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase() : super(_openConnection());
 
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 7;
+  int get schemaVersion => 8;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -116,10 +152,14 @@ class GalleryDatabase extends _$GalleryDatabase {
       if (from < 7) {
         await _ensureCanvasBackgroundColumns();
       }
+      if (from < 8) {
+        await _ensureCategoryAndSettingsSchema();
+      }
     },
     beforeOpen: (_) async {
       await _ensurePlaybackDelayColumn();
       await _ensureCanvasBackgroundColumns();
+      await _ensureCategoryAndSettingsSchema();
     },
   );
 
@@ -144,6 +184,30 @@ class GalleryDatabase extends _$GalleryDatabase {
     try {
       await customStatement(
         'ALTER TABLE exhibitions ADD COLUMN canvas_background_opacity REAL NOT NULL DEFAULT 0.32',
+      );
+    } catch (_) {
+      // Column already exists on current installs.
+    }
+  }
+
+  Future<void> _ensureCategoryAndSettingsSchema() async {
+    await customStatement(
+      'CREATE TABLE IF NOT EXISTS exhibition_categories ('
+      'id TEXT NOT NULL PRIMARY KEY, '
+      'title TEXT NOT NULL, '
+      'sort_order INTEGER NOT NULL, '
+      'created_at INTEGER NOT NULL, '
+      'updated_at INTEGER NOT NULL)',
+    );
+    await customStatement(
+      'CREATE TABLE IF NOT EXISTS app_settings_rows ('
+      'id TEXT NOT NULL PRIMARY KEY, '
+      'recording_show_chapter_title INTEGER NOT NULL DEFAULT 1, '
+      'recording_delay_seconds INTEGER NOT NULL DEFAULT 0)',
+    );
+    try {
+      await customStatement(
+        'ALTER TABLE exhibitions ADD COLUMN category_id TEXT',
       );
     } catch (_) {
       // Column already exists on current installs.
@@ -181,6 +245,7 @@ class GalleryDatabase extends _$GalleryDatabase {
           id: document.id,
           title: document.title,
           coverMediaId: Value(document.coverMediaId),
+          categoryId: Value(document.categoryId),
           theme: document.theme.name,
           canvasBackgroundPath: Value(document.canvasBackgroundPath),
           canvasBackgroundOpacity: Value(
@@ -282,6 +347,7 @@ class GalleryDatabase extends _$GalleryDatabase {
               id: row.id,
               title: row.title,
               coverMediaId: row.coverMediaId,
+              categoryId: row.categoryId,
               updatedAt: row.updatedAt,
             ),
           )
@@ -349,6 +415,7 @@ class GalleryDatabase extends _$GalleryDatabase {
       id: exhibition.id,
       title: exhibition.title,
       coverMediaId: exhibition.coverMediaId,
+      categoryId: exhibition.categoryId,
       theme: _enumByName(
         GalleryTheme.values,
         exhibition.theme,
@@ -383,6 +450,88 @@ class GalleryDatabase extends _$GalleryDatabase {
           contentHash: row.contentHash,
         ),
     ];
+  }
+
+  Stream<List<GalleryCategoryInfo>> watchCategories() {
+    final query = select(exhibitionCategories)
+      ..orderBy([
+        (row) => OrderingTerm.asc(row.sortOrder),
+        (row) => OrderingTerm.asc(row.title),
+      ]);
+    return query.watch().map(
+      (rows) => rows
+          .map(
+            (row) => GalleryCategoryInfo(
+              id: row.id,
+              title: row.title,
+              sortOrder: row.sortOrder,
+              createdAt: row.createdAt,
+              updatedAt: row.updatedAt,
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+
+  Future<void> upsertCategory(GalleryCategoryInfo category) {
+    return into(exhibitionCategories).insertOnConflictUpdate(
+      ExhibitionCategoriesCompanion.insert(
+        id: category.id,
+        title: category.title,
+        sortOrder: category.sortOrder,
+        createdAt: category.createdAt,
+        updatedAt: category.updatedAt,
+      ),
+    );
+  }
+
+  Future<void> deleteCategory(String categoryId) async {
+    await transaction(() async {
+      await (update(exhibitions)
+            ..where((row) => row.categoryId.equals(categoryId)))
+          .write(const ExhibitionsCompanion(categoryId: Value(null)));
+      await (delete(
+        exhibitionCategories,
+      )..where((row) => row.id.equals(categoryId))).go();
+    });
+  }
+
+  Future<void> moveExhibitionToCategory(
+    String exhibitionId,
+    String? categoryId,
+    DateTime now,
+  ) {
+    return (update(
+      exhibitions,
+    )..where((row) => row.id.equals(exhibitionId))).write(
+      ExhibitionsCompanion(
+        categoryId: Value(categoryId),
+        updatedAt: Value(now),
+      ),
+    );
+  }
+
+  Stream<AppSettings> watchAppSettings() {
+    return select(appSettingsRows).watch().map((rows) {
+      final row = rows.where((item) => item.id == _appSettingsId).firstOrNull;
+      if (row == null) return const AppSettings();
+      return AppSettings(
+        recordingShowChapterTitle: row.recordingShowChapterTitle,
+        recordingDelaySeconds: row.recordingDelaySeconds.clamp(0, 30).toInt(),
+      );
+    });
+  }
+
+  Future<void> saveAppSettings(AppSettings settings) {
+    return into(appSettingsRows).insertOnConflictUpdate(
+      AppSettingsRowsCompanion.insert(
+        id: _appSettingsId,
+        recordingShowChapterTitle: Value(settings.recordingShowChapterTitle),
+        recordingDelaySeconds: Value(
+          settings.recordingDelaySeconds.clamp(0, 30).toInt(),
+        ),
+      ),
+    );
   }
 
   Future<void> deleteExhibition(String exhibitionId) async {
@@ -507,13 +656,17 @@ class ExhibitionSummary {
     required this.title,
     required this.updatedAt,
     this.coverMediaId,
+    this.categoryId,
   });
 
   final String id;
   final String title;
   final String? coverMediaId;
+  final String? categoryId;
   final DateTime updatedAt;
 }
+
+const _appSettingsId = 'default';
 
 LazyDatabase _openConnection() {
   return LazyDatabase(() async {

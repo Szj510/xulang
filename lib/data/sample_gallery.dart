@@ -47,7 +47,7 @@ GalleryBundle buildSampleGallery(DateTime now) {
   return GalleryBundle(
     document: GalleryDocument(
       id: 'sample-exhibition',
-      title: '山海之间',
+      title: '山海之间（官方示例）',
       coverMediaId: 'sample-coast',
       createdAt: now,
       updatedAt: now,

@@ -18,6 +18,57 @@ class GalleryRepository {
   Stream<List<ExhibitionSummary>> watchExhibitions() =>
       database.watchExhibitions();
 
+  Stream<List<GalleryCategoryInfo>> watchCategories() =>
+      database.watchCategories();
+
+  Stream<AppSettings> watchAppSettings() => database.watchAppSettings();
+
+  Future<void> saveAppSettings(AppSettings settings) =>
+      database.saveAppSettings(settings);
+
+  Future<void> createCategory({
+    required String id,
+    required String title,
+    required int sortOrder,
+    required DateTime now,
+  }) {
+    return database.upsertCategory(
+      GalleryCategoryInfo(
+        id: id,
+        title: title,
+        sortOrder: sortOrder,
+        createdAt: now,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  Future<void> renameCategory({
+    required GalleryCategoryInfo category,
+    required String title,
+    required DateTime now,
+  }) {
+    return database.upsertCategory(
+      GalleryCategoryInfo(
+        id: category.id,
+        title: title,
+        sortOrder: category.sortOrder,
+        createdAt: category.createdAt,
+        updatedAt: now,
+      ),
+    );
+  }
+
+  Future<void> deleteCategory(String id) => database.deleteCategory(id);
+
+  Future<void> moveExhibitionToCategory({
+    required String exhibitionId,
+    required String? categoryId,
+    required DateTime now,
+  }) {
+    return database.moveExhibitionToCategory(exhibitionId, categoryId, now);
+  }
+
   Future<GalleryBundle?> load(String exhibitionId) async {
     final document = await database.loadDocument(exhibitionId);
     if (document == null) return null;
@@ -31,14 +82,16 @@ class GalleryRepository {
     required String id,
     required String title,
     required DateTime now,
+    String? categoryId,
   }) async {
     final document = GalleryDocument.create(
       id: id,
       title: title,
       createdAt: now,
     );
-    await database.saveDocument(document, const []);
-    return GalleryBundle(document: document, media: const []);
+    final categorized = document.copyWith(categoryId: categoryId);
+    await database.saveDocument(categorized, const []);
+    return GalleryBundle(document: categorized, media: const []);
   }
 
   Future<void> save(GalleryBundle bundle) {
@@ -153,6 +206,7 @@ class GalleryRepository {
         coverMediaId: source.document.coverMediaId == null
             ? null
             : mediaIdMap[source.document.coverMediaId!],
+        categoryId: source.document.categoryId,
         theme: source.document.theme,
         canvasBackgroundPath: copiedCanvasBackgroundPath,
         canvasBackgroundOpacity: source.document.canvasBackgroundOpacity,

@@ -8,7 +8,7 @@ void main() {
     () {
       final sample = buildSampleGallery(DateTime.utc(2026, 6, 22));
 
-      expect(sample.document.title, '山海之间');
+      expect(sample.document.title, '山海之间（官方示例）');
       expect(sample.document.chapters, hasLength(2));
       expect(sample.document.chapters.first.layout, GalleryLayout.hero);
       expect(sample.document.chapters.last.layout, GalleryLayout.storyPath);
