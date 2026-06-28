@@ -342,77 +342,84 @@ class _LibraryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final l10n = AppStrings.of(context);
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
+    final title = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                l10n.appTitle,
-                style: const TextStyle(
-                  color: XulangColors.paper,
-                  fontFamily: 'Noto Serif SC',
-                  fontFamilyFallback: [
-                    'Noto Sans SC',
-                    'PingFang SC',
-                    'Microsoft YaHei',
-                  ],
-                  fontSize: 32,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 5,
-                  height: 1.1,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                l10n.localGallery,
-                style: const TextStyle(
-                  color: XulangColors.muted,
-                  fontSize: 12,
-                  letterSpacing: 0.8,
-                  height: 1.4,
-                ),
-              ),
-            ],
+        Text(
+          l10n.appTitle,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: XulangColors.paper,
+            fontFamily: 'Noto Serif SC',
+            fontFamilyFallback: ['Noto Sans SC', 'PingFang SC', 'Microsoft YaHei'],
+            fontSize: 34,
+            fontWeight: FontWeight.w400,
+            letterSpacing: 1.8,
+            height: 1.1,
           ),
         ),
-        _HeaderIconButton(
-          tooltip: l10n.localStorageInfo,
-          onPressed: onInfo,
-          icon: const Icon(Icons.info_outline, size: 20),
+        const SizedBox(height: 6),
+        Text(
+          l10n.localGallery,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: const TextStyle(
+            color: XulangColors.muted,
+            fontSize: 12,
+            letterSpacing: 0.8,
+            height: 1.4,
+          ),
         ),
-        const SizedBox(width: 4),
-        _HeaderIconButton(
-          tooltip: l10n.settingsAndGuide,
-          onPressed: onSettings,
-          icon: const Icon(Icons.settings_outlined, size: 20),
+      ],
+    );
+
+    final actionButtons = <Widget>[
+      _HeaderIconButton(
+        tooltip: l10n.localStorageInfo,
+        onPressed: onInfo,
+        icon: const Icon(Icons.info_outline, size: 20),
+      ),
+      _HeaderIconButton(
+        tooltip: l10n.settingsAndGuide,
+        onPressed: onSettings,
+        icon: const Icon(Icons.settings_outlined, size: 20),
+      ),
+      _HeaderIconButton(
+        tooltip: l10n.manageVideos,
+        onPressed: onManageRecordings,
+        icon: const Icon(Icons.video_library_outlined, size: 20),
+      ),
+      _HeaderIconButton(
+        tooltip: l10n.importTemplate,
+        onPressed: onImportTemplate,
+        icon: const Icon(Icons.file_open_outlined, size: 20),
+      ),
+      _HeaderIconButton(
+        tooltip: l10n.newCategory,
+        onPressed: onCreateCategory,
+        icon: const Icon(Icons.create_new_folder_outlined, size: 20),
+      ),
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            Expanded(child: title),
+            const SizedBox(width: 16),
+            FilledButton.icon(
+              onPressed: onCreate,
+              icon: const Icon(Icons.add, size: 18),
+              label: Text(l10n.newExhibition),
+            ),
+          ],
         ),
-        const SizedBox(width: 4),
-        _HeaderIconButton(
-          tooltip: l10n.manageVideos,
-          onPressed: onManageRecordings,
-          icon: const Icon(Icons.video_library_outlined, size: 20),
-        ),
-        const SizedBox(width: 4),
-        _HeaderIconButton(
-          tooltip: l10n.importTemplate,
-          onPressed: onImportTemplate,
-          icon: const Icon(Icons.file_open_outlined, size: 20),
-        ),
-        const SizedBox(width: 4),
-        _HeaderIconButton(
-          tooltip: l10n.newCategory,
-          onPressed: onCreateCategory,
-          icon: const Icon(Icons.create_new_folder_outlined, size: 20),
-        ),
-        const SizedBox(width: 10),
-        FilledButton.icon(
-          onPressed: onCreate,
-          icon: const Icon(Icons.add, size: 18),
-          label: Text(l10n.newExhibition),
-        ),
+        const SizedBox(height: 18),
+        Wrap(spacing: 12, runSpacing: 8, children: actionButtons),
       ],
     );
   }
