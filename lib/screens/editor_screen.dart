@@ -1058,7 +1058,7 @@ class _PreviewState extends State<_Preview> {
   }
 
   void _beginCameraDragIfNeeded() {
-    if (!_isCanvasMode) return;
+    if (!_isCanvasMode && !_isStickerMode) return;
     if (_previewPointerCount == 1 && !_isZoomed && !_cameraDragActive) {
       _cameraController.setProgress(_cameraProgress);
       _cameraController.begin(scale: 1);
@@ -1185,7 +1185,7 @@ class _PreviewState extends State<_Preview> {
                       if (event.delta.distance > 2) {
                         _previewPointerMoved = true;
                       }
-                      if (!_isCanvasMode ||
+                      if (!canvasNavigationEnabled ||
                           _previewPointerCount != 1 ||
                           _isZoomed) {
                         return;

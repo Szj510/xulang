@@ -131,7 +131,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 9;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -163,6 +163,9 @@ class GalleryDatabase extends _$GalleryDatabase {
         await _ensureCategoryAndSettingsSchema();
       }
       if (from < 9) {
+        await _ensureAppSettingsColumns();
+      }
+      if (from < 10) {
         await _ensureAppSettingsColumns();
       }
     },
@@ -218,7 +221,8 @@ class GalleryDatabase extends _$GalleryDatabase {
       "media_import_mode TEXT NOT NULL DEFAULT 'copyIntoApp', "
       'recording_speed REAL NOT NULL DEFAULT 6.0, '
       'recording_use_music INTEGER NOT NULL DEFAULT 1, '
-      "recording_chapter_mode TEXT NOT NULL DEFAULT 'current')",
+      "recording_chapter_mode TEXT NOT NULL DEFAULT 'current', "
+      "app_language TEXT NOT NULL DEFAULT 'system')",
     );
     try {
       await customStatement(
@@ -242,6 +246,7 @@ class GalleryDatabase extends _$GalleryDatabase {
       'ALTER TABLE app_settings_rows ADD COLUMN recording_speed REAL NOT NULL DEFAULT 6.0',
       'ALTER TABLE app_settings_rows ADD COLUMN recording_use_music INTEGER NOT NULL DEFAULT 1',
       "ALTER TABLE app_settings_rows ADD COLUMN recording_chapter_mode TEXT NOT NULL DEFAULT 'current'",
+      "ALTER TABLE app_settings_rows ADD COLUMN app_language TEXT NOT NULL DEFAULT 'system'",
     ];
     for (final statement in statements) {
       try {
@@ -553,29 +558,49 @@ class GalleryDatabase extends _$GalleryDatabase {
   }
 
   Stream<AppSettings> watchAppSettings() {
-    return select(appSettingsRows).watch().map((rows) {
-      final row = rows.where((item) => item.id == _appSettingsId).firstOrNull;
-      if (row == null) return const AppSettings();
-      return AppSettings(
-        recordingShowChapterTitle: row.recordingShowChapterTitle,
-        mediaImportMode: _enumByName(
-          MediaImportMode.values,
-          row.mediaImportMode,
-          MediaImportMode.copyIntoApp,
-        ),
-        recordingSpeed: row.recordingSpeed.clamp(1.0, 12.0).toDouble(),
-        recordingUseMusic: row.recordingUseMusic,
-        recordingChapterMode: _enumByName(
-          RecordingChapterMode.values,
-          row.recordingChapterMode,
-          RecordingChapterMode.current,
-        ),
-      );
-    });
+    return Stream.fromFuture(_ensureRuntimeSchema())
+        .asyncExpand(
+          (_) => customSelect(
+            'SELECT recording_show_chapter_title, media_import_mode, recording_speed, '
+            'recording_use_music, recording_chapter_mode, app_language '
+            'FROM app_settings_rows WHERE id = ? LIMIT 1',
+            variables: [Variable.withString(_appSettingsId)],
+            readsFrom: {appSettingsRows},
+          ).watch(),
+        )
+        .map((rows) {
+          if (rows.isEmpty) return const AppSettings();
+          final row = rows.single;
+          return AppSettings(
+            recordingShowChapterTitle:
+                row.read<int>('recording_show_chapter_title') != 0,
+            mediaImportMode: _enumByName(
+              MediaImportMode.values,
+              row.read<String>('media_import_mode'),
+              MediaImportMode.copyIntoApp,
+            ),
+            recordingSpeed: row
+                .read<double>('recording_speed')
+                .clamp(1.0, 12.0)
+                .toDouble(),
+            recordingUseMusic: row.read<int>('recording_use_music') != 0,
+            recordingChapterMode: _enumByName(
+              RecordingChapterMode.values,
+              row.read<String>('recording_chapter_mode'),
+              RecordingChapterMode.current,
+            ),
+            language: _enumByName(
+              AppLanguage.values,
+              row.read<String>('app_language'),
+              AppLanguage.system,
+            ),
+          );
+        });
   }
 
-  Future<void> saveAppSettings(AppSettings settings) {
-    return into(appSettingsRows).insertOnConflictUpdate(
+  Future<void> saveAppSettings(AppSettings settings) async {
+    await _ensureRuntimeSchema();
+    await into(appSettingsRows).insertOnConflictUpdate(
       AppSettingsRowsCompanion.insert(
         id: _appSettingsId,
         recordingShowChapterTitle: Value(settings.recordingShowChapterTitle),
@@ -586,6 +611,14 @@ class GalleryDatabase extends _$GalleryDatabase {
         recordingUseMusic: Value(settings.recordingUseMusic),
         recordingChapterMode: Value(settings.recordingChapterMode.name),
       ),
+    );
+    await customUpdate(
+      'UPDATE app_settings_rows SET app_language = ? WHERE id = ?',
+      variables: [
+        Variable.withString(settings.language.name),
+        Variable.withString(_appSettingsId),
+      ],
+      updates: {appSettingsRows},
     );
   }
 

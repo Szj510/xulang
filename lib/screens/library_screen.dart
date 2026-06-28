@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xulang/data/gallery_database.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/editor_screen.dart';
 import 'package:xulang/screens/viewer_screen.dart';
@@ -329,16 +330,17 @@ class _LibraryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppStrings.of(context);
     return Row(
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        const Expanded(
+        Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                '叙廊',
-                style: TextStyle(
+                l10n.appTitle,
+                style: const TextStyle(
                   color: XulangColors.paper,
                   fontFamily: 'Noto Serif SC',
                   fontFamilyFallback: [
@@ -352,10 +354,10 @@ class _LibraryHeader extends StatelessWidget {
                   height: 1.1,
                 ),
               ),
-              SizedBox(height: 6),
+              const SizedBox(height: 6),
               Text(
-                '你的本地展览',
-                style: TextStyle(
+                l10n.localGallery,
+                style: const TextStyle(
                   color: XulangColors.muted,
                   fontSize: 12,
                   letterSpacing: 0.8,
@@ -366,25 +368,25 @@ class _LibraryHeader extends StatelessWidget {
           ),
         ),
         _HeaderIconButton(
-          tooltip: '本地存储说明',
+          tooltip: l10n.localStorageInfo,
           onPressed: onInfo,
           icon: const Icon(Icons.info_outline, size: 20),
         ),
         const SizedBox(width: 4),
         _HeaderIconButton(
-          tooltip: '设置与使用说明',
+          tooltip: l10n.settingsAndGuide,
           onPressed: onSettings,
           icon: const Icon(Icons.settings_outlined, size: 20),
         ),
         const SizedBox(width: 4),
         _HeaderIconButton(
-          tooltip: '导入模板',
+          tooltip: l10n.importTemplate,
           onPressed: onImportTemplate,
           icon: const Icon(Icons.file_open_outlined, size: 20),
         ),
         const SizedBox(width: 4),
         _HeaderIconButton(
-          tooltip: '新建分类',
+          tooltip: l10n.newCategory,
           onPressed: onCreateCategory,
           icon: const Icon(Icons.create_new_folder_outlined, size: 20),
         ),
@@ -392,7 +394,7 @@ class _LibraryHeader extends StatelessWidget {
         FilledButton.icon(
           onPressed: onCreate,
           icon: const Icon(Icons.add, size: 18),
-          label: const Text('新建'),
+          label: Text(l10n.newExhibition),
         ),
       ],
     );
@@ -460,7 +462,7 @@ class _EmptyLibrary extends StatelessWidget {
               const SizedBox(height: 32),
               const Text(
                 '让照片沿着故事展开',
-                style: TextStyle(
+                style: const TextStyle(
                   fontFamily: 'Noto Serif SC',
                   fontFamilyFallback: [
                     'Noto Sans SC',
@@ -1497,22 +1499,31 @@ String _displayExhibitionTitle(ExhibitionSummary summary) {
   return summary.title;
 }
 
-String _mediaImportModeLabel(MediaImportMode mode) => switch (mode) {
-  MediaImportMode.copyIntoApp => '复制到应用内',
-  MediaImportMode.referenceOriginal => '直接引用本地图片',
-};
+String _mediaImportModeLabel(AppStrings l10n, MediaImportMode mode) =>
+    switch (mode) {
+      MediaImportMode.copyIntoApp => l10n.copiedIntoApp,
+      MediaImportMode.referenceOriginal => l10n.referenceOriginal,
+    };
 
-String _mediaImportModeDescription(MediaImportMode mode) => switch (mode) {
-  MediaImportMode.copyIntoApp => '更稳定：展览会保存一份原图，原文件移动或删除后仍可观看；代价是占用更多应用空间。',
-  MediaImportMode.referenceOriginal =>
-    '更省空间：展览只记录原图路径并生成缩略图；如果你移动或删除原文件，展览里的大图可能无法显示。',
-};
+String _mediaImportModeDescription(AppStrings l10n, MediaImportMode mode) =>
+    switch (mode) {
+      MediaImportMode.copyIntoApp => l10n.copiedIntoAppDescription,
+      MediaImportMode.referenceOriginal => l10n.referenceOriginalDescription,
+    };
 
-String _recordingChapterModeLabel(RecordingChapterMode mode) => switch (mode) {
-  RecordingChapterMode.current => '当前章节',
-  RecordingChapterMode.fromCurrentToEnd => '从当前到结尾',
-  RecordingChapterMode.all => '全部章节',
-};
+String _recordingChapterModeLabel(AppStrings l10n, RecordingChapterMode mode) =>
+    switch (mode) {
+      RecordingChapterMode.current => l10n.currentChapter,
+      RecordingChapterMode.fromCurrentToEnd => l10n.fromCurrentToEnd,
+      RecordingChapterMode.all => l10n.allChapters,
+    };
+
+String _appLanguageLabel(AppStrings l10n, AppLanguage language) =>
+    switch (language) {
+      AppLanguage.system => l10n.followSystem,
+      AppLanguage.chinese => l10n.simplifiedChinese,
+      AppLanguage.english => l10n.english,
+    };
 
 void _showAppSettings(
   BuildContext context, {
@@ -1521,171 +1532,198 @@ void _showAppSettings(
   required VoidCallback onImportTemplate,
 }) {
   var draft = settings;
+  var l10n = AppStrings.from(draft, Localizations.maybeLocaleOf(context));
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
     isScrollControlled: true,
     builder: (sheetContext) => StatefulBuilder(
       builder: (context, setSheetState) => SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                '设置与使用说明',
-                style: TextStyle(
-                  fontFamily: 'Noto Serif SC',
-                  fontFamilyFallback: [
-                    'Noto Sans SC',
-                    'PingFang SC',
-                    'Microsoft YaHei',
-                  ],
-                  fontSize: 22,
-                  letterSpacing: 1.5,
-                  color: XulangColors.paper,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const _SettingsSectionTitle('录屏播放'),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('录屏时显示章节名'),
-                subtitle: const Text('关闭后，沉浸录屏只保留画布和图片。'),
-                value: draft.recordingShowChapterTitle,
-                onChanged: (value) async {
-                  draft = draft.copyWith(recordingShowChapterTitle: value);
-                  setSheetState(() {});
-                  await onSaveSettings(draft);
-                },
-              ),
-              const SizedBox(height: 12),
-              const _SettingsSectionTitle('图片导入方式'),
-              const SizedBox(height: 8),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
+        child: Builder(
+          builder: (context) {
+            l10n = AppStrings.from(draft, Localizations.maybeLocaleOf(context));
+            return SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  for (final mode in MediaImportMode.values)
-                    ChoiceChip(
-                      selected: draft.mediaImportMode == mode,
-                      onSelected: (_) async {
-                        draft = draft.copyWith(mediaImportMode: mode);
+                  Text(
+                    l10n.settingsAndGuide,
+                    style: TextStyle(
+                      fontFamily: 'Noto Serif SC',
+                      fontFamilyFallback: [
+                        'Noto Sans SC',
+                        'PingFang SC',
+                        'Microsoft YaHei',
+                      ],
+                      fontSize: 22,
+                      letterSpacing: 1.5,
+                      color: XulangColors.paper,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _SettingsSectionTitle(l10n.recordingPlayback),
+                  const SizedBox(height: 8),
+                  _SettingsSectionTitle(l10n.language),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final language in AppLanguage.values)
+                        ChoiceChip(
+                          selected: draft.language == language,
+                          onSelected: (_) async {
+                            draft = draft.copyWith(language: language);
+                            setSheetState(() {});
+                            await onSaveSettings(draft);
+                          },
+                          label: Text(_appLanguageLabel(l10n, language)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _SettingsSectionTitle(l10n.recordingPlayback),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.showChapterTitleRecording),
+                    subtitle: Text(l10n.showChapterTitleRecordingSubtitle),
+                    value: draft.recordingShowChapterTitle,
+                    onChanged: (value) async {
+                      draft = draft.copyWith(recordingShowChapterTitle: value);
+                      setSheetState(() {});
+                      await onSaveSettings(draft);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  _SettingsSectionTitle(l10n.mediaImportMode),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final mode in MediaImportMode.values)
+                        ChoiceChip(
+                          selected: draft.mediaImportMode == mode,
+                          onSelected: (_) async {
+                            draft = draft.copyWith(mediaImportMode: mode);
+                            setSheetState(() {});
+                            await onSaveSettings(draft);
+                          },
+                          label: Text(_mediaImportModeLabel(l10n, mode)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    _mediaImportModeDescription(l10n, draft.mediaImportMode),
+                    style: const TextStyle(
+                      color: XulangColors.muted,
+                      fontSize: 12,
+                      height: 1.55,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _SettingsSectionTitle(l10n.recordingDefaults),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.video_camera_back_outlined),
+                    title: Text(l10n.defaultRecordingChapters),
+                    trailing: DropdownButton<RecordingChapterMode>(
+                      value: draft.recordingChapterMode,
+                      onChanged: (value) async {
+                        if (value == null) return;
+                        draft = draft.copyWith(recordingChapterMode: value);
                         setSheetState(() {});
                         await onSaveSettings(draft);
                       },
-                      label: Text(_mediaImportModeLabel(mode)),
+                      items: [
+                        for (final mode in RecordingChapterMode.values)
+                          DropdownMenuItem(
+                            value: mode,
+                            child: Text(_recordingChapterModeLabel(l10n, mode)),
+                          ),
+                      ],
                     ),
+                  ),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(l10n.useMusicByDefault),
+                    subtitle: Text(l10n.canChangeBeforeRecording),
+                    value: draft.recordingUseMusic,
+                    onChanged: (value) async {
+                      draft = draft.copyWith(recordingUseMusic: value);
+                      setSheetState(() {});
+                      await onSaveSettings(draft);
+                    },
+                  ),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.speed_outlined),
+                    title: Text(
+                      l10n.speedSecondsPerChapter(draft.recordingSpeed),
+                    ),
+                    subtitle: Slider(
+                      value: draft.recordingSpeed,
+                      min: 1,
+                      max: 12,
+                      divisions: 22,
+                      label: l10n.speedLabel(draft.recordingSpeed),
+                      onChanged: (value) async {
+                        draft = draft.copyWith(recordingSpeed: value);
+                        setSheetState(() {});
+                        await onSaveSettings(draft);
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  _SettingsSectionTitle(l10n.howToUse),
+                  const SizedBox(height: 8),
+                  _UsageStep(
+                    icon: Icons.category_outlined,
+                    title: l10n.usageStepTitle(1),
+                    body: l10n.usageStepBody(1),
+                  ),
+                  _UsageStep(
+                    icon: Icons.add_photo_alternate_outlined,
+                    title: l10n.usageStepTitle(2),
+                    body: l10n.usageStepBody(2),
+                  ),
+                  _UsageStep(
+                    icon: Icons.auto_awesome_motion_outlined,
+                    title: l10n.usageStepTitle(3),
+                    body: l10n.usageStepBody(3),
+                  ),
+                  _UsageStep(
+                    icon: Icons.play_circle_outline,
+                    title: l10n.usageStepTitle(4),
+                    body: l10n.usageStepBody(4),
+                  ),
+                  const SizedBox(height: 16),
+                  _SettingsSectionTitle(l10n.commonEntrances),
+                  _SettingsTile(
+                    icon: Icons.file_open_outlined,
+                    title: l10n.importTemplate,
+                    subtitle: l10n.importTemplateSubtitle,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      onImportTemplate();
+                    },
+                  ),
+                  _SettingsTile(
+                    icon: Icons.privacy_tip_outlined,
+                    title: l10n.privacyLocalStorage,
+                    subtitle: l10n.privacyLocalStorageSubtitle,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      _showLocalInfo(context);
+                    },
+                  ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                _mediaImportModeDescription(draft.mediaImportMode),
-                style: const TextStyle(
-                  color: XulangColors.muted,
-                  fontSize: 12,
-                  height: 1.55,
-                ),
-              ),
-              const SizedBox(height: 16),
-              const _SettingsSectionTitle('录制默认值'),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.video_camera_back_outlined),
-                title: const Text('默认录制章节'),
-                trailing: DropdownButton<RecordingChapterMode>(
-                  value: draft.recordingChapterMode,
-                  onChanged: (value) async {
-                    if (value == null) return;
-                    draft = draft.copyWith(recordingChapterMode: value);
-                    setSheetState(() {});
-                    await onSaveSettings(draft);
-                  },
-                  items: [
-                    for (final mode in RecordingChapterMode.values)
-                      DropdownMenuItem(
-                        value: mode,
-                        child: Text(_recordingChapterModeLabel(mode)),
-                      ),
-                  ],
-                ),
-              ),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: const Text('默认使用背景音乐'),
-                subtitle: const Text('录制前仍会弹出确认，可临时修改。'),
-                value: draft.recordingUseMusic,
-                onChanged: (value) async {
-                  draft = draft.copyWith(recordingUseMusic: value);
-                  setSheetState(() {});
-                  await onSaveSettings(draft);
-                },
-              ),
-              ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: const Icon(Icons.speed_outlined),
-                title: Text(
-                  '默认播放速度 ${draft.recordingSpeed.toStringAsFixed(1)} 秒/章',
-                ),
-                subtitle: Slider(
-                  value: draft.recordingSpeed,
-                  min: 1,
-                  max: 12,
-                  divisions: 22,
-                  label: '${draft.recordingSpeed.toStringAsFixed(1)} 秒/章',
-                  onChanged: (value) async {
-                    draft = draft.copyWith(recordingSpeed: value);
-                    setSheetState(() {});
-                    await onSaveSettings(draft);
-                  },
-                ),
-              ),
-              const SizedBox(height: 16),
-              const _SettingsSectionTitle('怎么使用'),
-              const SizedBox(height: 8),
-              const _UsageStep(
-                icon: Icons.category_outlined,
-                title: '1. 先按主题建立分类',
-                body: '分类像盒子，适合把旅行、运动、家庭等展览分开收纳。',
-              ),
-              const _UsageStep(
-                icon: Icons.add_photo_alternate_outlined,
-                title: '2. 在分类里新建展览并导入图片',
-                body: '每个展览都可以分章节组织图片，素材仍保存在本机。',
-              ),
-              const _UsageStep(
-                icon: Icons.auto_awesome_motion_outlined,
-                title: '3. 调整画布、布局、相框和贴画',
-                body: '编辑页右侧操作面板可切换画布、图片、贴画和音乐设置。',
-              ),
-              const _UsageStep(
-                icon: Icons.play_circle_outline,
-                title: '4. 进入播放或导出模板',
-                body: '播放页用来预览完整叙事节奏，模板可复用当前布局。',
-              ),
-              const SizedBox(height: 16),
-              const _SettingsSectionTitle('常见入口'),
-              _SettingsTile(
-                icon: Icons.file_open_outlined,
-                title: '导入展览模板',
-                subtitle: '从本地 JSON 模板快速生成一个新展览。',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  onImportTemplate();
-                },
-              ),
-              _SettingsTile(
-                icon: Icons.privacy_tip_outlined,
-                title: '本地存储与隐私',
-                subtitle: '图片不会上传，卸载应用会删除应用私有空间中的展览。',
-                onTap: () {
-                  Navigator.pop(sheetContext);
-                  _showLocalInfo(context);
-                },
-              ),
-            ],
-          ),
+            );
+          },
         ),
       ),
     ),
