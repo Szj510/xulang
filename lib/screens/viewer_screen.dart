@@ -12,6 +12,7 @@ import 'package:share_plus/share_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/layout/gesture_direction_lock.dart';
 import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
@@ -50,6 +51,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   bool _recordingShareBusy = false;
   String? _activeRecordingPath;
   String? _recordingShareTitle;
+  DateTime? _recordingStartedAt;
   RecordingChapterMode _activeRecordingChapterMode =
       RecordingChapterMode.current;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -172,6 +174,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       chapter: chapter,
                       media: bundle.media,
                       sceneTheme: bundle.document.theme,
+                      canvasBackgroundPath:
+                          bundle.document.canvasBackgroundPath,
+                      canvasBackgroundOpacity:
+                          bundle.document.canvasBackgroundOpacity,
                       reduceMotion: MediaQuery.disableAnimationsOf(context),
                       showControls: _showChrome && !_recordingMode,
                       recordingMode: _recordingMode,
@@ -307,18 +313,28 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       if (!mounted) return;
       final recordingPath = await _startNativeRecording(document);
       if (recordingPath == null) return;
+      final startIndex = _recordingStartIndex(
+        currentIndex: _chapterIndex,
+        mode: options.chapterMode,
+      );
+      final endIndex = _recordingEndIndex(
+        chapterCount: document.chapters.length,
+        currentIndex: startIndex,
+        mode: options.chapterMode,
+      );
+      for (var index = startIndex; index <= endIndex; index++) {
+        _chapterProgress[document.chapters[index].id] = 0;
+      }
       setState(() {
         _activeRecordingPath = recordingPath;
         _recordingShareTitle = document.title;
+        _recordingStartedAt = DateTime.now();
         _recordingSpeed = options.speed;
         _recordingMode = true;
         _playbackFinished = false;
         _showChrome = false;
         _activeRecordingChapterMode = options.chapterMode;
-        _chapterIndex = _recordingStartIndex(
-          currentIndex: _chapterIndex,
-          mode: options.chapterMode,
-        );
+        _chapterIndex = startIndex;
       });
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       if (options.useMusic && document.musicPath != null) {
@@ -374,7 +390,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   Future<String?> _startNativeRecording(GalleryDocument document) async {
     if (!Platform.isAndroid) {
-      _showRecorderMessage('当前自动录屏仅支持 Android；可使用系统录屏后再分享。');
+      _showRecorderMessage(AppStrings.of(context).androidRecordingOnly);
       return null;
     }
     try {
@@ -392,10 +408,14 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         height: physicalSize.height.round(),
       );
     } on PlatformException catch (error) {
-      _showRecorderMessage(error.message ?? '无法开始录屏');
+      _showRecorderMessage(
+        error.message ?? AppStrings.of(context).cannotStartRecording,
+      );
       return null;
     } catch (error) {
-      _showRecorderMessage('无法开始录屏：$error');
+      _showRecorderMessage(
+        '${AppStrings.of(context).cannotStartRecording}：$error',
+      );
       return null;
     }
   }
@@ -407,22 +427,42 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     try {
       final stoppedPath = await NativeScreenRecorder.stop();
       final videoPath = stoppedPath ?? path;
-      if (share && mounted && await File(videoPath).exists()) {
+      if (share) {
+        _showRecorderMessage(AppStrings.of(context).preparingShare);
+        final startedAt = _recordingStartedAt;
+        if (startedAt != null) {
+          final remaining =
+              const Duration(milliseconds: 1600) -
+              DateTime.now().difference(startedAt);
+          if (remaining > Duration.zero) {
+            await Future<void>.delayed(remaining);
+          }
+        }
+      }
+      if (share && mounted && await _waitForReadableMp4(videoPath)) {
         await SharePlus.instance.share(
           ShareParams(
-            text: '${_recordingShareTitle ?? '叙廊'} 录制视频',
+            text:
+                '${_recordingShareTitle ?? AppStrings.of(context).appTitle} ${AppStrings.of(context).recordingVideoSuffix}',
             files: [XFile(videoPath)],
           ),
         );
       } else if (share) {
-        _showRecorderMessage('录制结束，但没有找到生成的视频文件。');
+        _showRecorderMessage(AppStrings.of(context).recordingFileMissing);
       }
     } on PlatformException catch (error) {
-      if (share) _showRecorderMessage(error.message ?? '录屏结束失败');
+      if (share)
+        _showRecorderMessage(
+          error.message ?? AppStrings.of(context).recordingStopFailed,
+        );
     } catch (error) {
-      if (share) _showRecorderMessage('录屏结束失败：$error');
+      if (share)
+        _showRecorderMessage(
+          '${AppStrings.of(context).recordingStopFailed}：$error',
+        );
     } finally {
       _activeRecordingPath = null;
+      _recordingStartedAt = null;
       _recordingShareBusy = false;
       if (mounted) {
         setState(() {
@@ -484,7 +524,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  '录制与分享',
+                  AppStrings.of(context).recordingAndShare,
                   style: TextStyle(
                     color: XulangColors.paper,
                     fontFamily: 'Noto Serif SC',
@@ -494,7 +534,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                 ),
                 const SizedBox(height: 12),
                 const Text(
-                  '确认后会进入沉浸播放。Android 原生自动录屏接入后，会在播放结束时自动生成视频并弹出系统分享面板。',
+                  AppStrings.of(context).recordingSheetDescription,
                   style: TextStyle(
                     color: XulangColors.muted,
                     fontSize: 12,
@@ -502,7 +542,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
-                const Text('章节范围'),
+                Text(AppStrings.of(context).chapterRange),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -510,20 +550,25 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     for (final mode in RecordingChapterMode.values)
                       ChoiceChip(
                         selected: chapterMode == mode,
-                        label: Text(_recordingChapterModeLabel(mode)),
+                        label: Text(
+                          _recordingChapterModeLabel(
+                            AppStrings.of(context),
+                            mode,
+                          ),
+                        ),
                         onSelected: (_) =>
                             setSheetState(() => chapterMode = mode),
                       ),
                   ],
                 ),
                 const SizedBox(height: 18),
-                Text('播放速度 ${speed.toStringAsFixed(1)} 秒/章'),
+                Text(AppStrings.of(context).playbackSpeed(speed)),
                 Slider(
                   value: speed,
                   min: 1,
                   max: 12,
                   divisions: 22,
-                  label: '${speed.toStringAsFixed(1)} 秒/章',
+                  label: AppStrings.of(context).speedLabel(speed),
                   onChanged: (value) => setSheetState(() => speed = value),
                 ),
                 SwitchListTile(
@@ -532,15 +577,18 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   onChanged: document.musicPath == null
                       ? null
                       : (value) => setSheetState(() => useMusic = value),
-                  title: const Text('使用背景音乐'),
-                  subtitle: Text(document.musicTitle ?? '当前展览没有背景音乐'),
+                  title: Text(AppStrings.of(context).useBackgroundMusic),
+                  subtitle: Text(
+                    document.musicTitle ??
+                        AppStrings.of(context).noBackgroundMusic,
+                  ),
                 ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
                     TextButton(
                       onPressed: () => Navigator.pop(sheetContext),
-                      child: const Text('取消'),
+                      child: Text(AppStrings.of(context).cancel),
                     ),
                     const Spacer(),
                     FilledButton.icon(
@@ -553,7 +601,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                         ),
                       ),
                       icon: const Icon(Icons.videocam_outlined, size: 18),
-                      label: const Text('开始录制播放'),
+                      label: Text(
+                        AppStrings.of(context).startRecordingPlayback,
+                      ),
                     ),
                   ],
                 ),
@@ -599,11 +649,12 @@ class _RecordingOptions {
   final bool useMusic;
 }
 
-String _recordingChapterModeLabel(RecordingChapterMode mode) => switch (mode) {
-  RecordingChapterMode.current => '当前章节',
-  RecordingChapterMode.fromCurrentToEnd => '从当前到结尾',
-  RecordingChapterMode.all => '全部章节',
-};
+String _recordingChapterModeLabel(AppStrings l10n, RecordingChapterMode mode) =>
+    switch (mode) {
+      RecordingChapterMode.current => l10n.currentChapter,
+      RecordingChapterMode.fromCurrentToEnd => l10n.fromCurrentToEnd,
+      RecordingChapterMode.all => l10n.allChapters,
+    };
 
 class _ViewerChapter extends StatefulWidget {
   const _ViewerChapter({
@@ -611,6 +662,8 @@ class _ViewerChapter extends StatefulWidget {
     required this.chapter,
     required this.media,
     required this.sceneTheme,
+    this.canvasBackgroundPath,
+    this.canvasBackgroundOpacity = 0.32,
     required this.reduceMotion,
     required this.showControls,
     this.recordingMode = false,
@@ -629,6 +682,8 @@ class _ViewerChapter extends StatefulWidget {
   final GalleryChapter chapter;
   final List<GalleryMedia> media;
   final GalleryTheme sceneTheme;
+  final String? canvasBackgroundPath;
+  final double canvasBackgroundOpacity;
   final bool reduceMotion;
   final bool showControls;
   final double initialProgress;
@@ -675,7 +730,28 @@ class _ViewerChapterState extends State<_ViewerChapter>
       ..addStatusListener(_handleRecorderStatus);
     _transform.addListener(_readScale);
     _camera.addListener(_rebuild);
-    _camera.setProgress(widget.initialProgress);
+    _camera.setProgress(widget.recordingMode ? 0 : widget.initialProgress);
+    if (widget.recordingMode) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _startRecordingPlayback();
+      });
+    }
+  }
+
+  void _startRecordingPlayback() {
+    _recorder.stop();
+    _recorder.reset();
+    _camera.setProgress(0);
+    widget.onProgressChanged(0);
+    final durationMs = (widget.recordingSpeed * 1000).round().clamp(
+      1600,
+      120000,
+    );
+    _recorder.animateTo(
+      1.0,
+      duration: Duration(milliseconds: durationMs),
+      curve: Curves.linear,
+    );
   }
 
   void _handleRecorderStatus(AnimationStatus status) {
@@ -688,14 +764,7 @@ class _ViewerChapterState extends State<_ViewerChapter>
   void didUpdateWidget(covariant _ViewerChapter oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!oldWidget.recordingMode && widget.recordingMode) {
-      _recorder.stop();
-      _recorder.reset();
-      final durationMs = (widget.recordingSpeed * 1000).round();
-      _recorder.animateTo(
-        1.0,
-        duration: Duration(milliseconds: durationMs),
-        curve: Curves.linear,
-      );
+      _startRecordingPlayback();
     } else if (oldWidget.recordingMode && !widget.recordingMode) {
       _recorder.stop();
     }
@@ -851,6 +920,8 @@ class _ViewerChapterState extends State<_ViewerChapter>
                   reduceMotion: widget.reduceMotion,
                   useOriginals: true,
                   sceneTheme: widget.sceneTheme,
+                  canvasBackgroundPath: widget.canvasBackgroundPath,
+                  canvasBackgroundOpacity: widget.canvasBackgroundOpacity,
                 ),
               ),
             ),

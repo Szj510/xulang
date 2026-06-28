@@ -36,6 +36,8 @@ enum MediaImportMode { copyIntoApp, referenceOriginal }
 
 enum RecordingChapterMode { current, fromCurrentToEnd, all }
 
+enum AppLanguage { system, chinese, english }
+
 class AppSettings {
   const AppSettings({
     this.recordingShowChapterTitle = true,
@@ -44,6 +46,7 @@ class AppSettings {
     this.recordingSpeed = 6.0,
     this.recordingUseMusic = true,
     this.recordingChapterMode = RecordingChapterMode.current,
+    this.language = AppLanguage.system,
   });
 
   final bool recordingShowChapterTitle;
@@ -58,6 +61,7 @@ class AppSettings {
   final double recordingSpeed;
   final bool recordingUseMusic;
   final RecordingChapterMode recordingChapterMode;
+  final AppLanguage language;
 
   AppSettings copyWith({
     bool? recordingShowChapterTitle,
@@ -66,6 +70,7 @@ class AppSettings {
     double? recordingSpeed,
     bool? recordingUseMusic,
     RecordingChapterMode? recordingChapterMode,
+    AppLanguage? language,
   }) {
     return AppSettings(
       recordingShowChapterTitle:
@@ -78,6 +83,7 @@ class AppSettings {
           recordingSpeed?.clamp(1.0, 12.0).toDouble() ?? this.recordingSpeed,
       recordingUseMusic: recordingUseMusic ?? this.recordingUseMusic,
       recordingChapterMode: recordingChapterMode ?? this.recordingChapterMode,
+      language: language ?? this.language,
     );
   }
 }
