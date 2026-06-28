@@ -33,6 +33,8 @@ class AppSettingsRows extends Table {
       boolean().withDefault(const Constant(true))();
   TextColumn get recordingChapterMode =>
       text().withDefault(const Constant('current'))();
+  TextColumn get recordingQuality => text().withDefault(const Constant('high'))();
+  TextColumn get themeMode => text().withDefault(const Constant('system'))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -131,7 +133,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 11;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -166,6 +168,9 @@ class GalleryDatabase extends _$GalleryDatabase {
         await _ensureAppSettingsColumns();
       }
       if (from < 10) {
+        await _ensureAppSettingsColumns();
+      }
+      if (from < 11) {
         await _ensureAppSettingsColumns();
       }
     },
@@ -222,7 +227,9 @@ class GalleryDatabase extends _$GalleryDatabase {
       'recording_speed REAL NOT NULL DEFAULT 6.0, '
       'recording_use_music INTEGER NOT NULL DEFAULT 1, '
       "recording_chapter_mode TEXT NOT NULL DEFAULT 'current', "
-      "app_language TEXT NOT NULL DEFAULT 'system')",
+      "recording_quality TEXT NOT NULL DEFAULT 'high', "
+      "app_language TEXT NOT NULL DEFAULT 'system', "
+      "theme_mode TEXT NOT NULL DEFAULT 'system')",
     );
     try {
       await customStatement(
@@ -246,7 +253,9 @@ class GalleryDatabase extends _$GalleryDatabase {
       'ALTER TABLE app_settings_rows ADD COLUMN recording_speed REAL NOT NULL DEFAULT 6.0',
       'ALTER TABLE app_settings_rows ADD COLUMN recording_use_music INTEGER NOT NULL DEFAULT 1',
       "ALTER TABLE app_settings_rows ADD COLUMN recording_chapter_mode TEXT NOT NULL DEFAULT 'current'",
+      "ALTER TABLE app_settings_rows ADD COLUMN recording_quality TEXT NOT NULL DEFAULT 'high'",
       "ALTER TABLE app_settings_rows ADD COLUMN app_language TEXT NOT NULL DEFAULT 'system'",
+      "ALTER TABLE app_settings_rows ADD COLUMN theme_mode TEXT NOT NULL DEFAULT 'system'",
     ];
     for (final statement in statements) {
       try {
@@ -562,7 +571,8 @@ class GalleryDatabase extends _$GalleryDatabase {
         .asyncExpand(
           (_) => customSelect(
             'SELECT recording_show_chapter_title, media_import_mode, recording_speed, '
-            'recording_use_music, recording_chapter_mode, app_language '
+            'recording_use_music, recording_chapter_mode, recording_quality, '
+            'app_language, theme_mode '
             'FROM app_settings_rows WHERE id = ? LIMIT 1',
             variables: [Variable.withString(_appSettingsId)],
             readsFrom: {appSettingsRows},
@@ -589,10 +599,20 @@ class GalleryDatabase extends _$GalleryDatabase {
               row.read<String>('recording_chapter_mode'),
               RecordingChapterMode.current,
             ),
+            recordingQuality: _enumByName(
+              RecordingQuality.values,
+              row.read<String>('recording_quality'),
+              RecordingQuality.high,
+            ),
             language: _enumByName(
               AppLanguage.values,
               row.read<String>('app_language'),
               AppLanguage.system,
+            ),
+            themeMode: _enumByName(
+              AppThemeMode.values,
+              row.read<String>('theme_mode'),
+              AppThemeMode.system,
             ),
           );
         });
@@ -610,12 +630,15 @@ class GalleryDatabase extends _$GalleryDatabase {
         ),
         recordingUseMusic: Value(settings.recordingUseMusic),
         recordingChapterMode: Value(settings.recordingChapterMode.name),
+        recordingQuality: Value(settings.recordingQuality.name),
+        themeMode: Value(settings.themeMode.name),
       ),
     );
     await customUpdate(
-      'UPDATE app_settings_rows SET app_language = ? WHERE id = ?',
+      'UPDATE app_settings_rows SET app_language = ?, theme_mode = ? WHERE id = ?',
       variables: [
         Variable.withString(settings.language.name),
+        Variable.withString(settings.themeMode.name),
         Variable.withString(_appSettingsId),
       ],
       updates: {appSettingsRows},

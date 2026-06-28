@@ -9,6 +9,7 @@ import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/editor_screen.dart';
+import 'package:xulang/screens/recording_library_screen.dart';
 import 'package:xulang/screens/viewer_screen.dart';
 import 'package:xulang/share/exhibition_exporter.dart';
 import 'package:xulang/theme/xulang_theme.dart';
@@ -63,7 +64,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         .read(galleryRepositoryProvider)
                         .saveAppSettings(settings),
                     onImportTemplate: () => _importTemplate(context),
+                    onManageRecordings: () => _openRecordingLibrary(context),
                   ),
+                  onManageRecordings: () => _openRecordingLibrary(context),
                 ),
                 const SizedBox(height: 22),
               ],
@@ -114,6 +117,12 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _openRecordingLibrary(BuildContext context) {
+    return Navigator.of(context).push(
+      MaterialPageRoute<void>(builder: (_) => const RecordingLibraryScreen()),
     );
   }
 
@@ -320,6 +329,7 @@ class _LibraryHeader extends StatelessWidget {
     required this.onImportTemplate,
     required this.onInfo,
     required this.onSettings,
+    required this.onManageRecordings,
   });
 
   final VoidCallback onCreate;
@@ -327,6 +337,7 @@ class _LibraryHeader extends StatelessWidget {
   final VoidCallback onImportTemplate;
   final VoidCallback onInfo;
   final VoidCallback onSettings;
+  final VoidCallback onManageRecordings;
 
   @override
   Widget build(BuildContext context) {
@@ -377,6 +388,12 @@ class _LibraryHeader extends StatelessWidget {
           tooltip: l10n.settingsAndGuide,
           onPressed: onSettings,
           icon: const Icon(Icons.settings_outlined, size: 20),
+        ),
+        const SizedBox(width: 4),
+        _HeaderIconButton(
+          tooltip: l10n.manageVideos,
+          onPressed: onManageRecordings,
+          icon: const Icon(Icons.video_library_outlined, size: 20),
         ),
         const SizedBox(width: 4),
         _HeaderIconButton(
@@ -462,7 +479,7 @@ class _EmptyLibrary extends StatelessWidget {
               const SizedBox(height: 32),
               const Text(
                 '让照片沿着故事展开',
-                style: const TextStyle(
+                style: TextStyle(
                   fontFamily: 'Noto Serif SC',
                   fontFamilyFallback: [
                     'Noto Sans SC',
@@ -1528,11 +1545,25 @@ String _appLanguageLabel(AppStrings l10n, AppLanguage language) =>
       AppLanguage.english => l10n.english,
     };
 
+String _appThemeModeLabel(AppStrings l10n, AppThemeMode mode) => switch (mode) {
+  AppThemeMode.system => l10n.followSystem,
+  AppThemeMode.light => l10n.lightTheme,
+  AppThemeMode.dark => l10n.darkTheme,
+};
+
+String _recordingQualityLabel(AppStrings l10n, RecordingQuality quality) =>
+    switch (quality) {
+      RecordingQuality.standard => l10n.standardQuality,
+      RecordingQuality.high => l10n.highQuality,
+      RecordingQuality.ultra => l10n.ultraQuality,
+    };
+
 void _showAppSettings(
   BuildContext context, {
   required AppSettings settings,
   required Future<void> Function(AppSettings settings) onSaveSettings,
   required VoidCallback onImportTemplate,
+  required VoidCallback onManageRecordings,
 }) {
   var draft = settings;
   var l10n = AppStrings.from(draft, Localizations.maybeLocaleOf(context));
@@ -1566,8 +1597,6 @@ void _showAppSettings(
                     ),
                   ),
                   const SizedBox(height: 16),
-                  _SettingsSectionTitle(l10n.recordingPlayback),
-                  const SizedBox(height: 8),
                   _SettingsSectionTitle(l10n.languageSetting),
                   const SizedBox(height: 8),
                   Wrap(
@@ -1583,6 +1612,25 @@ void _showAppSettings(
                             await onSaveSettings(draft);
                           },
                           label: Text(_appLanguageLabel(l10n, language)),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  _SettingsSectionTitle(l10n.themeSetting),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final mode in AppThemeMode.values)
+                        ChoiceChip(
+                          selected: draft.themeMode == mode,
+                          onSelected: (_) async {
+                            draft = draft.copyWith(themeMode: mode);
+                            setSheetState(() {});
+                            await onSaveSettings(draft);
+                          },
+                          label: Text(_appThemeModeLabel(l10n, mode)),
                         ),
                     ],
                   ),
@@ -1629,6 +1677,28 @@ void _showAppSettings(
                   ),
                   const SizedBox(height: 16),
                   _SettingsSectionTitle(l10n.recordingDefaults),
+                  ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: const Icon(Icons.high_quality_outlined),
+                    title: Text(l10n.recordingQuality),
+                    subtitle: Text(l10n.recordingQualityHint),
+                    trailing: DropdownButton<RecordingQuality>(
+                      value: draft.recordingQuality,
+                      onChanged: (value) async {
+                        if (value == null) return;
+                        draft = draft.copyWith(recordingQuality: value);
+                        setSheetState(() {});
+                        await onSaveSettings(draft);
+                      },
+                      items: [
+                        for (final quality in RecordingQuality.values)
+                          DropdownMenuItem(
+                            value: quality,
+                            child: Text(_recordingQualityLabel(l10n, quality)),
+                          ),
+                      ],
+                    ),
+                  ),
                   ListTile(
                     contentPadding: EdgeInsets.zero,
                     leading: const Icon(Icons.video_camera_back_outlined),
@@ -1705,6 +1775,15 @@ void _showAppSettings(
                   ),
                   const SizedBox(height: 16),
                   _SettingsSectionTitle(l10n.commonEntrances),
+                  _SettingsTile(
+                    icon: Icons.video_library_outlined,
+                    title: l10n.manageVideos,
+                    subtitle: l10n.deleteVideoBody,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      onManageRecordings();
+                    },
+                  ),
                   _SettingsTile(
                     icon: Icons.file_open_outlined,
                     title: l10n.importTemplate,

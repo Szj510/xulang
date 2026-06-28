@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 import 'package:xulang/l10n/app_strings.dart';
+import 'package:xulang/recording/recorded_video_library.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 
 class RecordingResultScreen extends StatefulWidget {
@@ -11,10 +12,12 @@ class RecordingResultScreen extends StatefulWidget {
     super.key,
     required this.videoPath,
     required this.title,
+    this.onDeleted,
   });
 
   final String videoPath;
   final String title;
+  final VoidCallback? onDeleted;
 
   @override
   State<RecordingResultScreen> createState() => _RecordingResultScreenState();
@@ -58,6 +61,32 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
     );
   }
 
+  Future<void> _delete() async {
+    final l10n = AppStrings.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.deleteVideoTitle),
+        content: Text(l10n.deleteVideoBody),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await _controller.pause();
+    await RecordedVideoLibrary.delete(widget.videoPath);
+    widget.onDeleted?.call();
+    if (mounted) Navigator.pop(context);
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppStrings.of(context);
@@ -69,6 +98,11 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
             tooltip: l10n.share,
             onPressed: _share,
             icon: const Icon(Icons.ios_share_outlined),
+          ),
+          IconButton(
+            tooltip: l10n.delete,
+            onPressed: _delete,
+            icon: const Icon(Icons.delete_outline),
           ),
         ],
       ),

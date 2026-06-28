@@ -38,6 +38,10 @@ enum RecordingChapterMode { current, fromCurrentToEnd, all }
 
 enum AppLanguage { system, chinese, english }
 
+enum AppThemeMode { system, light, dark }
+
+enum RecordingQuality { standard, high, ultra }
+
 class AppSettings {
   const AppSettings({
     this.recordingShowChapterTitle = true,
@@ -46,7 +50,9 @@ class AppSettings {
     this.recordingSpeed = 6.0,
     this.recordingUseMusic = true,
     this.recordingChapterMode = RecordingChapterMode.current,
+    this.recordingQuality = RecordingQuality.high,
     this.language = AppLanguage.system,
+    this.themeMode = AppThemeMode.system,
   });
 
   final bool recordingShowChapterTitle;
@@ -61,7 +67,9 @@ class AppSettings {
   final double recordingSpeed;
   final bool recordingUseMusic;
   final RecordingChapterMode recordingChapterMode;
+  final RecordingQuality recordingQuality;
   final AppLanguage language;
+  final AppThemeMode themeMode;
 
   AppSettings copyWith({
     bool? recordingShowChapterTitle,
@@ -70,7 +78,9 @@ class AppSettings {
     double? recordingSpeed,
     bool? recordingUseMusic,
     RecordingChapterMode? recordingChapterMode,
+    RecordingQuality? recordingQuality,
     AppLanguage? language,
+    AppThemeMode? themeMode,
   }) {
     return AppSettings(
       recordingShowChapterTitle:
@@ -83,7 +93,9 @@ class AppSettings {
           recordingSpeed?.clamp(1.0, 12.0).toDouble() ?? this.recordingSpeed,
       recordingUseMusic: recordingUseMusic ?? this.recordingUseMusic,
       recordingChapterMode: recordingChapterMode ?? this.recordingChapterMode,
+      recordingQuality: recordingQuality ?? this.recordingQuality,
       language: language ?? this.language,
+      themeMode: themeMode ?? this.themeMode,
     );
   }
 }
