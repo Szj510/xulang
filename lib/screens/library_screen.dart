@@ -841,11 +841,11 @@ class _NewCategoryCard extends StatelessWidget {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
         side: BorderSide(color: XulangColors.paper.withValues(alpha: .16)),
       ),
-      child: const Column(
+      child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.create_new_folder_outlined, size: 30),
-          SizedBox(height: 10),
+          const Icon(Icons.create_new_folder_outlined, size: 30),
+          const SizedBox(height: 10),
           Text(AppStrings.of(context).newCategory),
         ],
       ),
@@ -916,9 +916,9 @@ class _CategoryDetail extends StatelessWidget {
           children: [
             Expanded(
               child: TextField(
-                decoration: const InputDecoration(
+                decoration: InputDecoration(
                   hintText: AppStrings.of(context).searchExhibitions,
-                  prefixIcon: Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search),
                 ),
                 onChanged: onSearchChanged,
               ),
@@ -929,7 +929,7 @@ class _CategoryDetail extends StatelessWidget {
               onChanged: (value) {
                 if (value != null) onSortChanged(value);
               },
-              items: const [
+              items: [
                 DropdownMenuItem(
                   value: ExhibitionSortMode.updatedDesc,
                   child: Text(AppStrings.of(context).sortByTime),
@@ -945,10 +945,10 @@ class _CategoryDetail extends StatelessWidget {
         const SizedBox(height: 14),
         Expanded(
           child: items.isEmpty
-              ? const Center(
+              ? Center(
                   child: Text(
                     AppStrings.of(context).emptyCategory,
-                    style: TextStyle(color: XulangColors.muted),
+                    style: const TextStyle(color: XulangColors.muted),
                   ),
                 )
               : _ExhibitionGrid(

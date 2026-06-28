@@ -553,11 +553,11 @@ class _EditorBodyState extends State<_EditorBody> {
           if (chapterTitle == null || chapterTitle.trim().isEmpty) return;
           if (!context.mounted) return;
           final images = await openFiles(
-            acceptedTypeGroups: const [
+            acceptedTypeGroups: [
               XTypeGroup(
                 label: AppStrings.of(context).image,
-                extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
-                mimeTypes: ['image/*'],
+                extensions: const ['jpg', 'jpeg', 'png', 'webp', 'heic'],
+                mimeTypes: const ['image/*'],
               ),
             ],
           );
@@ -1695,9 +1695,9 @@ class _InspectorState extends State<_Inspector> {
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13),
                 ),
-                subtitle: const Text(
+                subtitle: Text(
                   AppStrings.of(context).useBackgroundMusic,
-                  style: TextStyle(fontSize: 11),
+                  style: const TextStyle(fontSize: 11),
                 ),
                 trailing: Wrap(
                   spacing: 4,
@@ -1980,10 +1980,10 @@ class _InspectorState extends State<_Inspector> {
                   children: [
                     Row(
                       children: [
-                        const Expanded(
+                        Expanded(
                           child: Text(
                             AppStrings.of(context).operationPanel,
-                            style: TextStyle(
+                            style: const TextStyle(
                               color: XulangColors.paper,
                               fontSize: 13,
                               fontWeight: FontWeight.w600,
