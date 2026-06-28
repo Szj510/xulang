@@ -1545,12 +1545,6 @@ String _appLanguageLabel(AppStrings l10n, AppLanguage language) =>
       AppLanguage.english => l10n.english,
     };
 
-String _appThemeModeLabel(AppStrings l10n, AppThemeMode mode) => switch (mode) {
-  AppThemeMode.system => l10n.followSystem,
-  AppThemeMode.light => l10n.lightTheme,
-  AppThemeMode.dark => l10n.darkTheme,
-};
-
 String _recordingQualityLabel(AppStrings l10n, RecordingQuality quality) =>
     switch (quality) {
       RecordingQuality.standard => l10n.standardQuality,
@@ -1612,25 +1606,6 @@ void _showAppSettings(
                             await onSaveSettings(draft);
                           },
                           label: Text(_appLanguageLabel(l10n, language)),
-                        ),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  _SettingsSectionTitle(l10n.themeSetting),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      for (final mode in AppThemeMode.values)
-                        ChoiceChip(
-                          selected: draft.themeMode == mode,
-                          onSelected: (_) async {
-                            draft = draft.copyWith(themeMode: mode);
-                            setSheetState(() {});
-                            await onSaveSettings(draft);
-                          },
-                          label: Text(_appThemeModeLabel(l10n, mode)),
                         ),
                     ],
                   ),
