@@ -8,7 +8,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
@@ -19,6 +18,7 @@ import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/layout/narrative_navigation_coordinator.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/recording/native_screen_recorder.dart';
+import 'package:xulang/screens/recording_result_screen.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
 
@@ -424,6 +424,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     final path = _activeRecordingPath;
     if (path == null || _recordingShareBusy) return;
     _recordingShareBusy = true;
+    String? resultPath;
+    final resultTitle = _recordingShareTitle ?? AppStrings.of(context).appTitle;
     try {
       final stoppedPath = await NativeScreenRecorder.stop();
       final videoPath = stoppedPath ?? path;
@@ -438,28 +440,24 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             await Future<void>.delayed(remaining);
           }
         }
-      }
-      if (share && mounted && await _waitForReadableMp4(videoPath)) {
-        await SharePlus.instance.share(
-          ShareParams(
-            text:
-                '${_recordingShareTitle ?? AppStrings.of(context).appTitle} ${AppStrings.of(context).recordingVideoSuffix}',
-            files: [XFile(videoPath)],
-          ),
-        );
-      } else if (share) {
-        _showRecorderMessage(AppStrings.of(context).recordingFileMissing);
+        if (await _waitForReadableMp4(videoPath)) {
+          resultPath = videoPath;
+        } else {
+          _showRecorderMessage(AppStrings.of(context).recordingFileMissing);
+        }
       }
     } on PlatformException catch (error) {
-      if (share)
+      if (share) {
         _showRecorderMessage(
           error.message ?? AppStrings.of(context).recordingStopFailed,
         );
+      }
     } catch (error) {
-      if (share)
+      if (share) {
         _showRecorderMessage(
           '${AppStrings.of(context).recordingStopFailed}：$error',
         );
+      }
     } finally {
       _activeRecordingPath = null;
       _recordingStartedAt = null;
@@ -472,6 +470,37 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       }
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
+    if (share && resultPath != null && mounted) {
+      _showRecorderMessage(AppStrings.of(context).recordingSavedOpenResult);
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => RecordingResultScreen(
+            videoPath: resultPath!,
+            title: resultTitle,
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<bool> _waitForReadableMp4(String path) async {
+    final file = File(path);
+    var lastLength = -1;
+    var stableTicks = 0;
+    for (var attempt = 0; attempt < 24; attempt++) {
+      if (await file.exists()) {
+        final length = await file.length();
+        if (length > 2048 && length == lastLength) {
+          stableTicks += 1;
+          if (stableTicks >= 2) return true;
+        } else {
+          stableTicks = 0;
+        }
+        lastLength = length;
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 250));
+    }
+    return await file.exists() && await file.length() > 2048;
   }
 
   void _showRecorderMessage(String message) {
@@ -523,9 +552,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Text(
+                Text(
                   AppStrings.of(context).recordingAndShare,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: XulangColors.paper,
                     fontFamily: 'Noto Serif SC',
                     fontSize: 22,
@@ -533,9 +562,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   ),
                 ),
                 const SizedBox(height: 12),
-                const Text(
+                Text(
                   AppStrings.of(context).recordingSheetDescription,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: XulangColors.muted,
                     fontSize: 12,
                     height: 1.55,
@@ -1042,7 +1071,7 @@ class _ViewerChrome extends StatelessWidget {
                 _ChromeGlassCircle(
                   child: _ChromeIconButton(
                     onPressed: onClose,
-                    tooltip: '退出观看',
+                    tooltip: AppStrings.of(context).exitViewer,
                     icon: Icons.close,
                   ),
                 ),
@@ -1101,11 +1130,11 @@ class _ViewerChrome extends StatelessWidget {
                       _ChromeIconButton(
                         key: const Key('viewer-recording-mode'),
                         onPressed: onStartRecording,
-                        tooltip: '录屏模式',
+                        tooltip: AppStrings.of(context).recordingMode,
                         icon: Icons.videocam_outlined,
                       ),
                       PopupMenuButton<double>(
-                        tooltip: '录屏速度',
+                        tooltip: AppStrings.of(context).recordingSpeed,
                         icon: const Icon(
                           Icons.speed,
                           size: 18,
@@ -1113,17 +1142,17 @@ class _ViewerChrome extends StatelessWidget {
                         ),
                         onSelected: (v) => onRecordingSpeedChanged?.call(v),
                         itemBuilder: (context) => [
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 3.0,
-                            child: Text('快 (3s)'),
+                            child: Text(AppStrings.of(context).fast3s),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 6.0,
-                            child: Text('中 (6s)'),
+                            child: Text(AppStrings.of(context).medium6s),
                           ),
-                          const PopupMenuItem(
+                          PopupMenuItem(
                             value: 10.0,
-                            child: Text('慢 (10s)'),
+                            child: Text(AppStrings.of(context).slow10s),
                           ),
                         ],
                       ),
@@ -1131,7 +1160,7 @@ class _ViewerChrome extends StatelessWidget {
                         _ChromeIconButton(
                           key: const Key('viewer-music-toggle'),
                           onPressed: onToggleMusic,
-                          tooltip: musicPlaying ? '暂停音乐' : '播放音乐',
+                          tooltip: musicPlaying ? AppStrings.of(context).pauseMusic : AppStrings.of(context).playMusic,
                           icon: musicPlaying
                               ? Icons.music_off_outlined
                               : Icons.music_note_outlined,
@@ -1196,7 +1225,7 @@ class _ViewerChrome extends StatelessWidget {
             left: 8,
             top: MediaQuery.sizeOf(context).height * .44,
             child: _ChromeNavButton(
-              tooltip: '上一章',
+              tooltip: AppStrings.of(context).previousChapter,
               onPressed: onPreviousChapter,
               icon: previousChapterIcon,
             ),
@@ -1205,7 +1234,7 @@ class _ViewerChrome extends StatelessWidget {
             left: 8,
             top: MediaQuery.sizeOf(context).height * .52,
             child: _ChromeNavButton(
-              tooltip: '下一章',
+              tooltip: AppStrings.of(context).nextChapter,
               onPressed: onNextChapter,
               icon: nextChapterIcon,
             ),
@@ -1385,7 +1414,7 @@ class _ViewerMessage extends StatelessWidget {
             left: 8,
             child: _ChromeIconButton(
               onPressed: onBack,
-              tooltip: '返回',
+              tooltip: AppStrings.of(context).back,
               icon: Icons.close,
             ),
           ),
