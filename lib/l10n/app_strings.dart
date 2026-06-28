@@ -171,6 +171,46 @@ class AppStrings {
   String get stickers => isEnglish ? 'Stickers' : '贴画';
   String get addedStickers => isEnglish ? 'Added stickers' : '已添加贴画';
   String get recordingSavedOpenResult => isEnglish ? 'Recording saved. Review it before sharing.' : '录制已保存，请查看效果后再分享。';
+  String exhibitionDisplayTitle(String id, String title) {
+    if (id == 'sample-exhibition') {
+      return isEnglish
+          ? 'Between Mountains and Sea (Official sample)'
+          : title.contains('官方示例')
+              ? title
+              : '$title（官方示例）';
+    }
+    return title;
+  }
+
+  String chapterTitle(String id, String fallback) {
+    if (!isEnglish) return fallback;
+    return switch (id) {
+      'sample-chapter-1' => 'Direction of the Tide',
+      'sample-chapter-2' => 'Summer Walk',
+      _ => fallback,
+    };
+  }
+
+  String chapterCaption(String id, String fallback) {
+    if (!isEnglish) return fallback;
+    return switch (id) {
+      'sample-chapter-1' => 'Walking along the coast, the wind slowly pulls the horizon closer.',
+      'sample-chapter-2' => 'The breeze moved through the hair and through that unhurried slice of time.',
+      _ => fallback,
+    };
+  }
+
+  String placementCaption(String id, String fallback) {
+    if (!isEnglish) return fallback;
+    return switch (id) {
+      'sample-placement-3' => 'Departure',
+      'sample-placement-4' => 'Alley encounter',
+      'sample-placement-5' => 'Sea breeze',
+      'sample-placement-6' => 'Way home',
+      _ => fallback,
+    };
+  }
+
   String get recordPermissionHint => isEnglish
       ? 'Android requires screen-capture permission for every recording session; apps cannot turn it into an always-allow permission.'
       : 'Android 录屏授权每次会由系统确认，应用不能把它改成“一直允许”。';

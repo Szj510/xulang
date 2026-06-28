@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/layout/motion_resolver.dart';
 import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_track.dart';
@@ -632,7 +633,7 @@ class _StoryNodeLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final foreground = sceneForegroundColor(sceneTheme);
-    final labelText = placement.caption.trim();
+    final labelText = AppStrings.of(context).placementCaption(placement.id, placement.caption).trim();
     if (labelText.isEmpty) return const SizedBox.shrink();
     final rect = resolveStoryLabelRect(anchor: anchor, viewport: viewport);
     return Positioned.fromRect(

@@ -61,13 +61,16 @@ class MainActivity : FlutterActivity() {
             result.error("permission_denied", "Screen recording permission was not granted.", null)
             return
         }
-        try {
-            startProjectionRecording(resultCode, data, args)
-            result.success(args.outputPath)
-        } catch (error: Throwable) {
-            cleanupRecording(deleteOutput = true)
-            result.error("recording_start_failed", error.message, null)
-        }
+        startMediaProjectionForegroundService()
+        Handler(Looper.getMainLooper()).postDelayed({
+            try {
+                startProjectionRecording(resultCode, data, args)
+                result.success(args.outputPath)
+            } catch (error: Throwable) {
+                cleanupRecording(deleteOutput = true)
+                result.error("recording_start_failed", error.message, null)
+            }
+        }, 300)
     }
 
     private fun startRecording(call: MethodCall, result: MethodChannel.Result) {
@@ -181,6 +184,25 @@ class MainActivity : FlutterActivity() {
         pendingResult = null
         pendingArgs = null
         if (deleteOutput && path != null) File(path).delete()
+        stopMediaProjectionForegroundService()
+    }
+
+    private fun startMediaProjectionForegroundService() {
+        val intent = Intent(this, MediaProjectionForegroundService::class.java).apply {
+            action = MediaProjectionForegroundService.ACTION_START
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            startForegroundService(intent)
+        } else {
+            startService(intent)
+        }
+    }
+
+    private fun stopMediaProjectionForegroundService() {
+        val intent = Intent(this, MediaProjectionForegroundService::class.java).apply {
+            action = MediaProjectionForegroundService.ACTION_STOP
+        }
+        startService(intent)
     }
 
     private fun sanitizeDimension(value: Int): Int {
