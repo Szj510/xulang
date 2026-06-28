@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/l10n/app_strings.dart';
@@ -18,6 +19,11 @@ class XulangApp extends ConsumerWidget {
       title: AppStrings.from(settings).appTitle,
       locale: settings.language.toLocale(),
       supportedLocales: const [Locale('zh'), Locale('en')],
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+      ],
       debugShowCheckedModeBanner: false,
       theme: buildXulangTheme(),
       home: const LibraryScreen(),

@@ -80,7 +80,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                             onImportTemplate: () => _importTemplate(context),
                           )
                         : _CategoryDetail(
-                            title: selectedCategory?.title ?? '未分类',
+                            title: selectedCategory?.title ?? AppStrings.of(context).uncategorized,
                             searchQuery: _searchQuery,
                             sortMode: _sortMode,
                             items: _filterAndSort(
@@ -168,9 +168,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   }) async {
     final title = await _textDialog(
       context,
-      title: '新建展览',
-      hint: '给这段故事起个名字',
-      confirmText: '创建',
+      title: AppStrings.of(context).newExhibitionTitle,
+      hint: AppStrings.of(context).exhibitionName,
+      confirmText: AppStrings.of(context).create,
     );
     if (title == null || title.trim().isEmpty || !context.mounted) return;
     final repository = ref.read(galleryRepositoryProvider);
@@ -190,9 +190,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Future<void> _createCategory(BuildContext context) async {
     final title = await _textDialog(
       context,
-      title: '新建分类',
-      hint: '例如：旅行、运动、家庭、毕业季',
-      confirmText: '创建',
+      title: AppStrings.of(context).newCategory,
+      hint: AppStrings.of(context).newCategory,
+      confirmText: AppStrings.of(context).create,
     );
     if (title == null || title.trim().isEmpty) return;
     final repository = ref.read(galleryRepositoryProvider);
@@ -240,7 +240,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       final exhibitionTitle = await _textDialog(
         context,
         title: '命名新展览',
-        hint: '展览名称',
+        hint: AppStrings.of(context).exhibitionName,
         initialValue: summary.title,
         confirmText: '下一步',
       );
@@ -495,12 +495,12 @@ class _EmptyLibrary extends StatelessWidget {
                 children: [
                   FilledButton(
                     onPressed: onCreate,
-                    child: const Text('创建第一个展览'),
+                    child: Text(AppStrings.of(context).createFirstExhibition),
                   ),
                   OutlinedButton.icon(
                     onPressed: onImportTemplate,
                     icon: const Icon(Icons.file_open_outlined, size: 18),
-                    label: const Text('导入模板'),
+                    label: Text(AppStrings.of(context).importTemplate),
                   ),
                 ],
               ),
@@ -575,7 +575,7 @@ class LibraryCategoryBucket {
   final List<ExhibitionSummary> exhibitions;
 
   String get id => category?.id ?? uncategorizedId;
-  String get title => category?.title ?? '未分类';
+  String title(AppStrings l10n) => category?.title ?? l10n.uncategorized;
   bool get isUncategorized => category == null;
 
   static const uncategorizedId = '__uncategorized__';
@@ -690,7 +690,7 @@ class _CategoryBoxCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          bucket.title,
+                          bucket.title(AppStrings.of(context)),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
@@ -702,7 +702,7 @@ class _CategoryBoxCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          '${bucket.exhibitions.length} 个展览',
+                          AppStrings.of(context).exhibitionCount(bucket.exhibitions.length),
                           style: const TextStyle(
                             color: XulangColors.muted,
                             fontSize: 12,
@@ -846,7 +846,7 @@ class _NewCategoryCard extends StatelessWidget {
         children: [
           Icon(Icons.create_new_folder_outlined, size: 30),
           SizedBox(height: 10),
-          Text('新建分类'),
+          Text(AppStrings.of(context).newCategory),
         ],
       ),
     );
@@ -887,7 +887,7 @@ class _CategoryDetail extends StatelessWidget {
         Row(
           children: [
             IconButton(
-              tooltip: '返回分类',
+              tooltip: AppStrings.of(context).backToCategories,
               onPressed: onBack,
               icon: const Icon(Icons.arrow_back_ios_new, size: 18),
             ),
@@ -907,7 +907,7 @@ class _CategoryDetail extends StatelessWidget {
             FilledButton.icon(
               onPressed: onCreate,
               icon: const Icon(Icons.add, size: 17),
-              label: const Text('新建'),
+              label: Text(AppStrings.of(context).newExhibition),
             ),
           ],
         ),
@@ -917,7 +917,7 @@ class _CategoryDetail extends StatelessWidget {
             Expanded(
               child: TextField(
                 decoration: const InputDecoration(
-                  hintText: '搜索展览',
+                  hintText: AppStrings.of(context).searchExhibitions,
                   prefixIcon: Icon(Icons.search),
                 ),
                 onChanged: onSearchChanged,
@@ -932,11 +932,11 @@ class _CategoryDetail extends StatelessWidget {
               items: const [
                 DropdownMenuItem(
                   value: ExhibitionSortMode.updatedDesc,
-                  child: Text('按时间'),
+                  child: Text(AppStrings.of(context).sortByTime),
                 ),
                 DropdownMenuItem(
                   value: ExhibitionSortMode.titleAsc,
-                  child: Text('按名称'),
+                  child: Text(AppStrings.of(context).sortByName),
                 ),
               ],
             ),
@@ -947,7 +947,7 @@ class _CategoryDetail extends StatelessWidget {
           child: items.isEmpty
               ? const Center(
                   child: Text(
-                    '这里还没有展览',
+                    AppStrings.of(context).emptyCategory,
                     style: TextStyle(color: XulangColors.muted),
                   ),
                 )
@@ -1043,11 +1043,11 @@ class _ExhibitionCard extends ConsumerWidget {
               ? const _CoverFallback()
               : GalleryImage(path: cover.thumbnailPath, cacheWidth: 900),
           title: _displayExhibitionTitle(summary),
-          meta: '$imageCount 张照片 · ${_formatDate(summary.updatedAt)}',
+          meta: '${AppStrings.of(context).photoCount(imageCount)} · ${_formatDate(context, summary.updatedAt)}',
           actions: [
             if (imageCount > 0)
               _CardIconButton(
-                tooltip: '沉浸观看',
+                tooltip: AppStrings.of(context).immersiveView,
                 onPressed: () => Navigator.of(context).push(
                   MaterialPageRoute<void>(
                     builder: (_) => ViewerScreen(exhibitionId: summary.id),
@@ -1074,10 +1074,10 @@ class _ExhibitionCard extends ConsumerWidget {
       case _CardAction.rename:
         final title = await _textDialog(
           context,
-          title: '重命名展览',
+          title: AppStrings.of(context).renameExhibition,
           initialValue: summary.title,
-          hint: '展览名称',
-          confirmText: '保存',
+          hint: AppStrings.of(context).exhibitionName,
+          confirmText: AppStrings.of(context).save,
         );
         if (title != null && title.trim().isNotEmpty) {
           await repository.renameExhibition(
@@ -1110,7 +1110,7 @@ class _ExhibitionCard extends ConsumerWidget {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (context) => AlertDialog(
-            title: const Text('删除展览？'),
+            title: Text(AppStrings.of(context).deleteExhibitionTitle),
             content: Text(
               '“${_displayExhibitionTitle(summary)}”及复制到应用中的图片会被永久删除。',
               style: Theme.of(context).dialogTheme.contentTextStyle,
@@ -1118,7 +1118,7 @@ class _ExhibitionCard extends ConsumerWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
-                child: const Text('取消'),
+                child: Text(AppStrings.of(context).cancel),
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
@@ -1126,7 +1126,7 @@ class _ExhibitionCard extends ConsumerWidget {
                   foregroundColor: XulangColors.paper,
                 ),
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('删除'),
+                child: Text(AppStrings.of(context).delete),
               ),
             ],
           ),
@@ -1311,17 +1311,19 @@ class _CardMenuButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return PopupMenuButton<_CardAction>(
-      tooltip: '更多操作',
+      tooltip: AppStrings.of(context).moreActions,
       onSelected: onSelected,
       icon: const Icon(Icons.more_vert, size: 18, color: XulangColors.muted),
-      itemBuilder: (context) => const [
+      itemBuilder: (context) {
+        final l10n = AppStrings.of(context);
+        return [
         PopupMenuItem(
           value: _CardAction.rename,
           child: Row(
             children: [
               Icon(Icons.edit_outlined, size: 18),
               SizedBox(width: 12),
-              Text('重命名'),
+              Text(l10n.rename),
             ],
           ),
         ),
@@ -1331,7 +1333,7 @@ class _CardMenuButton extends StatelessWidget {
             children: [
               Icon(Icons.copy_outlined, size: 18),
               SizedBox(width: 12),
-              Text('复制展览'),
+              Text(l10n.duplicateExhibition),
             ],
           ),
         ),
@@ -1341,7 +1343,7 @@ class _CardMenuButton extends StatelessWidget {
             children: [
               Icon(Icons.drive_file_move_outlined, size: 18),
               SizedBox(width: 12),
-              Text('移动分类'),
+              Text(l10n.moveCategory),
             ],
           ),
         ),
@@ -1351,11 +1353,12 @@ class _CardMenuButton extends StatelessWidget {
             children: [
               Icon(Icons.delete_outline, size: 18, color: XulangColors.danger),
               SizedBox(width: 12),
-              Text('删除', style: TextStyle(color: XulangColors.danger)),
+              Text(l10n.delete, style: const TextStyle(color: XulangColors.danger)),
             ],
           ),
         ),
-      ],
+      ];
+      },
     );
   }
 }
@@ -1378,7 +1381,7 @@ class _LibraryError extends StatelessWidget {
               color: XulangColors.muted,
             ),
             const SizedBox(height: 16),
-            Text('无法读取展览', style: Theme.of(context).textTheme.headlineSmall),
+            Text(AppStrings.of(context).cannotReadExhibitions, style: Theme.of(context).textTheme.headlineSmall),
             const SizedBox(height: 8),
             Text(
               '$error',
@@ -1404,11 +1407,11 @@ Future<String?> _pickCategoryForExhibition(
   return showDialog<String>(
     context: context,
     builder: (context) => SimpleDialog(
-      title: const Text('移动到分类'),
+      title: Text(AppStrings.of(context).moveToCategory),
       children: [
         _CategoryChoiceOption(
           id: LibraryCategoryBucket.uncategorizedId,
-          title: '未分类',
+          title: AppStrings.of(context).uncategorized,
           currentId: currentCategoryId ?? LibraryCategoryBucket.uncategorizedId,
         ),
         for (final category in categories)
@@ -1421,7 +1424,7 @@ Future<String?> _pickCategoryForExhibition(
         const Divider(),
         TextButton(
           onPressed: () => Navigator.pop(context, _categoryDialogCancelled),
-          child: const Text('取消'),
+          child: Text(AppStrings.of(context).cancel),
         ),
       ],
     ),
@@ -1480,7 +1483,7 @@ Future<String?> _textDialog(
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('取消'),
+          child: Text(AppStrings.of(context).cancel),
         ),
         FilledButton(
           onPressed: () => Navigator.pop(context, value),
@@ -1565,7 +1568,7 @@ void _showAppSettings(
                   const SizedBox(height: 16),
                   _SettingsSectionTitle(l10n.recordingPlayback),
                   const SizedBox(height: 8),
-                  _SettingsSectionTitle(l10n.language),
+                  _SettingsSectionTitle(l10n.languageSetting),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -1857,4 +1860,4 @@ void _showLocalInfo(BuildContext context) {
   );
 }
 
-String _formatDate(DateTime date) => '${date.month}月${date.day}日';
+String _formatDate(BuildContext context, DateTime date) => AppStrings.of(context).monthDay(date);

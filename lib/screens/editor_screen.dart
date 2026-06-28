@@ -11,6 +11,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/editor/editor_session.dart';
+import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/providers/app_providers.dart';
@@ -177,37 +178,37 @@ class _EditorBodyState extends State<_EditorBody> {
                   actions: [
                     _EditorIconButton(
                       key: const Key('portrait-editor-undo'),
-                      tooltip: '撤销',
+                      tooltip: AppStrings.of(context).undo,
                       onPressed: session.canUndo ? session.undo : null,
                       icon: Icons.undo,
                     ),
                     _EditorIconButton(
                       key: const Key('portrait-editor-redo'),
-                      tooltip: '重做',
+                      tooltip: AppStrings.of(context).redo,
                       onPressed: session.canRedo ? session.redo : null,
                       icon: Icons.redo,
                     ),
                     _EditorIconButton(
                       key: const Key('portrait-editor-play'),
-                      tooltip: '沉浸观看',
+                      tooltip: AppStrings.of(context).immersiveView,
                       onPressed: chapter.placements.isEmpty
                           ? null
                           : () => _play(context),
                       icon: Icons.play_arrow_rounded,
                     ),
                     PopupMenuButton<_EditorExportAction>(
-                      tooltip: '导出与分享',
+                      tooltip: AppStrings.of(context).exportAndShare,
                       onSelected: (action) =>
                           _handleExportAction(context, action),
                       icon: const Icon(Icons.share_outlined, size: 20),
-                      itemBuilder: (context) => const [
+                      itemBuilder: (context) => [
                         PopupMenuItem(
                           value: _EditorExportAction.template,
                           child: Row(
                             children: [
                               Icon(Icons.ios_share_outlined, size: 18),
                               SizedBox(width: 12),
-                              Text('分享模板'),
+                              Text(AppStrings.of(context).shareTemplate),
                             ],
                           ),
                         ),
@@ -217,7 +218,7 @@ class _EditorBodyState extends State<_EditorBody> {
                             children: [
                               Icon(Icons.video_camera_back_outlined, size: 18),
                               SizedBox(width: 12),
-                              Text('录制并分享视频'),
+                              Text(AppStrings.of(context).recordAndShareVideo),
                             ],
                           ),
                         ),
@@ -227,7 +228,7 @@ class _EditorBodyState extends State<_EditorBody> {
                             children: [
                               Icon(Icons.file_open_outlined, size: 18),
                               SizedBox(width: 12),
-                              Text('导入模板'),
+                              Text(AppStrings.of(context).importTemplate),
                             ],
                           ),
                         ),
@@ -262,7 +263,7 @@ class _EditorBodyState extends State<_EditorBody> {
                         child: SizedBox.square(
                           dimension: 48,
                           child: IconButton(
-                            tooltip: '返回',
+                            tooltip: AppStrings.of(context).back,
                             onPressed: () => Navigator.maybePop(context),
                             icon: const Icon(Icons.arrow_back),
                           ),
@@ -290,7 +291,7 @@ class _EditorBodyState extends State<_EditorBody> {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 _EditorIconButton(
-                                  tooltip: '章节',
+                                  tooltip: AppStrings.of(context).chapters,
                                   onPressed: () => setState(
                                     () => _showChapters = !_showChapters,
                                   ),
@@ -298,7 +299,7 @@ class _EditorBodyState extends State<_EditorBody> {
                                 ),
                                 _EditorIconButton(
                                   key: const Key('landscape-editor-undo'),
-                                  tooltip: '撤销',
+                                  tooltip: AppStrings.of(context).undo,
                                   onPressed: session.canUndo
                                       ? session.undo
                                       : null,
@@ -306,7 +307,7 @@ class _EditorBodyState extends State<_EditorBody> {
                                 ),
                                 _EditorIconButton(
                                   key: const Key('landscape-editor-redo'),
-                                  tooltip: '重做',
+                                  tooltip: AppStrings.of(context).redo,
                                   onPressed: session.canRedo
                                       ? session.redo
                                       : null,
@@ -314,21 +315,21 @@ class _EditorBodyState extends State<_EditorBody> {
                                 ),
                                 _EditorIconButton(
                                   key: const Key('landscape-editor-play'),
-                                  tooltip: '沉浸观看',
+                                  tooltip: AppStrings.of(context).immersiveView,
                                   onPressed: chapter.placements.isEmpty
                                       ? null
                                       : () => _play(context),
                                   icon: Icons.play_arrow_rounded,
                                 ),
                                 PopupMenuButton<_EditorExportAction>(
-                                  tooltip: '导出与分享',
+                                  tooltip: AppStrings.of(context).exportAndShare,
                                   onSelected: (action) =>
                                       _handleExportAction(context, action),
                                   icon: const Icon(
                                     Icons.share_outlined,
                                     size: 20,
                                   ),
-                                  itemBuilder: (context) => const [
+                                  itemBuilder: (context) => [
                                     PopupMenuItem(
                                       value: _EditorExportAction.template,
                                       child: Row(
@@ -338,7 +339,7 @@ class _EditorBodyState extends State<_EditorBody> {
                                             size: 18,
                                           ),
                                           SizedBox(width: 12),
-                                          Text('分享模板'),
+                                          Text(AppStrings.of(context).shareTemplate),
                                         ],
                                       ),
                                     ),
@@ -351,7 +352,7 @@ class _EditorBodyState extends State<_EditorBody> {
                                             size: 18,
                                           ),
                                           SizedBox(width: 12),
-                                          Text('录制并分享视频'),
+                                          Text(AppStrings.of(context).recordAndShareVideo),
                                         ],
                                       ),
                                     ),
@@ -364,7 +365,7 @@ class _EditorBodyState extends State<_EditorBody> {
                                             size: 18,
                                           ),
                                           SizedBox(width: 12),
-                                          Text('导入模板'),
+                                          Text(AppStrings.of(context).importTemplate),
                                         ],
                                       ),
                                     ),
@@ -554,7 +555,7 @@ class _EditorBodyState extends State<_EditorBody> {
           final images = await openFiles(
             acceptedTypeGroups: const [
               XTypeGroup(
-                label: '图片',
+                label: AppStrings.of(context).image,
                 extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
                 mimeTypes: ['image/*'],
               ),
@@ -606,7 +607,7 @@ class _EditorBodyState extends State<_EditorBody> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppStrings.of(context).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, value),
@@ -622,7 +623,7 @@ class _EditorBodyState extends State<_EditorBody> {
     final value = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('展览名称'),
+        title: Text(AppStrings.of(context).exhibitionName),
         content: TextFormField(
           initialValue: title,
           autofocus: true,
@@ -631,11 +632,11 @@ class _EditorBodyState extends State<_EditorBody> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('取消'),
+            child: Text(AppStrings.of(context).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, title),
-            child: const Text('保存'),
+            child: Text(AppStrings.of(context).save),
           ),
         ],
       ),
@@ -966,13 +967,13 @@ class _ChapterRail extends StatelessWidget {
             ),
           ),
           _EditorIconButton(
-            tooltip: '添加章节',
+            tooltip: AppStrings.of(context).addChapter,
             onPressed: session.addChapter,
             icon: Icons.add,
           ),
           if (onRename != null)
             _EditorIconButton(
-              tooltip: '重命名展览',
+              tooltip: AppStrings.of(context).renameExhibition,
               onPressed: onRename,
               icon: Icons.edit_outlined,
             ),
@@ -1381,7 +1382,7 @@ class _PreviewState extends State<_Preview> {
                   actions: [
                     TextButton(
                       onPressed: session.clearError,
-                      child: const Text('知道了'),
+                      child: Text(AppStrings.of(context).ok),
                     ),
                   ],
                 ),
@@ -1420,7 +1421,7 @@ class _GlassImportButton extends StatelessWidget {
             )
           : const Icon(Icons.add_photo_alternate_outlined, size: 18),
       label: Text(
-        importing ? '导入中' : '导入图片',
+        importing ? AppStrings.of(context).importing : AppStrings.of(context).importImages,
         style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
@@ -1548,7 +1549,7 @@ class _InspectorState extends State<_Inspector> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _InspectorSection(
-          title: '画布与叙事',
+          title: AppStrings.of(context).canvasAndStory,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -1628,7 +1629,7 @@ class _InspectorState extends State<_Inspector> {
                 onOpacityChanged: session.updateCanvasBackgroundOpacity,
               ),
               const SizedBox(height: 12),
-              _SectionLabel('布局'),
+              _SectionLabel(AppStrings.of(context).layout),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
@@ -1643,7 +1644,7 @@ class _InspectorState extends State<_Inspector> {
                 ],
               ),
               const SizedBox(height: 14),
-              _SectionLabel('路径线条'),
+              _SectionLabel(AppStrings.of(context).storyLine),
               const SizedBox(height: 6),
               Wrap(
                 spacing: 8,
@@ -1663,14 +1664,14 @@ class _InspectorState extends State<_Inspector> {
         ),
         const SizedBox(height: 8),
         _InspectorSection(
-          title: '播放设置',
+          title: AppStrings.of(context).playbackSettings,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SwitchListTile.adaptive(
                 key: const Key('editor-show-chapter-title-playback'),
                 contentPadding: EdgeInsets.zero,
-                title: const Text('录屏时显示章节名'),
+                title: Text(AppStrings.of(context).showChapterTitleRecording),
                 value: session.bundle!.document.showChapterTitleInPlayback,
                 onChanged: session.updateShowChapterTitleInPlayback,
               ),
@@ -1695,7 +1696,7 @@ class _InspectorState extends State<_Inspector> {
                   style: const TextStyle(fontSize: 13),
                 ),
                 subtitle: const Text(
-                  '播放和录屏模式可使用本地音乐',
+                  AppStrings.of(context).useBackgroundMusic,
                   style: TextStyle(fontSize: 11),
                 ),
                 trailing: Wrap(
@@ -1703,12 +1704,12 @@ class _InspectorState extends State<_Inspector> {
                   children: [
                     TextButton(
                       onPressed: () => _pickBackgroundMusic(context),
-                      child: const Text('选择'),
+                      child: Text(AppStrings.of(context).choose),
                     ),
                     if (session.bundle!.document.musicPath != null)
                       TextButton(
                         onPressed: session.clearBackgroundMusic,
-                        child: const Text('清除'),
+                        child: Text(AppStrings.of(context).clear),
                       ),
                   ],
                 ),
@@ -1981,7 +1982,7 @@ class _InspectorState extends State<_Inspector> {
                       children: [
                         const Expanded(
                           child: Text(
-                            '操作面板',
+                            AppStrings.of(context).operationPanel,
                             style: TextStyle(
                               color: XulangColors.paper,
                               fontSize: 13,
@@ -1995,7 +1996,7 @@ class _InspectorState extends State<_Inspector> {
                               widget.interactionMode ==
                               _EditorInteractionMode.canvas,
                           onSelected: (_) => widget.onFocusCanvas(),
-                          label: '画布',
+                          label: AppStrings.of(context).canvas,
                         ),
                         const SizedBox(width: 6),
                         _PanelToggleChip(
@@ -2009,7 +2010,7 @@ class _InspectorState extends State<_Inspector> {
                               widget.onFocusPlacement(target.id);
                             }
                           },
-                          label: '图片',
+                          label: AppStrings.of(context).image,
                         ),
                         const SizedBox(width: 6),
                         _PanelToggleChip(
@@ -2018,7 +2019,7 @@ class _InspectorState extends State<_Inspector> {
                               widget.interactionMode ==
                               _EditorInteractionMode.sticker,
                           onSelected: (_) => widget.onFocusSticker(),
-                          label: '贴画',
+                          label: AppStrings.of(context).sticker,
                         ),
                       ],
                     ),
@@ -2051,7 +2052,7 @@ class _InspectorState extends State<_Inspector> {
 
   Widget _buildStickerPanel(BuildContext context, GalleryChapter chapter) {
     return _InspectorSection(
-      title: '贴画',
+      title: AppStrings.of(context).stickers,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -2083,7 +2084,7 @@ class _InspectorState extends State<_Inspector> {
           ),
           if (chapter.stickers.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _SectionLabel('已添加贴画'),
+            _SectionLabel(AppStrings.of(context).addedStickers),
             const SizedBox(height: 6),
             for (final sticker in chapter.stickers)
               StickerControlTile(
@@ -2128,11 +2129,11 @@ class _InspectorState extends State<_Inspector> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
+            child: Text(AppStrings.of(context).cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('保存'),
+            child: Text(AppStrings.of(context).save),
           ),
         ],
       ),
@@ -2193,7 +2194,7 @@ class _CanvasBackgroundControl extends StatelessWidget {
                 child: Text(hasCustom ? '更换' : '上传'),
               ),
               if (hasCustom)
-                TextButton(onPressed: onClear, child: const Text('清除')),
+                TextButton(onPressed: onClear, child: Text(AppStrings.of(context).clear)),
             ],
           ),
           const SizedBox(height: 6),
