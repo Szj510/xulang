@@ -7,6 +7,16 @@ import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/library_screen.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 
+extension AppThemeModeX on AppThemeMode {
+  ThemeMode toThemeMode() {
+    return switch (this) {
+      AppThemeMode.system => ThemeMode.system,
+      AppThemeMode.light => ThemeMode.light,
+      AppThemeMode.dark => ThemeMode.dark,
+    };
+  }
+}
+
 class XulangApp extends ConsumerWidget {
   const XulangApp({super.key});
 
@@ -25,7 +35,9 @@ class XulangApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
       ],
       debugShowCheckedModeBanner: false,
-      theme: buildXulangTheme(),
+      theme: buildXulangTheme(brightness: Brightness.light),
+      darkTheme: buildXulangTheme(),
+      themeMode: settings.themeMode.toThemeMode(),
       home: const LibraryScreen(),
     );
   }

@@ -1,13 +1,12 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
-import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
@@ -18,6 +17,7 @@ import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/layout/narrative_navigation_coordinator.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/recording/native_screen_recorder.dart';
+import 'package:xulang/recording/recorded_video_library.dart';
 import 'package:xulang/screens/recording_result_screen.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
@@ -43,6 +43,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   int _slideDirection = 1;
   bool _showChrome = true;
   bool _recordingMode = false;
+  bool _previewPlaybackMode = false;
+  bool _autoPlaybackActive = false;
   double _recordingSpeed = 6.0;
   bool _musicPlaying = false;
   bool _changingChapter = false;
@@ -52,8 +54,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   String? _activeRecordingPath;
   String? _recordingShareTitle;
   DateTime? _recordingStartedAt;
-  RecordingChapterMode _activeRecordingChapterMode =
-      RecordingChapterMode.current;
+  RecordingChapterMode _activePlaybackChapterMode = RecordingChapterMode.current;
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _playingMusicPath;
 
@@ -111,10 +112,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
           final chapter = chapters[chapterIndex];
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
-            onTap: _recordingMode
+            onTap: _recordingMode || _previewPlaybackMode
                 ? null
                 : () => setState(() => _showChrome = !_showChrome),
-            onDoubleTap: _recordingMode && _playbackFinished
+            onDoubleTap:
+                (_recordingMode || _previewPlaybackMode) && _playbackFinished
                 ? () => unawaited(_restoreChromeAfterPlayback())
                 : null,
             child: Stack(
@@ -179,8 +181,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       canvasBackgroundOpacity:
                           bundle.document.canvasBackgroundOpacity,
                       reduceMotion: MediaQuery.disableAnimationsOf(context),
-                      showControls: _showChrome && !_recordingMode,
-                      recordingMode: _recordingMode,
+                      showControls:
+                          _showChrome && !_recordingMode && !_previewPlaybackMode,
+                      recordingMode: _autoPlaybackActive,
                       recordingSpeed: _recordingSpeed,
                       initialProgress: _chapterProgress[chapter.id] ?? 0,
                       hasPreviousChapter: chapterIndex > 0,
@@ -222,6 +225,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                           bundle.document,
                           appSettings,
                           true,
+                        ),
+                        onPreviewPlayback: () => _startPreviewPlayback(
+                          bundle.document,
+                          appSettings,
                         ),
                         onToggleMusic: bundle.document.musicPath == null
                             ? null
@@ -308,11 +315,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               recordingChapterMode: options.chapterMode,
               recordingSpeed: options.speed,
               recordingUseMusic: options.useMusic,
+              recordingQuality: options.quality,
             ),
           );
       if (!mounted) return;
-      final recordingPath = await _startNativeRecording(document);
-      if (recordingPath == null) return;
       final startIndex = _recordingStartIndex(
         currentIndex: _chapterIndex,
         mode: options.chapterMode,
@@ -326,17 +332,31 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         _chapterProgress[document.chapters[index].id] = 0;
       }
       setState(() {
-        _activeRecordingPath = recordingPath;
         _recordingShareTitle = AppStrings.of(context).exhibitionDisplayTitle(document.id, document.title);
-        _recordingStartedAt = DateTime.now();
         _recordingSpeed = options.speed;
         _recordingMode = true;
+        _previewPlaybackMode = false;
+        _autoPlaybackActive = false;
         _playbackFinished = false;
         _showChrome = false;
-        _activeRecordingChapterMode = options.chapterMode;
+        _activePlaybackChapterMode = options.chapterMode;
         _chapterIndex = startIndex;
       });
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+      await Future<void>.delayed(const Duration(milliseconds: 360));
+      if (!mounted) return;
+      final recordingPath = await _startNativeRecording(document, options.quality);
+      if (recordingPath == null) {
+        await _restoreChromeAfterPlayback();
+        return;
+      }
+      if (mounted) {
+        setState(() {
+          _activeRecordingPath = recordingPath;
+          _recordingStartedAt = DateTime.now();
+          _autoPlaybackActive = true;
+        });
+      }
       if (options.useMusic && document.musicPath != null) {
         await _playMusic(document);
       }
@@ -347,6 +367,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (mounted) {
       setState(() {
         _recordingMode = false;
+        _previewPlaybackMode = false;
+        _autoPlaybackActive = false;
         _showChrome = true;
         _playbackFinished = false;
       });
@@ -354,13 +376,49 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
   }
 
+  Future<void> _startPreviewPlayback(
+    GalleryDocument document,
+    AppSettings settings,
+  ) async {
+    final startIndex = _recordingStartIndex(
+      currentIndex: _chapterIndex,
+      mode: settings.recordingChapterMode,
+    );
+    final endIndex = _recordingEndIndex(
+      chapterCount: document.chapters.length,
+      currentIndex: startIndex,
+      mode: settings.recordingChapterMode,
+    );
+    for (var index = startIndex; index <= endIndex; index++) {
+      _chapterProgress[document.chapters[index].id] = 0;
+    }
+    setState(() {
+      _recordingSpeed = settings.recordingSpeed;
+      _recordingMode = false;
+      _previewPlaybackMode = true;
+      _autoPlaybackActive = true;
+      _playbackFinished = false;
+      _showChrome = false;
+      _activePlaybackChapterMode = settings.recordingChapterMode;
+      _chapterIndex = startIndex;
+    });
+    await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    if (settings.recordingUseMusic && document.musicPath != null) {
+      await _playMusic(document);
+    }
+  }
+
   Future<void> _restoreChromeAfterPlayback() async {
     await _stopNativeRecording(share: false);
+    await _audioPlayer.pause();
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     if (mounted) {
       setState(() {
         _recordingMode = false;
+        _previewPlaybackMode = false;
+        _autoPlaybackActive = false;
         _showChrome = true;
+        _musicPlaying = false;
         _playbackFinished = false;
       });
     }
@@ -368,11 +426,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   void _handlePlaybackCompleted(List<GalleryChapter> chapters) {
     if (!mounted || _playbackFinished) return;
-    if (_recordingMode) {
+    if (_recordingMode || _previewPlaybackMode) {
       final endIndex = _recordingEndIndex(
         chapterCount: chapters.length,
         currentIndex: _chapterIndex,
-        mode: _activeRecordingChapterMode,
+        mode: _activePlaybackChapterMode,
       );
       if (_chapterIndex < endIndex) {
         setState(() {
@@ -382,42 +440,78 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         return;
       }
       setState(() => _playbackFinished = true);
-      unawaited(_stopNativeRecording(share: true));
+      if (_recordingMode) {
+        unawaited(_stopNativeRecording(share: true));
+      } else {
+        unawaited(_restoreChromeAfterPlayback());
+      }
       return;
     }
     setState(() => _playbackFinished = true);
   }
 
-  Future<String?> _startNativeRecording(GalleryDocument document) async {
+  Future<String?> _startNativeRecording(
+    GalleryDocument document,
+    RecordingQuality quality,
+  ) async {
+    final l10n = AppStrings.of(context);
     if (!Platform.isAndroid) {
-      _showRecorderMessage(AppStrings.of(context).androidRecordingOnly);
+      _showRecorderMessage(l10n.androidRecordingOnly);
       return null;
     }
     try {
       final physicalSize = View.of(context).physicalSize;
-      final directory = Directory(
-        p.join((await getTemporaryDirectory()).path, 'xulang-recordings'),
+      final profile = _recordingEncoderProfile(physicalSize, quality);
+      final outputPath = await RecordedVideoLibrary.createOutputPath(
+        documentId: document.id,
       );
-      await directory.create(recursive: true);
-      final fileName =
-          'xulang-${document.id}-${DateTime.now().millisecondsSinceEpoch}.mp4';
-      final outputPath = p.join(directory.path, fileName);
       return NativeScreenRecorder.start(
         outputPath: outputPath,
-        width: physicalSize.width.round(),
-        height: physicalSize.height.round(),
+        width: profile.width,
+        height: profile.height,
+        frameRate: profile.frameRate,
+        bitRate: profile.bitRate,
       );
     } on PlatformException catch (error) {
       _showRecorderMessage(
-        error.message ?? AppStrings.of(context).cannotStartRecording,
+        error.message ?? l10n.cannotStartRecording,
       );
       return null;
     } catch (error) {
       _showRecorderMessage(
-        '${AppStrings.of(context).cannotStartRecording}：$error',
+        '${l10n.cannotStartRecording}：$error',
       );
       return null;
     }
+  }
+
+  _RecordingEncoderProfile _recordingEncoderProfile(
+    Size physicalSize,
+    RecordingQuality quality,
+  ) {
+    final longestSide = math.max(physicalSize.width, physicalSize.height);
+    final maxSide = switch (quality) {
+      RecordingQuality.standard => 720.0,
+      RecordingQuality.high => 1080.0,
+      RecordingQuality.ultra => 1440.0,
+    };
+    final scale = longestSide <= 0 ? 1.0 : math.min(1.0, maxSide / longestSide);
+    return _RecordingEncoderProfile(
+      width: _evenDimension(physicalSize.width * scale),
+      height: _evenDimension(physicalSize.height * scale),
+      frameRate: quality == RecordingQuality.standard ? 24 : 30,
+      bitRate: switch (quality) {
+        RecordingQuality.standard => 4 * 1000 * 1000,
+        RecordingQuality.high => 8 * 1000 * 1000,
+        RecordingQuality.ultra => 14 * 1000 * 1000,
+      },
+    );
+  }
+
+  int _evenDimension(double value) {
+    final rounded = value.round();
+    final even = rounded.isEven ? rounded : rounded - 1;
+    return even.clamp(320, 4096).toInt();
   }
 
   Future<void> _stopNativeRecording({required bool share}) async {
@@ -425,12 +519,13 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (path == null || _recordingShareBusy) return;
     _recordingShareBusy = true;
     String? resultPath;
-    final resultTitle = _recordingShareTitle ?? AppStrings.of(context).appTitle;
+    final l10n = AppStrings.of(context);
+    final resultTitle = _recordingShareTitle ?? l10n.appTitle;
     try {
       final stoppedPath = await NativeScreenRecorder.stop();
       final videoPath = stoppedPath ?? path;
       if (share) {
-        _showRecorderMessage(AppStrings.of(context).preparingShare);
+        _showRecorderMessage(l10n.preparingShare);
         final startedAt = _recordingStartedAt;
         if (startedAt != null) {
           final remaining =
@@ -443,19 +538,19 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         if (await _waitForReadableMp4(videoPath)) {
           resultPath = videoPath;
         } else {
-          _showRecorderMessage(AppStrings.of(context).recordingFileMissing);
+          _showRecorderMessage(l10n.recordingFileMissing);
         }
       }
     } on PlatformException catch (error) {
       if (share) {
         _showRecorderMessage(
-          error.message ?? AppStrings.of(context).recordingStopFailed,
+          error.message ?? l10n.recordingStopFailed,
         );
       }
     } catch (error) {
       if (share) {
         _showRecorderMessage(
-          '${AppStrings.of(context).recordingStopFailed}：$error',
+          '${l10n.recordingStopFailed}：$error',
         );
       }
     } finally {
@@ -465,13 +560,15 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       if (mounted) {
         setState(() {
           _recordingMode = false;
+          _previewPlaybackMode = false;
+          _autoPlaybackActive = false;
           _showChrome = true;
         });
       }
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
     }
     if (share && resultPath != null && mounted) {
-      _showRecorderMessage(AppStrings.of(context).recordingSavedOpenResult);
+      _showRecorderMessage(l10n.recordingSavedOpenResult);
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => RecordingResultScreen(
@@ -539,6 +636,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   ) {
     var chapterMode = settings.recordingChapterMode;
     var speed = settings.recordingSpeed;
+    var quality = settings.recordingQuality;
     var useMusic = settings.recordingUseMusic && document.musicPath != null;
     return showModalBottomSheet<_RecordingOptions>(
       context: context,
@@ -600,6 +698,32 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   label: AppStrings.of(context).speedLabel(speed),
                   onChanged: (value) => setSheetState(() => speed = value),
                 ),
+                const SizedBox(height: 12),
+                Text(AppStrings.of(context).recordingQuality),
+                const SizedBox(height: 8),
+                Wrap(
+                  spacing: 8,
+                  children: [
+                    for (final item in RecordingQuality.values)
+                      ChoiceChip(
+                        selected: quality == item,
+                        label: Text(
+                          _recordingQualityLabel(AppStrings.of(context), item),
+                        ),
+                        onSelected: (_) =>
+                            setSheetState(() => quality = item),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  AppStrings.of(context).recordingQualityHint,
+                  style: const TextStyle(
+                    color: XulangColors.muted,
+                    fontSize: 12,
+                    height: 1.45,
+                  ),
+                ),
                 SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   value: useMusic,
@@ -626,6 +750,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                         _RecordingOptions(
                           chapterMode: chapterMode,
                           speed: speed,
+                          quality: quality,
                           useMusic: useMusic,
                         ),
                       ),
@@ -670,12 +795,28 @@ class _RecordingOptions {
   const _RecordingOptions({
     required this.chapterMode,
     required this.speed,
+    required this.quality,
     required this.useMusic,
   });
 
   final RecordingChapterMode chapterMode;
   final double speed;
+  final RecordingQuality quality;
   final bool useMusic;
+}
+
+class _RecordingEncoderProfile {
+  const _RecordingEncoderProfile({
+    required this.width,
+    required this.height,
+    required this.frameRate,
+    required this.bitRate,
+  });
+
+  final int width;
+  final int height;
+  final int frameRate;
+  final int bitRate;
 }
 
 String _recordingChapterModeLabel(AppStrings l10n, RecordingChapterMode mode) =>
@@ -683,6 +824,13 @@ String _recordingChapterModeLabel(AppStrings l10n, RecordingChapterMode mode) =>
       RecordingChapterMode.current => l10n.currentChapter,
       RecordingChapterMode.fromCurrentToEnd => l10n.fromCurrentToEnd,
       RecordingChapterMode.all => l10n.allChapters,
+    };
+
+String _recordingQualityLabel(AppStrings l10n, RecordingQuality quality) =>
+    switch (quality) {
+      RecordingQuality.standard => l10n.standardQuality,
+      RecordingQuality.high => l10n.highQuality,
+      RecordingQuality.ultra => l10n.ultraQuality,
     };
 
 class _ViewerChapter extends StatefulWidget {
@@ -1011,6 +1159,7 @@ class _ViewerChrome extends StatelessWidget {
     required this.onPreviousChapter,
     required this.onNextChapter,
     required this.onStartRecording,
+    required this.onPreviewPlayback,
     required this.onToggleMusic,
     this.onRecordingSpeedChanged,
     required this.musicPlaying,
@@ -1024,6 +1173,7 @@ class _ViewerChrome extends StatelessWidget {
   final VoidCallback? onPreviousChapter;
   final VoidCallback? onNextChapter;
   final VoidCallback onStartRecording;
+  final VoidCallback onPreviewPlayback;
   final VoidCallback? onToggleMusic;
   final ValueChanged<double>? onRecordingSpeedChanged;
   final bool musicPlaying;
@@ -1127,6 +1277,12 @@ class _ViewerChrome extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
+                      _ChromeIconButton(
+                        key: const Key('viewer-playback-preview'),
+                        onPressed: onPreviewPlayback,
+                        tooltip: AppStrings.of(context).playbackPreview,
+                        icon: Icons.play_circle_outline,
+                      ),
                       _ChromeIconButton(
                         key: const Key('viewer-recording-mode'),
                         onPressed: onStartRecording,

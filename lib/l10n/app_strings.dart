@@ -9,12 +9,16 @@ class AppStrings {
   final AppLanguage language;
 
   static AppStrings of(BuildContext context) {
-    final container = ProviderScope.containerOf(context, listen: false);
-    final settings = container
-        .read(appSettingsProvider)
-        .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
     final locale = Localizations.maybeLocaleOf(context);
-    return AppStrings._(settings.language.resolve(locale));
+    try {
+      final container = ProviderScope.containerOf(context, listen: false);
+      final settings = container
+          .read(appSettingsProvider)
+          .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
+      return AppStrings._(settings.language.resolve(locale));
+    } on StateError {
+      return AppStrings._(AppLanguage.system.resolve(locale));
+    }
   }
 
   static AppStrings from(AppSettings settings, [Locale? locale]) {
@@ -32,7 +36,10 @@ class AppStrings {
   String get newCategory => isEnglish ? 'New category' : '新建分类';
   String get recordingPlayback => isEnglish ? 'Recording playback' : '录屏播放';
   String get languageSetting => isEnglish ? 'Language' : '语言';
+  String get themeSetting => isEnglish ? 'Theme' : '主题';
   String get followSystem => isEnglish ? 'Follow system' : '跟随系统';
+  String get lightTheme => isEnglish ? 'Light' : '明亮';
+  String get darkTheme => isEnglish ? 'Dark' : '暗黑';
   String get simplifiedChinese => isEnglish ? 'Simplified Chinese' : '简体中文';
   String get english => isEnglish ? 'English' : '英文';
   String get showChapterTitleRecording =>
@@ -42,6 +49,13 @@ class AppStrings {
       : '关闭后，沉浸录屏只保留画布和图片。';
   String get mediaImportMode => isEnglish ? 'Image import mode' : '图片导入方式';
   String get recordingDefaults => isEnglish ? 'Recording defaults' : '录制默认值';
+  String get recordingQuality => isEnglish ? 'Recording quality' : '录制清晰度';
+  String get recordingQualityHint => isEnglish
+      ? 'Lower quality creates smaller files; higher quality keeps sharper details.'
+      : '清晰度越低文件越小，清晰度越高细节越锐。';
+  String get standardQuality => isEnglish ? 'Standard' : '标准';
+  String get highQuality => isEnglish ? 'High' : '高清';
+  String get ultraQuality => isEnglish ? 'Ultra' : '超清';
   String get defaultRecordingChapters =>
       isEnglish ? 'Default chapters' : '默认录制章节';
   String get useMusicByDefault =>
@@ -78,9 +92,17 @@ class AppStrings {
   String get fromCurrentToEnd => isEnglish ? 'Current to end' : '从当前到结尾';
   String get allChapters => isEnglish ? 'All chapters' : '全部章节';
   String get recordingAndShare => isEnglish ? 'Record & Share' : '录制与分享';
+  String get playbackPreview => isEnglish ? 'Playback preview' : '播放预览';
+  String get generatedVideos => isEnglish ? 'Generated videos' : '生成的视频';
+  String get manageVideos => isEnglish ? 'Manage videos' : '管理生成的视频';
+  String get noGeneratedVideos => isEnglish ? 'No generated videos yet' : '还没有生成的视频';
+  String get deleteVideoTitle => isEnglish ? 'Delete video?' : '删除视频？';
+  String get deleteVideoBody => isEnglish
+      ? 'This only deletes the generated MP4 file. Your exhibition is kept.'
+      : '只会删除生成的 MP4 文件，展览内容不会受影响。';
   String get recordingSheetDescription => isEnglish
-      ? 'After confirmation, Xulang enters immersive playback, records the screen, then opens the system share panel when the MP4 file is ready.'
-      : '确认后会进入沉浸播放，完成录制并检测到 MP4 文件后，再弹出系统分享面板。';
+      ? 'After confirmation, Xulang enters immersive playback, records the screen, then opens the result page when the MP4 file is ready.'
+      : '确认后会进入沉浸播放，完成录制并检测到 MP4 文件后，再打开结果页。';
   String get chapterRange => isEnglish ? 'Chapter range' : '章节范围';
   String playbackSpeed(double value) => isEnglish
       ? 'Playback speed ${value.toStringAsFixed(1)}s / chapter'

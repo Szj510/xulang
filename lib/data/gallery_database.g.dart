@@ -457,6 +457,30 @@ class $AppSettingsRowsTable extends AppSettingsRows
         requiredDuringInsert: false,
         defaultValue: const Constant('current'),
       );
+  static const VerificationMeta _recordingQualityMeta = const VerificationMeta(
+    'recordingQuality',
+  );
+  @override
+  late final GeneratedColumn<String> recordingQuality = GeneratedColumn<String>(
+    'recording_quality',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('high'),
+  );
+  static const VerificationMeta _themeModeMeta = const VerificationMeta(
+    'themeMode',
+  );
+  @override
+  late final GeneratedColumn<String> themeMode = GeneratedColumn<String>(
+    'theme_mode',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant('system'),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -466,6 +490,8 @@ class $AppSettingsRowsTable extends AppSettingsRows
     recordingSpeed,
     recordingUseMusic,
     recordingChapterMode,
+    recordingQuality,
+    themeMode,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -538,6 +564,21 @@ class $AppSettingsRowsTable extends AppSettingsRows
         ),
       );
     }
+    if (data.containsKey('recording_quality')) {
+      context.handle(
+        _recordingQualityMeta,
+        recordingQuality.isAcceptableOrUnknown(
+          data['recording_quality']!,
+          _recordingQualityMeta,
+        ),
+      );
+    }
+    if (data.containsKey('theme_mode')) {
+      context.handle(
+        _themeModeMeta,
+        themeMode.isAcceptableOrUnknown(data['theme_mode']!, _themeModeMeta),
+      );
+    }
     return context;
   }
 
@@ -575,6 +616,14 @@ class $AppSettingsRowsTable extends AppSettingsRows
         DriftSqlType.string,
         data['${effectivePrefix}recording_chapter_mode'],
       )!,
+      recordingQuality: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}recording_quality'],
+      )!,
+      themeMode: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}theme_mode'],
+      )!,
     );
   }
 
@@ -592,6 +641,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
   final double recordingSpeed;
   final bool recordingUseMusic;
   final String recordingChapterMode;
+  final String recordingQuality;
+  final String themeMode;
   const AppSettingsRow({
     required this.id,
     required this.recordingShowChapterTitle,
@@ -600,6 +651,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     required this.recordingSpeed,
     required this.recordingUseMusic,
     required this.recordingChapterMode,
+    required this.recordingQuality,
+    required this.themeMode,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -613,6 +666,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     map['recording_speed'] = Variable<double>(recordingSpeed);
     map['recording_use_music'] = Variable<bool>(recordingUseMusic);
     map['recording_chapter_mode'] = Variable<String>(recordingChapterMode);
+    map['recording_quality'] = Variable<String>(recordingQuality);
+    map['theme_mode'] = Variable<String>(themeMode);
     return map;
   }
 
@@ -625,6 +680,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       recordingSpeed: Value(recordingSpeed),
       recordingUseMusic: Value(recordingUseMusic),
       recordingChapterMode: Value(recordingChapterMode),
+      recordingQuality: Value(recordingQuality),
+      themeMode: Value(themeMode),
     );
   }
 
@@ -647,6 +704,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       recordingChapterMode: serializer.fromJson<String>(
         json['recordingChapterMode'],
       ),
+      recordingQuality: serializer.fromJson<String>(json['recordingQuality']),
+      themeMode: serializer.fromJson<String>(json['themeMode']),
     );
   }
   @override
@@ -662,6 +721,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       'recordingSpeed': serializer.toJson<double>(recordingSpeed),
       'recordingUseMusic': serializer.toJson<bool>(recordingUseMusic),
       'recordingChapterMode': serializer.toJson<String>(recordingChapterMode),
+      'recordingQuality': serializer.toJson<String>(recordingQuality),
+      'themeMode': serializer.toJson<String>(themeMode),
     };
   }
 
@@ -673,6 +734,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     double? recordingSpeed,
     bool? recordingUseMusic,
     String? recordingChapterMode,
+    String? recordingQuality,
+    String? themeMode,
   }) => AppSettingsRow(
     id: id ?? this.id,
     recordingShowChapterTitle:
@@ -682,6 +745,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     recordingSpeed: recordingSpeed ?? this.recordingSpeed,
     recordingUseMusic: recordingUseMusic ?? this.recordingUseMusic,
     recordingChapterMode: recordingChapterMode ?? this.recordingChapterMode,
+    recordingQuality: recordingQuality ?? this.recordingQuality,
+    themeMode: themeMode ?? this.themeMode,
   );
   AppSettingsRow copyWithCompanion(AppSettingsRowsCompanion data) {
     return AppSettingsRow(
@@ -704,6 +769,10 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
       recordingChapterMode: data.recordingChapterMode.present
           ? data.recordingChapterMode.value
           : this.recordingChapterMode,
+      recordingQuality: data.recordingQuality.present
+          ? data.recordingQuality.value
+          : this.recordingQuality,
+      themeMode: data.themeMode.present ? data.themeMode.value : this.themeMode,
     );
   }
 
@@ -716,7 +785,9 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
           ..write('mediaImportMode: $mediaImportMode, ')
           ..write('recordingSpeed: $recordingSpeed, ')
           ..write('recordingUseMusic: $recordingUseMusic, ')
-          ..write('recordingChapterMode: $recordingChapterMode')
+          ..write('recordingChapterMode: $recordingChapterMode, ')
+          ..write('recordingQuality: $recordingQuality, ')
+          ..write('themeMode: $themeMode')
           ..write(')'))
         .toString();
   }
@@ -730,6 +801,8 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
     recordingSpeed,
     recordingUseMusic,
     recordingChapterMode,
+    recordingQuality,
+    themeMode,
   );
   @override
   bool operator ==(Object other) =>
@@ -741,7 +814,9 @@ class AppSettingsRow extends DataClass implements Insertable<AppSettingsRow> {
           other.mediaImportMode == this.mediaImportMode &&
           other.recordingSpeed == this.recordingSpeed &&
           other.recordingUseMusic == this.recordingUseMusic &&
-          other.recordingChapterMode == this.recordingChapterMode);
+          other.recordingChapterMode == this.recordingChapterMode &&
+          other.recordingQuality == this.recordingQuality &&
+          other.themeMode == this.themeMode);
 }
 
 class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
@@ -752,6 +827,8 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
   final Value<double> recordingSpeed;
   final Value<bool> recordingUseMusic;
   final Value<String> recordingChapterMode;
+  final Value<String> recordingQuality;
+  final Value<String> themeMode;
   final Value<int> rowid;
   const AppSettingsRowsCompanion({
     this.id = const Value.absent(),
@@ -761,6 +838,8 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
     this.recordingSpeed = const Value.absent(),
     this.recordingUseMusic = const Value.absent(),
     this.recordingChapterMode = const Value.absent(),
+    this.recordingQuality = const Value.absent(),
+    this.themeMode = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   AppSettingsRowsCompanion.insert({
@@ -771,6 +850,8 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
     this.recordingSpeed = const Value.absent(),
     this.recordingUseMusic = const Value.absent(),
     this.recordingChapterMode = const Value.absent(),
+    this.recordingQuality = const Value.absent(),
+    this.themeMode = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id);
   static Insertable<AppSettingsRow> custom({
@@ -781,6 +862,8 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
     Expression<double>? recordingSpeed,
     Expression<bool>? recordingUseMusic,
     Expression<String>? recordingChapterMode,
+    Expression<String>? recordingQuality,
+    Expression<String>? themeMode,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -794,6 +877,8 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
       if (recordingUseMusic != null) 'recording_use_music': recordingUseMusic,
       if (recordingChapterMode != null)
         'recording_chapter_mode': recordingChapterMode,
+      if (recordingQuality != null) 'recording_quality': recordingQuality,
+      if (themeMode != null) 'theme_mode': themeMode,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -806,6 +891,8 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
     Value<double>? recordingSpeed,
     Value<bool>? recordingUseMusic,
     Value<String>? recordingChapterMode,
+    Value<String>? recordingQuality,
+    Value<String>? themeMode,
     Value<int>? rowid,
   }) {
     return AppSettingsRowsCompanion(
@@ -818,6 +905,8 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
       recordingSpeed: recordingSpeed ?? this.recordingSpeed,
       recordingUseMusic: recordingUseMusic ?? this.recordingUseMusic,
       recordingChapterMode: recordingChapterMode ?? this.recordingChapterMode,
+      recordingQuality: recordingQuality ?? this.recordingQuality,
+      themeMode: themeMode ?? this.themeMode,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -852,6 +941,12 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
         recordingChapterMode.value,
       );
     }
+    if (recordingQuality.present) {
+      map['recording_quality'] = Variable<String>(recordingQuality.value);
+    }
+    if (themeMode.present) {
+      map['theme_mode'] = Variable<String>(themeMode.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -868,6 +963,8 @@ class AppSettingsRowsCompanion extends UpdateCompanion<AppSettingsRow> {
           ..write('recordingSpeed: $recordingSpeed, ')
           ..write('recordingUseMusic: $recordingUseMusic, ')
           ..write('recordingChapterMode: $recordingChapterMode, ')
+          ..write('recordingQuality: $recordingQuality, ')
+          ..write('themeMode: $themeMode, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -3907,6 +4004,8 @@ typedef $$AppSettingsRowsTableCreateCompanionBuilder =
       Value<double> recordingSpeed,
       Value<bool> recordingUseMusic,
       Value<String> recordingChapterMode,
+      Value<String> recordingQuality,
+      Value<String> themeMode,
       Value<int> rowid,
     });
 typedef $$AppSettingsRowsTableUpdateCompanionBuilder =
@@ -3918,6 +4017,8 @@ typedef $$AppSettingsRowsTableUpdateCompanionBuilder =
       Value<double> recordingSpeed,
       Value<bool> recordingUseMusic,
       Value<String> recordingChapterMode,
+      Value<String> recordingQuality,
+      Value<String> themeMode,
       Value<int> rowid,
     });
 
@@ -3962,6 +4063,16 @@ class $$AppSettingsRowsTableFilterComposer
 
   ColumnFilters<String> get recordingChapterMode => $composableBuilder(
     column: $table.recordingChapterMode,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get recordingQuality => $composableBuilder(
+    column: $table.recordingQuality,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -4009,6 +4120,16 @@ class $$AppSettingsRowsTableOrderingComposer
     column: $table.recordingChapterMode,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get recordingQuality => $composableBuilder(
+    column: $table.recordingQuality,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get themeMode => $composableBuilder(
+    column: $table.themeMode,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$AppSettingsRowsTableAnnotationComposer
@@ -4052,6 +4173,14 @@ class $$AppSettingsRowsTableAnnotationComposer
     column: $table.recordingChapterMode,
     builder: (column) => column,
   );
+
+  GeneratedColumn<String> get recordingQuality => $composableBuilder(
+    column: $table.recordingQuality,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get themeMode =>
+      $composableBuilder(column: $table.themeMode, builder: (column) => column);
 }
 
 class $$AppSettingsRowsTableTableManager
@@ -4098,6 +4227,8 @@ class $$AppSettingsRowsTableTableManager
                 Value<double> recordingSpeed = const Value.absent(),
                 Value<bool> recordingUseMusic = const Value.absent(),
                 Value<String> recordingChapterMode = const Value.absent(),
+                Value<String> recordingQuality = const Value.absent(),
+                Value<String> themeMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AppSettingsRowsCompanion(
                 id: id,
@@ -4107,6 +4238,8 @@ class $$AppSettingsRowsTableTableManager
                 recordingSpeed: recordingSpeed,
                 recordingUseMusic: recordingUseMusic,
                 recordingChapterMode: recordingChapterMode,
+                recordingQuality: recordingQuality,
+                themeMode: themeMode,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -4118,6 +4251,8 @@ class $$AppSettingsRowsTableTableManager
                 Value<double> recordingSpeed = const Value.absent(),
                 Value<bool> recordingUseMusic = const Value.absent(),
                 Value<String> recordingChapterMode = const Value.absent(),
+                Value<String> recordingQuality = const Value.absent(),
+                Value<String> themeMode = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => AppSettingsRowsCompanion.insert(
                 id: id,
@@ -4127,6 +4262,8 @@ class $$AppSettingsRowsTableTableManager
                 recordingSpeed: recordingSpeed,
                 recordingUseMusic: recordingUseMusic,
                 recordingChapterMode: recordingChapterMode,
+                recordingQuality: recordingQuality,
+                themeMode: themeMode,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
