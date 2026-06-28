@@ -240,7 +240,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     right: 24,
                     child: IgnorePointer(
                       child: Text(
-                        chapter.title,
+                        AppStrings.of(context).chapterTitle(chapter.id, chapter.title),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: XulangColors.paper,
@@ -327,7 +327,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       }
       setState(() {
         _activeRecordingPath = recordingPath;
-        _recordingShareTitle = document.title;
+        _recordingShareTitle = AppStrings.of(context).exhibitionDisplayTitle(document.id, document.title);
         _recordingStartedAt = DateTime.now();
         _recordingSpeed = options.speed;
         _recordingMode = true;
