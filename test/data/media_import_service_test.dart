@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:image/image.dart' as img;
+import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/data/media_import_service.dart';
 
 void main() {
@@ -68,6 +69,42 @@ void main() {
       expect(result.selectionMediaIds, ['asset-1', 'asset-1']);
     },
   );
+
+  test('reference mode keeps each selected path as a fast reference', () async {
+    var nextId = 0;
+    final source = File('${sources.path}/referenced.png');
+    final picture = img.Image(width: 80, height: 60);
+    img.fill(picture, color: img.ColorRgb8(16, 42, 80));
+    await source.writeAsBytes(img.encodePng(picture));
+    final importer = MediaImportService(
+      rootDirectory: root,
+      createId: () => 'asset-${++nextId}',
+    );
+
+    final result = await importer.importFiles(
+      exhibitionId: 'exhibition-1',
+      sourcePaths: [source.path, source.path],
+      existingAssets: const [],
+      importMode: MediaImportMode.referenceOriginal,
+    );
+
+    expect(result.assets, hasLength(2));
+    expect(result.selectionMediaIds, ['asset-1', 'asset-2']);
+    expect(result.assets.map((asset) => asset.originalPath), [
+      source.path,
+      source.path,
+    ]);
+    for (final asset in result.assets) {
+      expect(asset.contentHash, startsWith('reference:'));
+      expect(await File(asset.thumbnailPath).exists(), isTrue);
+      final assetDirectory = Directory('${root.path}/exhibition-1/${asset.id}');
+      final copiedOriginals = await assetDirectory
+          .list()
+          .where((entity) => entity is File && !entity.path.endsWith('.webp'))
+          .toList();
+      expect(copiedOriginals, isEmpty);
+    }
+  });
 
   test('removes staging files when a selected image is invalid', () async {
     final valid = File('${sources.path}/valid.png');

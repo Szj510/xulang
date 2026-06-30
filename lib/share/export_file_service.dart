@@ -15,7 +15,7 @@ class ExportFileService {
     await outputDirectory.create(recursive: true);
     final name = _safeName(document.title);
     final file = File(
-      p.join(outputDirectory.path, '$name.xulang-template.json'),
+      p.join(outputDirectory.path, 'xulang-$name-template.json'),
     );
     return file.writeAsString(
       const ExhibitionTemplateCodec().encode(document),

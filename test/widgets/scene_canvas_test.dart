@@ -183,7 +183,7 @@ void main() {
             chapter: chapter,
             media: [media],
             onPlacementTransformStart: (id) => updates.add('start:$id'),
-            onPlacementTransformUpdate: (id, scale, delta) =>
+            onPlacementTransformUpdate: (id, scale, delta, rotationDelta) =>
                 updates.add('update:$id'),
             onPlacementTransformEnd: (id) => updates.add('end:$id'),
           ),
@@ -217,7 +217,7 @@ void main() {
             chapter: chapter,
             media: [media],
             onPlacementTransformStart: (_) {},
-            onPlacementTransformUpdate: (_, scale, _) => scales.add(scale),
+            onPlacementTransformUpdate: (_, scale, _, _) => scales.add(scale),
             onPlacementTransformEnd: (_) {},
           ),
         ),
@@ -240,6 +240,37 @@ void main() {
 
     expect(scales, isNotEmpty);
     expect(scales.reduce((a, b) => a > b ? a : b), greaterThan(1.2));
+  });
+
+  testWidgets('sticker placement surface lets image taps select placements', (
+    tester,
+  ) async {
+    final tappedPlacements = <String>[];
+    final placedStickers = <Offset>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(
+            chapter: chapter,
+            media: const [media],
+            stickerEditingEnabled: true,
+            selectedStickerKind: GalleryStickerKind.star,
+            onPlacementTap: tappedPlacements.add,
+            onStickerPlaced: (position, _) => placedStickers.add(position),
+          ),
+        ),
+      ),
+    );
+
+    await tester.tapAt(
+      tester.getCenter(find.byKey(const Key('scene-node-placement'))),
+    );
+    await tester.pump();
+
+    expect(tappedPlacements, ['placement']);
+    expect(placedStickers, isEmpty);
   });
 
   testWidgets('story path painter receives resolved scene geometry', (

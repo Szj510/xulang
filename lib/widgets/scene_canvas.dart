@@ -32,6 +32,7 @@ class SceneCanvas extends StatelessWidget {
     this.onStickerPlaced,
     this.onStickerChanged,
     this.onStickerDeleted,
+    this.onStickerTap,
     this.onPlacementTap,
     this.onPlacementTransformStart,
     this.onPlacementTransformUpdate,
@@ -54,9 +55,15 @@ class SceneCanvas extends StatelessWidget {
   final void Function(Offset localPosition, Size viewport)? onStickerPlaced;
   final ValueChanged<GallerySticker>? onStickerChanged;
   final ValueChanged<String>? onStickerDeleted;
+  final ValueChanged<String>? onStickerTap;
   final void Function(String placementId)? onPlacementTap;
   final void Function(String placementId)? onPlacementTransformStart;
-  final void Function(String placementId, double scaleDelta, Offset delta)?
+  final void Function(
+    String placementId,
+    double scaleDelta,
+    Offset delta,
+    double rotationDelta,
+  )?
   onPlacementTransformUpdate;
   final void Function(String placementId)? onPlacementTransformEnd;
 
@@ -217,6 +224,17 @@ class SceneCanvas extends StatelessWidget {
                       key: const Key('scene-sticker-place-surface'),
                       behavior: HitTestBehavior.translucent,
                       onTapUp: (details) {
+                        final placementId = _hitPlacementAt(
+                          screenPoint: details.localPosition,
+                          nodes: nodes,
+                          placementsById: placementsById,
+                          motion: motion,
+                          viewport: viewport,
+                        );
+                        if (placementId != null) {
+                          onPlacementTap?.call(placementId);
+                          return;
+                        }
                         if (_isStickerTapTarget(
                           screenPoint: details.localPosition,
                           stickers: chapter.stickers,
@@ -250,6 +268,7 @@ class SceneCanvas extends StatelessWidget {
                     editable: stickerEditingEnabled,
                     onChanged: onStickerChanged,
                     onDeleted: onStickerDeleted,
+                    onTap: onStickerTap,
                   ),
               ],
             ),
@@ -347,6 +366,26 @@ bool _isStickerTapTarget({
   return false;
 }
 
+String? _hitPlacementAt({
+  required Offset screenPoint,
+  required List<NarrativeNodeFrame> nodes,
+  required Map<String, GalleryPlacement> placementsById,
+  required MotionFrame motion,
+  required Size viewport,
+}) {
+  final dx = motion.offset.dx * viewport.width;
+  final dy = motion.offset.dy * viewport.height;
+  for (final node in nodes.reversed) {
+    if (node.opacity * motion.opacity <= 0.02 ||
+        !placementsById.containsKey(node.placementId)) {
+      continue;
+    }
+    final hitRect = node.rect.shift(Offset(dx, dy)).inflate(18);
+    if (hitRect.contains(screenPoint)) return node.placementId;
+  }
+  return null;
+}
+
 class _CustomCanvasBackground extends StatelessWidget {
   const _CustomCanvasBackground({required this.path, required this.opacity});
 
@@ -383,6 +422,7 @@ class _StickerWidget extends StatelessWidget {
     required this.editable,
     required this.onChanged,
     required this.onDeleted,
+    required this.onTap,
   });
 
   final GallerySticker sticker;
@@ -394,6 +434,7 @@ class _StickerWidget extends StatelessWidget {
   final bool editable;
   final ValueChanged<GallerySticker>? onChanged;
   final ValueChanged<String>? onDeleted;
+  final ValueChanged<String>? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -427,6 +468,7 @@ class _StickerWidget extends StatelessWidget {
               child: GestureDetector(
                 key: Key('scene-sticker-${sticker.id}'),
                 behavior: HitTestBehavior.translucent,
+                onTap: () => onTap?.call(sticker.id),
                 onPanUpdate: !editable || onChanged == null
                     ? null
                     : (details) {
@@ -557,7 +599,12 @@ class _SceneNodeWidget extends StatelessWidget {
 
   final void Function(String placementId)? onTap;
   final void Function(String placementId)? onTransformStart;
-  final void Function(String placementId, double scaleDelta, Offset delta)?
+  final void Function(
+    String placementId,
+    double scaleDelta,
+    Offset delta,
+    double rotationDelta,
+  )?
   onTransformUpdate;
   final void Function(String placementId)? onTransformEnd;
 
@@ -595,6 +642,7 @@ class _SceneNodeWidget extends StatelessWidget {
                     placement.id,
                     details.scale,
                     details.focalPointDelta,
+                    details.rotation,
                   ),
             onScaleEnd: onTransformUpdate == null
                 ? null
@@ -633,7 +681,9 @@ class _StoryNodeLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final foreground = sceneForegroundColor(sceneTheme);
-    final labelText = AppStrings.of(context).placementCaption(placement.id, placement.caption).trim();
+    final labelText = AppStrings.of(
+      context,
+    ).placementCaption(placement.id, placement.caption).trim();
     if (labelText.isEmpty) return const SizedBox.shrink();
     final rect = resolveStoryLabelRect(anchor: anchor, viewport: viewport);
     return Positioned.fromRect(

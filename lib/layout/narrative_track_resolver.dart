@@ -31,6 +31,12 @@ class NarrativeTrackResolver {
         sharedCamera: sharedCamera,
       );
     }
+    final placementFocusProgress = {
+      for (var index = 0; index < chapter.placements.length; index++)
+        chapter.placements[index].id: itemCount == 1
+            ? 0.0
+            : index / (itemCount - 1),
+    };
     final spacing = itemCount == 1 ? 1.0 : 1 / (itemCount - 1);
     final visibilityWindow = math.max(.34, spacing * 1.8);
     return ResolvedNarrativeTrack(
@@ -44,14 +50,16 @@ class NarrativeTrackResolver {
           chapter.layout == GalleryLayout.storyPath
               ? _storyKeyframe(
                   node: scene.nodes[index],
-                  focusProgress: itemCount == 1
-                      ? .5
-                      : .16 + (index / (itemCount - 1)) * .70,
+                  focusProgress:
+                      placementFocusProgress[scene.nodes[index].placementId] ??
+                      0.0,
                 )
               : _keyframe(
                   node: scene.nodes[index],
                   viewport: viewport,
-                  focusProgress: itemCount == 1 ? 0.0 : index / (itemCount - 1),
+                  focusProgress:
+                      placementFocusProgress[scene.nodes[index].placementId] ??
+                      0.0,
                 ),
       ],
     );

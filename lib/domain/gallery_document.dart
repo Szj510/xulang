@@ -53,6 +53,8 @@ class AppSettings {
     this.recordingQuality = RecordingQuality.high,
     this.language = AppLanguage.system,
     this.themeMode = AppThemeMode.system,
+    this.authorizedFolderPaths = const [],
+    this.musicDisplayNames = const {},
   });
 
   final bool recordingShowChapterTitle;
@@ -70,6 +72,8 @@ class AppSettings {
   final RecordingQuality recordingQuality;
   final AppLanguage language;
   final AppThemeMode themeMode;
+  final List<String> authorizedFolderPaths;
+  final Map<String, String> musicDisplayNames;
 
   AppSettings copyWith({
     bool? recordingShowChapterTitle,
@@ -81,6 +85,8 @@ class AppSettings {
     RecordingQuality? recordingQuality,
     AppLanguage? language,
     AppThemeMode? themeMode,
+    List<String>? authorizedFolderPaths,
+    Map<String, String>? musicDisplayNames,
   }) {
     return AppSettings(
       recordingShowChapterTitle:
@@ -90,12 +96,15 @@ class AppSettings {
           this.recordingDelaySeconds,
       mediaImportMode: mediaImportMode ?? this.mediaImportMode,
       recordingSpeed:
-          recordingSpeed?.clamp(1.0, 12.0).toDouble() ?? this.recordingSpeed,
+          recordingSpeed?.clamp(0.1, 12.0).toDouble() ?? this.recordingSpeed,
       recordingUseMusic: recordingUseMusic ?? this.recordingUseMusic,
       recordingChapterMode: recordingChapterMode ?? this.recordingChapterMode,
       recordingQuality: recordingQuality ?? this.recordingQuality,
       language: language ?? this.language,
       themeMode: themeMode ?? this.themeMode,
+      authorizedFolderPaths:
+          authorizedFolderPaths ?? this.authorizedFolderPaths,
+      musicDisplayNames: musicDisplayNames ?? this.musicDisplayNames,
     );
   }
 }

@@ -185,7 +185,14 @@ class ResolvedNarrativeTrack {
               1.0,
             )
           : 1.0;
-      final focus = 1 - distance;
+      final screenFocus = 1 - distance;
+      final progressDistance =
+          ((progress - keyframe.focusProgress).abs() / visibilityWindow).clamp(
+            0.0,
+            1.0,
+          );
+      final progressFocus = 1 - _easeInOut(progressDistance);
+      final focus = math.max(screenFocus, progressFocus);
       nodes.add(
         NarrativeNodeFrame(
           placementId: keyframe.placementId,

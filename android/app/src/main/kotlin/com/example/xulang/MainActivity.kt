@@ -9,10 +9,12 @@ import android.media.MediaRecorder
 import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import androidx.documentfile.provider.DocumentFile
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
@@ -22,10 +24,15 @@ import kotlin.math.max
 
 class MainActivity : FlutterActivity() {
     private val recorderChannel = "xulang/native_screen_recorder"
+    private val documentAccessChannel = "xulang/document_access"
     private val mediaProjectionRequestCode = 4207
+    private val documentTreeRequestCode = 4208
+    private val documentScanFileLimit = 500
+    private val documentScanVisitLimit = 4000
 
     private var pendingResult: MethodChannel.Result? = null
     private var pendingArgs: RecorderArgs? = null
+    private var pendingDocumentTreeResult: MethodChannel.Result? = null
     private var mediaProjection: MediaProjection? = null
     private var mediaProjectionCallback: MediaProjection.Callback? = null
     private var virtualDisplay: VirtualDisplay? = null
@@ -43,6 +50,15 @@ class MainActivity : FlutterActivity() {
                     else -> result.notImplemented()
                 }
             }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, documentAccessChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "openTree" -> openDocumentTree(result)
+                    "listFiles" -> listDocumentFiles(call, result)
+                    "readText" -> readDocumentText(call, result)
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -52,6 +68,10 @@ class MainActivity : FlutterActivity() {
     @Deprecated("Deprecated in Android Activity API, still used by FlutterActivity embedding callback.")
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
         super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == documentTreeRequestCode) {
+            handleDocumentTreeResult(resultCode, data)
+            return
+        }
         if (requestCode != mediaProjectionRequestCode) return
         val result = pendingResult ?: return
         val args = pendingArgs
@@ -71,6 +91,124 @@ class MainActivity : FlutterActivity() {
                 result.error("recording_start_failed", error.message, null)
             }
         }, 300)
+    }
+
+    private fun openDocumentTree(result: MethodChannel.Result) {
+        if (pendingDocumentTreeResult != null) {
+            result.error("already_opening", "A folder authorization request is already open.", null)
+            return
+        }
+        pendingDocumentTreeResult = result
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
+            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            addFlags(Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
+        }
+        startActivityForResult(intent, documentTreeRequestCode)
+    }
+
+    private fun handleDocumentTreeResult(resultCode: Int, data: Intent?) {
+        val result = pendingDocumentTreeResult ?: return
+        pendingDocumentTreeResult = null
+        val uri = data?.data
+        if (resultCode != Activity.RESULT_OK || uri == null) {
+            result.success(null)
+            return
+        }
+        val flags = data.flags and
+            (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        try {
+            contentResolver.takePersistableUriPermission(uri, flags)
+        } catch (_: Throwable) {
+            // Some providers do not expose persistable grants; the current URI is still usable now.
+        }
+        result.success(uri.toString())
+    }
+
+    private fun listDocumentFiles(call: MethodCall, result: MethodChannel.Result) {
+        val roots = call.argument<List<String>>("roots") ?: emptyList()
+        val extensions = (call.argument<List<String>>("extensions") ?: emptyList())
+            .map { it.lowercase() }
+            .toSet()
+        Thread {
+            try {
+                val files = mutableListOf<Map<String, Any?>>()
+                for (root in roots) {
+                    val tree = DocumentFile.fromTreeUri(this, Uri.parse(root)) ?: continue
+                    collectDocumentFiles(tree, extensions, files)
+                    if (files.size >= documentScanFileLimit) break
+                }
+                postMethodResult { result.success(files) }
+            } catch (error: Throwable) {
+                postMethodResult { result.error("document_scan_failed", error.message, null) }
+            }
+        }.start()
+    }
+
+    private fun collectDocumentFiles(
+        root: DocumentFile,
+        extensions: Set<String>,
+        files: MutableList<Map<String, Any?>>,
+    ) {
+        val pending = java.util.ArrayDeque<DocumentFile>()
+        pending.add(root)
+        var visited = 0
+        while (
+            pending.isNotEmpty() &&
+            files.size < documentScanFileLimit &&
+            visited < documentScanVisitLimit
+        ) {
+            val document = pending.removeFirst()
+            visited += 1
+            try {
+                if (document.isFile) {
+                    val name = document.name ?: continue
+                    val lower = name.lowercase()
+                    if (extensions.isEmpty() || extensions.any { lower.endsWith(it) }) {
+                        files.add(
+                            mapOf(
+                                "uri" to document.uri.toString(),
+                                "name" to name,
+                                "size" to document.length(),
+                                "modified" to document.lastModified(),
+                            ),
+                        )
+                    }
+                    continue
+                }
+                if (!document.isDirectory) continue
+                for (child in document.listFiles()) {
+                    if (pending.size + files.size >= documentScanVisitLimit) break
+                    pending.add(child)
+                }
+            } catch (_: Throwable) {
+                // Some providers expose entries that cannot be queried; skip them and continue scanning.
+            }
+        }
+    }
+
+    private fun readDocumentText(call: MethodCall, result: MethodChannel.Result) {
+        val uriText = call.argument<String>("uri")
+        if (uriText.isNullOrBlank()) {
+            result.error("missing_uri", "Document URI is required.", null)
+            return
+        }
+        Thread {
+            try {
+                val text = contentResolver.openInputStream(Uri.parse(uriText)).use { stream ->
+                    stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
+                        ?: throw IllegalStateException("Unable to open document.")
+                }
+                postMethodResult { result.success(text) }
+            } catch (error: Throwable) {
+                postMethodResult { result.error("document_read_failed", error.message, null) }
+            }
+        }.start()
+    }
+
+    private fun postMethodResult(action: () -> Unit) {
+        Handler(Looper.getMainLooper()).post(action)
     }
 
     private fun startRecording(call: MethodCall, result: MethodChannel.Result) {

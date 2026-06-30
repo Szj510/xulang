@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:xulang/data/document_access_service.dart';
 import 'package:xulang/data/gallery_database.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/data/image_selection_service.dart';
@@ -19,6 +20,11 @@ final mediaImportServiceProvider = Provider<MediaImportService>((ref) {
     rootDirectory: repository.mediaRoot,
     createId: repository.createId,
   );
+});
+
+final documentAccessServiceProvider = Provider<DocumentAccessService>((ref) {
+  final repository = ref.watch(galleryRepositoryProvider);
+  return DocumentAccessService(mediaRoot: repository.mediaRoot);
 });
 
 final imageSelectionServiceProvider = Provider<ImageSelectionService>((ref) {

@@ -31,6 +31,39 @@ class _RecordingLibraryScreenState extends State<RecordingLibraryScreen> {
     );
   }
 
+  Future<void> _rename(RecordedVideoInfo video) async {
+    final l10n = AppStrings.of(context);
+    var value = video.name.replaceAll(
+      RegExp(r'\.mp4$', caseSensitive: false),
+      '',
+    );
+    final next = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.renameVideo),
+        content: TextFormField(
+          initialValue: value,
+          autofocus: true,
+          decoration: InputDecoration(labelText: l10n.recordingFileName),
+          onChanged: (text) => value = text,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, value),
+            child: Text(l10n.save),
+          ),
+        ],
+      ),
+    );
+    if (next == null || next.trim().isEmpty) return;
+    await RecordedVideoLibrary.rename(video.path, next.trim());
+    if (mounted) _reload();
+  }
+
   Future<void> _delete(RecordedVideoInfo video) async {
     final l10n = AppStrings.of(context);
     final confirmed = await showDialog<bool>(
@@ -96,7 +129,26 @@ class _RecordingLibraryScreenState extends State<RecordingLibraryScreen> {
                 return Card(
                   child: ListTile(
                     leading: const Icon(Icons.movie_creation_outlined),
-                    title: Text(video.name, maxLines: 1, overflow: TextOverflow.ellipsis),
+                    title: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          video.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          video.path,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: XulangColors.muted,
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
                     subtitle: Text(
                       '${_formatDate(video.modifiedAt)} · ${_formatSize(video.bytes)}',
                       style: const TextStyle(color: XulangColors.muted),
@@ -120,6 +172,11 @@ class _RecordingLibraryScreenState extends State<RecordingLibraryScreen> {
                           tooltip: l10n.share,
                           onPressed: () => _share(video),
                           icon: const Icon(Icons.ios_share_outlined),
+                        ),
+                        IconButton(
+                          tooltip: l10n.rename,
+                          onPressed: () => _rename(video),
+                          icon: const Icon(Icons.drive_file_rename_outline),
                         ),
                         IconButton(
                           tooltip: l10n.delete,

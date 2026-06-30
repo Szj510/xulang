@@ -239,6 +239,88 @@ class GalleryRepository {
       await directory.delete(recursive: true);
     }
   }
+
+  Future<MediaCleanupResult> cleanupUnusedAppPrivateMedia() async {
+    final summaries = await watchExhibitions().first;
+    final referencedMediaIds = <String>{};
+    final mediaById = <String, GalleryMedia>{};
+    for (final summary in summaries) {
+      final bundle = await load(summary.id);
+      if (bundle == null) continue;
+      for (final chapter in bundle.document.chapters) {
+        for (final placement in chapter.placements) {
+          referencedMediaIds.add(placement.mediaId);
+        }
+      }
+      for (final item in bundle.media) {
+        mediaById[item.id] = item;
+      }
+    }
+
+    var deletedFiles = 0;
+    var deletedBytes = 0;
+    for (final media in mediaById.values) {
+      if (referencedMediaIds.contains(media.id)) continue;
+      for (final path in {media.originalPath, media.thumbnailPath}) {
+        if (!_isAppPrivatePath(path, mediaRoot)) continue;
+        final file = File(path);
+        if (!await file.exists()) continue;
+        final length = await file.length();
+        await file.delete();
+        deletedFiles += 1;
+        deletedBytes += length;
+      }
+    }
+    await _deleteEmptyDirectories(mediaRoot, mediaRoot);
+    return MediaCleanupResult(
+      deletedFileCount: deletedFiles,
+      deletedBytes: deletedBytes,
+    );
+  }
+}
+
+class MediaCleanupResult {
+  const MediaCleanupResult({
+    required this.deletedFileCount,
+    required this.deletedBytes,
+  });
+
+  final int deletedFileCount;
+  final int deletedBytes;
+}
+
+bool _isAppPrivatePath(String path, Directory mediaRoot) {
+  if (path.startsWith('asset://') || path.startsWith('content://')) {
+    return false;
+  }
+  final root = p.normalize(mediaRoot.absolute.path);
+  final target = p.normalize(File(path).absolute.path);
+  return p.isWithin(root, target) || target == root;
+}
+
+Future<void> _deleteEmptyDirectories(
+  Directory directory,
+  Directory root,
+) async {
+  if (!await directory.exists()) return;
+  final children = await directory.list(followLinks: false).toList();
+  for (final child in children.whereType<Directory>()) {
+    await _deleteEmptyDirectories(child, root);
+  }
+  if (p.equals(
+    p.normalize(directory.absolute.path),
+    p.normalize(root.absolute.path),
+  )) {
+    return;
+  }
+  final remaining = await directory.list(followLinks: false).isEmpty;
+  if (remaining) {
+    try {
+      await directory.delete();
+    } catch (_) {
+      // Ignore directories that become non-empty during cleanup.
+    }
+  }
 }
 
 Future<String> _copyMediaPath({

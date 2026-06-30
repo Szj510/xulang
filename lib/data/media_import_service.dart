@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
 
@@ -37,12 +38,17 @@ class MediaImportService {
         if (!await source.exists()) {
           throw MediaImportException('找不到所选图片：$sourcePath');
         }
-        final hash = await _sha256(source);
-        final known = byHash[hash];
-        if (known != null) {
-          selectedAssets[known.id] = known;
-          selectionIds.add(known.id);
-          continue;
+        final shouldCopyOriginal = importMode == MediaImportMode.copyIntoApp;
+        final hash = shouldCopyOriginal
+            ? await _sha256(source)
+            : await _referenceFingerprint(source);
+        if (shouldCopyOriginal) {
+          final known = byHash[hash];
+          if (known != null) {
+            selectedAssets[known.id] = known;
+            selectionIds.add(known.id);
+            continue;
+          }
         }
 
         final assetId = createId();
@@ -50,7 +56,6 @@ class MediaImportService {
         final assetStaging = Directory(p.join(stagingRoot.path, assetId));
         await assetStaging.create(recursive: true);
         final extension = p.extension(sourcePath).toLowerCase();
-        final shouldCopyOriginal = importMode == MediaImportMode.copyIntoApp;
         File? original;
         if (shouldCopyOriginal) {
           original = File(
@@ -78,7 +83,9 @@ class MediaImportService {
           contentHash: hash,
         );
         selectedAssets[assetId] = media;
-        byHash[hash] = media;
+        if (shouldCopyOriginal) {
+          byHash[hash] = media;
+        }
         selectionIds.add(assetId);
         pending.add((media: media, directory: assetStaging));
       }
@@ -144,6 +151,14 @@ class MediaImportException implements Exception {
 Future<String> _sha256(File file) async {
   final digest = await sha256.bind(file.openRead()).first;
   return digest.toString();
+}
+
+Future<String> _referenceFingerprint(File file) async {
+  final stat = await file.stat();
+  final raw = utf8.encode(
+    '${file.absolute.path}|${stat.size}|${stat.modified.millisecondsSinceEpoch}',
+  );
+  return 'reference:${sha256.convert(raw)}';
 }
 
 Future<_DecodedMedia> _decodeAndThumbnail(String path) {

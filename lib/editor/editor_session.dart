@@ -187,6 +187,23 @@ class EditorSession extends ChangeNotifier {
     );
   }
 
+  Future<void> setBackgroundMusicReference({
+    required String path,
+    required String title,
+  }) async {
+    final current = bundle;
+    if (current == null) return;
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          musicPath: path,
+          musicTitle: title,
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
   Future<void> clearBackgroundMusic() async {
     final current = bundle;
     if (current == null) return;
@@ -293,6 +310,51 @@ class EditorSession extends ChangeNotifier {
         ),
       ),
     );
+  }
+
+  Future<void> renameChapter(String title, {int? index}) async {
+    final current = bundle;
+    final trimmed = title.trim();
+    if (current == null || trimmed.isEmpty) return;
+    final chapters = List<GalleryChapter>.of(current.document.chapters);
+    if (chapters.isEmpty) return;
+    final targetIndex = (index ?? selectedChapterIndex).clamp(
+      0,
+      chapters.length - 1,
+    );
+    chapters[targetIndex] = chapters[targetIndex].copyWith(title: trimmed);
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          chapters: chapters,
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
+  Future<bool> deleteChapter(int index) async {
+    final current = bundle;
+    if (current == null) return false;
+    final chapters = List<GalleryChapter>.of(current.document.chapters);
+    if (chapters.length <= 1 || index < 0 || index >= chapters.length) {
+      return false;
+    }
+    chapters.removeAt(index);
+    final normalized = [
+      for (var chapterIndex = 0; chapterIndex < chapters.length; chapterIndex++)
+        chapters[chapterIndex].copyWith(order: chapterIndex),
+    ];
+    selectedChapterIndex = selectedChapterIndex.clamp(0, normalized.length - 1);
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          chapters: normalized,
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+    return true;
   }
 
   Future<void> moveChapter(int oldIndex, int newIndex) async {

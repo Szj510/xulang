@@ -33,7 +33,8 @@ class AppSettingsRows extends Table {
       boolean().withDefault(const Constant(true))();
   TextColumn get recordingChapterMode =>
       text().withDefault(const Constant('current'))();
-  TextColumn get recordingQuality => text().withDefault(const Constant('high'))();
+  TextColumn get recordingQuality =>
+      text().withDefault(const Constant('high'))();
   TextColumn get themeMode => text().withDefault(const Constant('system'))();
 
   @override
@@ -229,7 +230,9 @@ class GalleryDatabase extends _$GalleryDatabase {
       "recording_chapter_mode TEXT NOT NULL DEFAULT 'current', "
       "recording_quality TEXT NOT NULL DEFAULT 'high', "
       "app_language TEXT NOT NULL DEFAULT 'system', "
-      "theme_mode TEXT NOT NULL DEFAULT 'system')",
+      "theme_mode TEXT NOT NULL DEFAULT 'system', "
+      "authorized_directories_json TEXT NOT NULL DEFAULT '[]', "
+      "music_display_names_json TEXT NOT NULL DEFAULT '{}')",
     );
     try {
       await customStatement(
@@ -256,6 +259,8 @@ class GalleryDatabase extends _$GalleryDatabase {
       "ALTER TABLE app_settings_rows ADD COLUMN recording_quality TEXT NOT NULL DEFAULT 'high'",
       "ALTER TABLE app_settings_rows ADD COLUMN app_language TEXT NOT NULL DEFAULT 'system'",
       "ALTER TABLE app_settings_rows ADD COLUMN theme_mode TEXT NOT NULL DEFAULT 'system'",
+      "ALTER TABLE app_settings_rows ADD COLUMN authorized_directories_json TEXT NOT NULL DEFAULT '[]'",
+      "ALTER TABLE app_settings_rows ADD COLUMN music_display_names_json TEXT NOT NULL DEFAULT '{}'",
     ];
     for (final statement in statements) {
       try {
@@ -572,7 +577,8 @@ class GalleryDatabase extends _$GalleryDatabase {
           (_) => customSelect(
             'SELECT recording_show_chapter_title, media_import_mode, recording_speed, '
             'recording_use_music, recording_chapter_mode, recording_quality, '
-            'app_language, theme_mode '
+            'app_language, theme_mode, authorized_directories_json, '
+            'music_display_names_json '
             'FROM app_settings_rows WHERE id = ? LIMIT 1',
             variables: [Variable.withString(_appSettingsId)],
             readsFrom: {appSettingsRows},
@@ -591,7 +597,7 @@ class GalleryDatabase extends _$GalleryDatabase {
             ),
             recordingSpeed: row
                 .read<double>('recording_speed')
-                .clamp(1.0, 12.0)
+                .clamp(0.1, 12.0)
                 .toDouble(),
             recordingUseMusic: row.read<int>('recording_use_music') != 0,
             recordingChapterMode: _enumByName(
@@ -614,6 +620,12 @@ class GalleryDatabase extends _$GalleryDatabase {
               row.read<String>('theme_mode'),
               AppThemeMode.system,
             ),
+            authorizedFolderPaths: _decodeStringList(
+              row.read<String>('authorized_directories_json'),
+            ),
+            musicDisplayNames: _decodeStringMap(
+              row.read<String>('music_display_names_json'),
+            ),
           );
         });
   }
@@ -626,7 +638,7 @@ class GalleryDatabase extends _$GalleryDatabase {
         recordingShowChapterTitle: Value(settings.recordingShowChapterTitle),
         mediaImportMode: Value(settings.mediaImportMode.name),
         recordingSpeed: Value(
-          settings.recordingSpeed.clamp(1.0, 12.0).toDouble(),
+          settings.recordingSpeed.clamp(0.1, 12.0).toDouble(),
         ),
         recordingUseMusic: Value(settings.recordingUseMusic),
         recordingChapterMode: Value(settings.recordingChapterMode.name),
@@ -635,10 +647,14 @@ class GalleryDatabase extends _$GalleryDatabase {
       ),
     );
     await customUpdate(
-      'UPDATE app_settings_rows SET app_language = ?, theme_mode = ? WHERE id = ?',
+      'UPDATE app_settings_rows SET app_language = ?, theme_mode = ?, '
+      'authorized_directories_json = ?, music_display_names_json = ? '
+      'WHERE id = ?',
       variables: [
         Variable.withString(settings.language.name),
         Variable.withString(settings.themeMode.name),
+        Variable.withString(jsonEncode(settings.authorizedFolderPaths)),
+        Variable.withString(jsonEncode(settings.musicDisplayNames)),
         Variable.withString(_appSettingsId),
       ],
       updates: {appSettingsRows},
@@ -766,6 +782,37 @@ String _displayTitleForSummary(String id, String title) {
     return '$title（官方示例）';
   }
   return title;
+}
+
+List<String> _decodeStringList(String value) {
+  try {
+    final decoded = jsonDecode(value);
+    if (decoded is List) {
+      return [
+        for (final item in decoded)
+          if (item is String && item.trim().isNotEmpty) item,
+      ];
+    }
+  } catch (_) {
+    // Keep corrupt settings recoverable.
+  }
+  return const [];
+}
+
+Map<String, String> _decodeStringMap(String value) {
+  try {
+    final decoded = jsonDecode(value);
+    if (decoded is Map) {
+      return {
+        for (final entry in decoded.entries)
+          if (entry.key is String && entry.value is String)
+            entry.key as String: entry.value as String,
+      };
+    }
+  } catch (_) {
+    // Keep corrupt settings recoverable.
+  }
+  return const {};
 }
 
 class ExhibitionSummary {
