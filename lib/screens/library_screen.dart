@@ -1,14 +1,15 @@
 import 'dart:convert';
-
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:xulang/data/document_access_service.dart';
 import 'package:xulang/data/gallery_database.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/screens/editor_screen.dart';
+import 'package:xulang/screens/music_library_screen.dart';
 import 'package:xulang/screens/recording_library_screen.dart';
 import 'package:xulang/screens/viewer_screen.dart';
 import 'package:xulang/share/exhibition_exporter.dart';
@@ -39,81 +40,101 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 .firstOrNull,
             orElse: () => null,
           );
-    return Scaffold(
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              if (_selectedCategoryId == null) ...[
-                _LibraryHeader(
-                  onCreate: () => _createExhibition(context),
-                  onCreateCategory: () => _createCategory(context),
-                  onImportTemplate: () => _importTemplate(context),
-                  onInfo: () => _showLocalInfo(context),
-                  onSettings: () => _showAppSettings(
-                    context,
-                    settings: ref
-                        .read(appSettingsProvider)
-                        .maybeWhen(
-                          data: (value) => value,
-                          orElse: () => const AppSettings(),
-                        ),
-                    onSaveSettings: (settings) => ref
-                        .read(galleryRepositoryProvider)
-                        .saveAppSettings(settings),
-                    onImportTemplate: () => _importTemplate(context),
-                    onManageRecordings: () => _openRecordingLibrary(context),
-                  ),
-                  onManageRecordings: () => _openRecordingLibrary(context),
-                ),
-                const SizedBox(height: 22),
-              ],
-              Expanded(
-                child: exhibitions.when(
-                  data: (items) => categories.when(
-                    data: (categoryItems) => _selectedCategoryId == null
-                        ? _CategoryHome(
-                            categories: _buildBuckets(categoryItems, items),
-                            onOpenCategory: (id) =>
-                                setState(() => _selectedCategoryId = id),
-                            onCreate: () => _createExhibition(context),
-                            onCreateCategory: () => _createCategory(context),
-                            onImportTemplate: () => _importTemplate(context),
-                          )
-                        : _CategoryDetail(
-                            title: selectedCategory?.title ?? AppStrings.of(context).uncategorized,
-                            searchQuery: _searchQuery,
-                            sortMode: _sortMode,
-                            items: _filterAndSort(
-                              _itemsForCategory(items, selectedCategory?.id),
-                            ),
-                            categories: categoryItems,
-                            onBack: () => setState(() {
-                              _selectedCategoryId = null;
-                              _searchQuery = '';
-                            }),
-                            onSearchChanged: (value) =>
-                                setState(() => _searchQuery = value),
-                            onSortChanged: (value) =>
-                                setState(() => _sortMode = value),
-                            onCreate: () => _createExhibition(
-                              context,
-                              categoryId: selectedCategory?.id,
-                            ),
-                            onMoveCategory: _moveExhibition,
+    return PopScope(
+      canPop: _selectedCategoryId == null,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop || _selectedCategoryId == null) return;
+        setState(() {
+          _selectedCategoryId = null;
+          _searchQuery = '';
+        });
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (_selectedCategoryId == null) ...[
+                  _LibraryHeader(
+                    onCreate: () => _createExhibition(context),
+                    onCreateCategory: () => _createCategory(context),
+                    onImportTemplate: () => _importTemplateV2(context),
+                    onInfo: () => _showLocalInfo(context),
+                    onSettings: () => _showAppSettings(
+                      context,
+                      settings: ref
+                          .read(appSettingsProvider)
+                          .maybeWhen(
+                            data: (value) => value,
+                            orElse: () => const AppSettings(),
                           ),
+                      onSaveSettings: (settings) => ref
+                          .read(galleryRepositoryProvider)
+                          .saveAppSettings(settings),
+                      onImportTemplate: () => _importTemplateV2(context),
+                      onManageRecordings: () => _openRecordingLibrary(context),
+                      onManageMusic: () => _openMusicLibrary(context),
+                      onCleanupUnusedMedia: () => _cleanupUnusedMedia(context),
+                    ),
+                    onManageRecordings: () => _openRecordingLibrary(context),
+                    onManageMusic: () => _openMusicLibrary(context),
+                  ),
+                  const SizedBox(height: 22),
+                ],
+                Expanded(
+                  child: exhibitions.when(
+                    data: (items) => categories.when(
+                      data: (categoryItems) => _selectedCategoryId == null
+                          ? _CategoryHome(
+                              categories: _buildBuckets(categoryItems, items),
+                              onOpenCategory: (id) =>
+                                  setState(() => _selectedCategoryId = id),
+                              onRenameCategory: (category) =>
+                                  _renameCategory(context, category),
+                              onDeleteCategory: (category) =>
+                                  _deleteCategory(context, category),
+                              onCreate: () => _createExhibition(context),
+                              onCreateCategory: () => _createCategory(context),
+                              onImportTemplate: () =>
+                                  _importTemplateV2(context),
+                            )
+                          : _CategoryDetail(
+                              title:
+                                  selectedCategory?.title ??
+                                  AppStrings.of(context).uncategorized,
+                              searchQuery: _searchQuery,
+                              sortMode: _sortMode,
+                              items: _filterAndSort(
+                                _itemsForCategory(items, selectedCategory?.id),
+                              ),
+                              categories: categoryItems,
+                              onBack: () => setState(() {
+                                _selectedCategoryId = null;
+                                _searchQuery = '';
+                              }),
+                              onSearchChanged: (value) =>
+                                  setState(() => _searchQuery = value),
+                              onSortChanged: (value) =>
+                                  setState(() => _sortMode = value),
+                              onCreate: () => _createExhibition(
+                                context,
+                                categoryId: selectedCategory?.id,
+                              ),
+                              onMoveCategory: _moveExhibition,
+                            ),
+                      loading: () =>
+                          const Center(child: CircularProgressIndicator()),
+                      error: (error, stackTrace) => _LibraryError(error: error),
+                    ),
                     loading: () =>
                         const Center(child: CircularProgressIndicator()),
                     error: (error, stackTrace) => _LibraryError(error: error),
                   ),
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
-                  error: (error, stackTrace) => _LibraryError(error: error),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -123,6 +144,48 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   Future<void> _openRecordingLibrary(BuildContext context) {
     return Navigator.of(context).push(
       MaterialPageRoute<void>(builder: (_) => const RecordingLibraryScreen()),
+    );
+  }
+
+  Future<void> _openMusicLibrary(BuildContext context) {
+    return Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => const MusicLibraryScreen()));
+  }
+
+  Future<void> _cleanupUnusedMedia(BuildContext context) async {
+    final l10n = AppStrings.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.cleanupUnusedMedia),
+        content: Text(l10n.cleanupUnusedMediaConfirm),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.clear),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+    final result = await ref
+        .read(galleryRepositoryProvider)
+        .cleanupUnusedAppPrivateMedia();
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          l10n.cleanupUnusedMediaResult(
+            result.deletedFileCount,
+            _formatBytes(result.deletedBytes),
+          ),
+        ),
+      ),
     );
   }
 
@@ -219,6 +282,60 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     );
   }
 
+  Future<void> _renameCategory(
+    BuildContext context,
+    GalleryCategoryInfo category,
+  ) async {
+    final title = await _textDialog(
+      context,
+      title: AppStrings.of(context).renameCategory,
+      hint: AppStrings.of(context).newCategory,
+      initialValue: category.title,
+      confirmText: AppStrings.of(context).save,
+    );
+    if (title == null || title.trim().isEmpty) return;
+    await ref
+        .read(galleryRepositoryProvider)
+        .renameCategory(
+          category: category,
+          title: title.trim(),
+          now: DateTime.now(),
+        );
+  }
+
+  Future<void> _deleteCategory(
+    BuildContext context,
+    GalleryCategoryInfo category,
+  ) async {
+    final l10n = AppStrings.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.deleteCategoryTitle),
+        content: Text(l10n.deleteCategoryBody(category.title)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            style: FilledButton.styleFrom(
+              backgroundColor: XulangColors.danger,
+              foregroundColor: XulangColors.paper,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.delete),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    await ref.read(galleryRepositoryProvider).deleteCategory(category.id);
+    if (_selectedCategoryId == category.id && mounted) {
+      setState(() => _selectedCategoryId = null);
+    }
+  }
+
   Future<void> _moveExhibition(ExhibitionSummary summary, String? categoryId) {
     return ref
         .read(galleryRepositoryProvider)
@@ -229,6 +346,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         );
   }
 
+  // ignore: unused_element
   Future<void> _importTemplate(BuildContext context) async {
     try {
       final picked = await openFile(
@@ -320,6 +438,294 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
       ).showSnackBar(SnackBar(content: Text('导入模板失败：')));
     }
   }
+
+  Future<void> _importTemplateV2(BuildContext context) async {
+    try {
+      final picked = await _pickTemplateFile(context);
+      if (picked == null || !context.mounted) return;
+      final codec = const ExhibitionTemplateCodec();
+      final access = ref.read(documentAccessServiceProvider);
+      final templateJson = await access.readTemplateText(picked);
+      final summary = codec.inspect(templateJson);
+      if (!context.mounted) return;
+      final l10n = AppStrings.of(context);
+      final exhibitionTitle = await _textDialog(
+        context,
+        title: l10n.newExhibitionTitle,
+        hint: l10n.exhibitionName,
+        initialValue: summary.title,
+        confirmText: l10n.chooseImagesByChapter,
+      );
+      if (exhibitionTitle == null || exhibitionTitle.trim().isEmpty) return;
+      if (!context.mounted) return;
+      final categories = ref
+          .read(exhibitionCategoriesProvider)
+          .maybeWhen(
+            data: (value) => value,
+            orElse: () => const <GalleryCategoryInfo>[],
+          );
+      final pickedCategoryId = await _pickCategoryForExhibition(
+        context,
+        categories,
+        _selectedCategoryId,
+      );
+      if (pickedCategoryId == null ||
+          pickedCategoryId == _categoryDialogCancelled ||
+          !context.mounted) {
+        return;
+      }
+      final targetCategoryId =
+          pickedCategoryId == LibraryCategoryBucket.uncategorizedId
+          ? null
+          : pickedCategoryId;
+
+      final sourcePathsByChapter = <List<String>>[];
+      var missingSlots = 0;
+      var extraImages = 0;
+      for (var index = 0; index < summary.chapters.length; index++) {
+        final chapter = summary.chapters[index];
+        if (!mounted || !context.mounted) return;
+        final proceed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(
+              '${index + 1}/${summary.chapters.length} ${chapter.title}',
+            ),
+            content: Text(
+              AppStrings.of(
+                context,
+              ).chapterNeedsImages(chapter.title, chapter.slotCount),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(AppStrings.of(context).cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(AppStrings.of(context).choose),
+              ),
+            ],
+          ),
+        );
+        if (proceed != true || !context.mounted) return;
+        final paths = await ref
+            .read(imageSelectionServiceProvider)
+            .selectImages();
+        if (!context.mounted) return;
+        final shouldContinue = await _confirmTemplateImageCount(
+          context,
+          chapter: chapter,
+          selectedCount: paths.length,
+        );
+        if (shouldContinue != true || !context.mounted) return;
+        if (paths.length < chapter.slotCount) {
+          missingSlots += chapter.slotCount - paths.length;
+        } else if (paths.length > chapter.slotCount) {
+          extraImages += paths.length - chapter.slotCount;
+        }
+        sourcePathsByChapter.add(paths);
+      }
+
+      final allSourcePaths = [
+        for (final chapterPaths in sourcePathsByChapter)
+          for (final path in chapterPaths) path,
+      ];
+      if (allSourcePaths.isEmpty || !context.mounted) {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(AppStrings.of(context).noImagesSelected)),
+          );
+        }
+        return;
+      }
+
+      final repository = ref.read(galleryRepositoryProvider);
+      final importer = ref.read(mediaImportServiceProvider);
+      final id = repository.createId();
+      final now = DateTime.now();
+      final settings = ref
+          .read(appSettingsProvider)
+          .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
+      final importResult = await importer.importFiles(
+        exhibitionId: id,
+        sourcePaths: allSourcePaths,
+        existingAssets: const [],
+        importMode: settings.mediaImportMode,
+      );
+      if (importResult.selectionMediaIds.isEmpty) return;
+
+      var cursor = 0;
+      final mediaIdsByChapter = <List<String>>[];
+      for (final chapterPaths in sourcePathsByChapter) {
+        final count = chapterPaths.length;
+        mediaIdsByChapter.add(
+          importResult.selectionMediaIds.sublist(cursor, cursor + count),
+        );
+        cursor += count;
+      }
+
+      final base = GalleryDocument.create(
+        id: id,
+        title: exhibitionTitle.trim(),
+        createdAt: now,
+      ).copyWith(categoryId: targetCategoryId);
+      final document = codec.applyToDocumentByChapterMedia(
+        base: base,
+        templateJson: templateJson,
+        createId: repository.createId,
+        now: now,
+        mediaIdsByChapter: mediaIdsByChapter,
+        titleOverride: exhibitionTitle,
+        appendExtraMedia: true,
+      );
+      await repository.save(
+        GalleryBundle(document: document, media: importResult.assets),
+      );
+      if (context.mounted && (missingSlots > 0 || extraImages > 0)) {
+        final messages = <String>[
+          if (missingSlots > 0)
+            AppStrings.of(context).missingImagesHint(missingSlots),
+          if (extraImages > 0)
+            AppStrings.of(context).extraImagesHint(extraImages),
+        ];
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(messages.join('\n'))));
+      }
+      if (!context.mounted) return;
+      await Navigator.of(context).push(
+        MaterialPageRoute<void>(builder: (_) => EditorScreen(exhibitionId: id)),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${AppStrings.of(context).importTemplate}: $error'),
+        ),
+      );
+    }
+  }
+
+  Future<bool?> _confirmTemplateImageCount(
+    BuildContext context, {
+    required TemplateChapterSummary chapter,
+    required int selectedCount,
+  }) {
+    final slotCount = chapter.slotCount;
+    if (selectedCount == slotCount) return Future.value(true);
+    final l10n = AppStrings.of(context);
+    final message = selectedCount > slotCount
+        ? l10n.extraImagesHint(selectedCount - slotCount)
+        : l10n.missingImagesHint(slotCount - selectedCount);
+    return showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.chapterImageCountMismatch),
+        content: Text(
+          '${l10n.chapterNeedsImages(chapter.title, slotCount)}\n\n'
+          '${l10n.selectedImagesCount(selectedCount)}\n\n'
+          '$message',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.cancel),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l10n.continueImport),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<TemplateFileCandidate?> _pickTemplateFile(BuildContext context) async {
+    final settings = ref
+        .read(appSettingsProvider)
+        .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
+    final access = ref.read(documentAccessServiceProvider);
+    final candidates = await access.scanTemplates(
+      authorizedDirectories: settings.authorizedFolderPaths,
+    );
+    if (!context.mounted) return null;
+    return showModalBottomSheet<TemplateFileCandidate>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => SafeArea(
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.sizeOf(sheetContext).height * .72,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                title: Text(AppStrings.of(sheetContext).templateLibrary),
+                subtitle: Text(
+                  AppStrings.of(sheetContext).importTemplateSubtitle,
+                ),
+                trailing: TextButton.icon(
+                  onPressed: () async {
+                    final path = await access.requestDirectory();
+                    if (path == null || path.trim().isEmpty) return;
+                    final next = settings.copyWith(
+                      authorizedFolderPaths: [
+                        ...settings.authorizedFolderPaths,
+                        if (!settings.authorizedFolderPaths.contains(path))
+                          path,
+                      ],
+                    );
+                    await ref
+                        .read(galleryRepositoryProvider)
+                        .saveAppSettings(next);
+                    if (sheetContext.mounted) Navigator.pop(sheetContext);
+                  },
+                  icon: const Icon(Icons.folder_open_outlined),
+                  label: Text(AppStrings.of(sheetContext).authorizeFolder),
+                ),
+              ),
+              const Divider(height: 1),
+              Expanded(
+                child: candidates.isEmpty
+                    ? Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text(
+                            AppStrings.of(sheetContext).importTemplateSubtitle,
+                            textAlign: TextAlign.center,
+                            style: const TextStyle(color: XulangColors.muted),
+                          ),
+                        ),
+                      )
+                    : ListView.separated(
+                        itemCount: candidates.length,
+                        separatorBuilder: (_, _) => const Divider(height: 1),
+                        itemBuilder: (context, index) {
+                          final candidate = candidates[index];
+                          return ListTile(
+                            leading: const Icon(Icons.description_outlined),
+                            title: Text(candidate.summary.title),
+                            subtitle: Text(
+                              '${candidate.summary.chapterCount} chapters · '
+                              '${candidate.summary.placementCount} images\n'
+                              '${candidate.path}',
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            onTap: () => Navigator.pop(context, candidate),
+                          );
+                        },
+                      ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _LibraryHeader extends StatelessWidget {
@@ -330,6 +736,7 @@ class _LibraryHeader extends StatelessWidget {
     required this.onInfo,
     required this.onSettings,
     required this.onManageRecordings,
+    required this.onManageMusic,
   });
 
   final VoidCallback onCreate;
@@ -338,6 +745,7 @@ class _LibraryHeader extends StatelessWidget {
   final VoidCallback onInfo;
   final VoidCallback onSettings;
   final VoidCallback onManageRecordings;
+  final VoidCallback onManageMusic;
 
   @override
   Widget build(BuildContext context) {
@@ -353,7 +761,11 @@ class _LibraryHeader extends StatelessWidget {
           style: const TextStyle(
             color: XulangColors.paper,
             fontFamily: 'Noto Serif SC',
-            fontFamilyFallback: ['Noto Sans SC', 'PingFang SC', 'Microsoft YaHei'],
+            fontFamilyFallback: [
+              'Noto Sans SC',
+              'PingFang SC',
+              'Microsoft YaHei',
+            ],
             fontSize: 34,
             fontWeight: FontWeight.w400,
             letterSpacing: 1.8,
@@ -390,6 +802,11 @@ class _LibraryHeader extends StatelessWidget {
         tooltip: l10n.manageVideos,
         onPressed: onManageRecordings,
         icon: const Icon(Icons.video_library_outlined, size: 20),
+      ),
+      _HeaderIconButton(
+        tooltip: l10n.manageMusic,
+        onPressed: onManageMusic,
+        icon: const Icon(Icons.music_note_outlined, size: 20),
       ),
       _HeaderIconButton(
         tooltip: l10n.importTemplate,
@@ -609,6 +1026,8 @@ class _CategoryHome extends StatelessWidget {
   const _CategoryHome({
     required this.categories,
     required this.onOpenCategory,
+    required this.onRenameCategory,
+    required this.onDeleteCategory,
     required this.onCreate,
     required this.onCreateCategory,
     required this.onImportTemplate,
@@ -616,6 +1035,8 @@ class _CategoryHome extends StatelessWidget {
 
   final List<LibraryCategoryBucket> categories;
   final ValueChanged<String> onOpenCategory;
+  final ValueChanged<GalleryCategoryInfo> onRenameCategory;
+  final ValueChanged<GalleryCategoryInfo> onDeleteCategory;
   final VoidCallback onCreate;
   final VoidCallback onCreateCategory;
   final VoidCallback onImportTemplate;
@@ -656,6 +1077,8 @@ class _CategoryHome extends StatelessWidget {
             return _CategoryBoxCard(
               bucket: categories[index],
               onTap: () => onOpenCategory(categories[index].id),
+              onRename: onRenameCategory,
+              onDelete: onDeleteCategory,
             );
           },
         );
@@ -665,10 +1088,17 @@ class _CategoryHome extends StatelessWidget {
 }
 
 class _CategoryBoxCard extends StatelessWidget {
-  const _CategoryBoxCard({required this.bucket, required this.onTap});
+  const _CategoryBoxCard({
+    required this.bucket,
+    required this.onTap,
+    required this.onRename,
+    required this.onDelete,
+  });
 
   final LibraryCategoryBucket bucket;
   final VoidCallback onTap;
+  final ValueChanged<GalleryCategoryInfo> onRename;
+  final ValueChanged<GalleryCategoryInfo> onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -703,6 +1133,38 @@ class _CategoryBoxCard extends StatelessWidget {
               bottom: 64,
               child: _StackedEnvelopePreview(previews: previews),
             ),
+            if (!bucket.isUncategorized && bucket.category != null)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: PopupMenuButton<_CategoryAction>(
+                  tooltip: AppStrings.of(context).moreActions,
+                  icon: const Icon(
+                    Icons.more_horiz,
+                    color: XulangColors.paper,
+                    size: 20,
+                  ),
+                  onSelected: (action) {
+                    final category = bucket.category!;
+                    switch (action) {
+                      case _CategoryAction.rename:
+                        onRename(category);
+                      case _CategoryAction.delete:
+                        onDelete(category);
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: _CategoryAction.rename,
+                      child: Text(AppStrings.of(context).rename),
+                    ),
+                    PopupMenuItem(
+                      value: _CategoryAction.delete,
+                      child: Text(AppStrings.of(context).delete),
+                    ),
+                  ],
+                ),
+              ),
             Positioned(
               left: 18,
               right: 18,
@@ -726,7 +1188,9 @@ class _CategoryBoxCard extends StatelessWidget {
                         ),
                         const SizedBox(height: 3),
                         Text(
-                          AppStrings.of(context).exhibitionCount(bucket.exhibitions.length),
+                          AppStrings.of(
+                            context,
+                          ).exhibitionCount(bucket.exhibitions.length),
                           style: const TextStyle(
                             color: XulangColors.muted,
                             fontSize: 12,
@@ -1067,7 +1531,8 @@ class _ExhibitionCard extends ConsumerWidget {
               ? const _CoverFallback()
               : GalleryImage(path: cover.thumbnailPath, cacheWidth: 900),
           title: _displayExhibitionTitle(summary),
-          meta: '${AppStrings.of(context).photoCount(imageCount)} · ${_formatDate(context, summary.updatedAt)}',
+          meta:
+              '${AppStrings.of(context).photoCount(imageCount)} · ${_formatDate(context, summary.updatedAt)}',
           actions: [
             if (imageCount > 0)
               _CardIconButton(
@@ -1341,47 +1806,54 @@ class _CardMenuButton extends StatelessWidget {
       itemBuilder: (context) {
         final l10n = AppStrings.of(context);
         return [
-        PopupMenuItem(
-          value: _CardAction.rename,
-          child: Row(
-            children: [
-              Icon(Icons.edit_outlined, size: 18),
-              SizedBox(width: 12),
-              Text(l10n.rename),
-            ],
+          PopupMenuItem(
+            value: _CardAction.rename,
+            child: Row(
+              children: [
+                Icon(Icons.edit_outlined, size: 18),
+                SizedBox(width: 12),
+                Text(l10n.rename),
+              ],
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: _CardAction.duplicate,
-          child: Row(
-            children: [
-              Icon(Icons.copy_outlined, size: 18),
-              SizedBox(width: 12),
-              Text(l10n.duplicateExhibition),
-            ],
+          PopupMenuItem(
+            value: _CardAction.duplicate,
+            child: Row(
+              children: [
+                Icon(Icons.copy_outlined, size: 18),
+                SizedBox(width: 12),
+                Text(l10n.duplicateExhibition),
+              ],
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: _CardAction.move,
-          child: Row(
-            children: [
-              Icon(Icons.drive_file_move_outlined, size: 18),
-              SizedBox(width: 12),
-              Text(l10n.moveCategory),
-            ],
+          PopupMenuItem(
+            value: _CardAction.move,
+            child: Row(
+              children: [
+                Icon(Icons.drive_file_move_outlined, size: 18),
+                SizedBox(width: 12),
+                Text(l10n.moveCategory),
+              ],
+            ),
           ),
-        ),
-        PopupMenuItem(
-          value: _CardAction.delete,
-          child: Row(
-            children: [
-              Icon(Icons.delete_outline, size: 18, color: XulangColors.danger),
-              SizedBox(width: 12),
-              Text(l10n.delete, style: const TextStyle(color: XulangColors.danger)),
-            ],
+          PopupMenuItem(
+            value: _CardAction.delete,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.delete_outline,
+                  size: 18,
+                  color: XulangColors.danger,
+                ),
+                SizedBox(width: 12),
+                Text(
+                  l10n.delete,
+                  style: const TextStyle(color: XulangColors.danger),
+                ),
+              ],
+            ),
           ),
-        ),
-      ];
+        ];
       },
     );
   }
@@ -1405,7 +1877,10 @@ class _LibraryError extends StatelessWidget {
               color: XulangColors.muted,
             ),
             const SizedBox(height: 16),
-            Text(AppStrings.of(context).cannotReadExhibitions, style: Theme.of(context).textTheme.headlineSmall),
+            Text(
+              AppStrings.of(context).cannotReadExhibitions,
+              style: Theme.of(context).textTheme.headlineSmall,
+            ),
             const SizedBox(height: 8),
             Text(
               '$error',
@@ -1418,6 +1893,8 @@ class _LibraryError extends StatelessWidget {
     );
   }
 }
+
+enum _CategoryAction { rename, delete }
 
 enum _CardAction { rename, duplicate, move, delete }
 
@@ -1559,12 +2036,23 @@ String _recordingQualityLabel(AppStrings l10n, RecordingQuality quality) =>
       RecordingQuality.ultra => l10n.ultraQuality,
     };
 
+String _formatBytes(int bytes) {
+  if (bytes < 1024) return '$bytes B';
+  final kb = bytes / 1024;
+  if (kb < 1024) return '${kb.toStringAsFixed(1)} KB';
+  final mb = kb / 1024;
+  if (mb < 1024) return '${mb.toStringAsFixed(1)} MB';
+  return '${(mb / 1024).toStringAsFixed(1)} GB';
+}
+
 void _showAppSettings(
   BuildContext context, {
   required AppSettings settings,
   required Future<void> Function(AppSettings settings) onSaveSettings,
   required VoidCallback onImportTemplate,
   required VoidCallback onManageRecordings,
+  required VoidCallback onManageMusic,
+  required VoidCallback onCleanupUnusedMedia,
 }) {
   var draft = settings;
   var l10n = AppStrings.from(draft, Localizations.maybeLocaleOf(context));
@@ -1721,9 +2209,9 @@ void _showAppSettings(
                     ),
                     subtitle: Slider(
                       value: draft.recordingSpeed,
-                      min: 1,
+                      min: 0.1,
                       max: 12,
-                      divisions: 22,
+                      divisions: 119,
                       label: l10n.speedLabel(draft.recordingSpeed),
                       onChanged: (value) async {
                         draft = draft.copyWith(recordingSpeed: value);
@@ -1755,6 +2243,17 @@ void _showAppSettings(
                     title: l10n.usageStepTitle(4),
                     body: l10n.usageStepBody(4),
                   ),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 4, bottom: 8),
+                    child: Text(
+                      '${l10n.buttonTooltipHint}\n${l10n.doubleTapPlaybackHint}',
+                      style: const TextStyle(
+                        color: XulangColors.muted,
+                        fontSize: 12,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
                   const SizedBox(height: 16),
                   _SettingsSectionTitle(l10n.commonEntrances),
                   _SettingsTile(
@@ -1764,6 +2263,15 @@ void _showAppSettings(
                     onTap: () {
                       Navigator.pop(sheetContext);
                       onManageRecordings();
+                    },
+                  ),
+                  _SettingsTile(
+                    icon: Icons.music_note_outlined,
+                    title: l10n.manageMusic,
+                    subtitle: l10n.localPath,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      onManageMusic();
                     },
                   ),
                   _SettingsTile(
@@ -1782,6 +2290,15 @@ void _showAppSettings(
                     onTap: () {
                       Navigator.pop(sheetContext);
                       _showLocalInfo(context);
+                    },
+                  ),
+                  _SettingsTile(
+                    icon: Icons.cleaning_services_outlined,
+                    title: l10n.cleanupUnusedMedia,
+                    subtitle: l10n.cleanupUnusedMediaSubtitle,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      onCleanupUnusedMedia();
                     },
                   ),
                 ],
@@ -1921,4 +2438,5 @@ void _showLocalInfo(BuildContext context) {
   );
 }
 
-String _formatDate(BuildContext context, DateTime date) => AppStrings.of(context).monthDay(date);
+String _formatDate(BuildContext context, DateTime date) =>
+    AppStrings.of(context).monthDay(date);

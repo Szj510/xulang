@@ -2,6 +2,7 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:xulang/domain/gallery_document.dart';
+import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/atmospheric_sticker.dart';
 
@@ -19,6 +20,7 @@ class StickerControlTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppStrings.of(context);
     final degrees = sticker.rotation * 180 / math.pi;
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
@@ -55,11 +57,14 @@ class StickerControlTile extends StatelessWidget {
               const SizedBox(height: 6),
               Row(
                 children: [
-                  const SizedBox(
+                  SizedBox(
                     width: 58,
                     child: Text(
-                      '旋转',
-                      style: TextStyle(fontSize: 11, color: XulangColors.muted),
+                      l10n.stickerRotation,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: XulangColors.muted,
+                      ),
                     ),
                   ),
                   Expanded(
@@ -75,9 +80,9 @@ class StickerControlTile extends StatelessWidget {
                   ),
                 ],
               ),
-              const Text(
-                '在画布上点叉删除',
-                style: TextStyle(fontSize: 11, color: XulangColors.muted),
+              Text(
+                l10n.deleteStickerOnCanvas,
+                style: const TextStyle(fontSize: 11, color: XulangColors.muted),
               ),
             ],
           ),

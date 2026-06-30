@@ -81,4 +81,110 @@ void main() {
     expect(placements.first.scale, 1.2);
     expect(placements.first.offsetX, .1);
   });
+
+  test('template summary includes per chapter slot counts', () {
+    final template = ExhibitionTemplateCodec().encode(
+      GalleryDocument(
+        id: 'template',
+        title: 'Trip',
+        createdAt: DateTime(2026, 6, 29),
+        updatedAt: DateTime(2026, 6, 29),
+        chapters: const [
+          GalleryChapter(
+            id: 'chapter-1',
+            title: 'Start',
+            order: 0,
+            layout: GalleryLayout.hero,
+            motion: GalleryMotion.push,
+            placements: [
+              GalleryPlacement(id: 'slot-1', mediaId: 'm1', order: 0),
+            ],
+          ),
+          GalleryChapter(
+            id: 'chapter-2',
+            title: 'Road',
+            order: 1,
+            layout: GalleryLayout.filmstrip,
+            motion: GalleryMotion.pan,
+            placements: [
+              GalleryPlacement(id: 'slot-2', mediaId: 'm2', order: 0),
+              GalleryPlacement(id: 'slot-3', mediaId: 'm3', order: 1),
+            ],
+          ),
+        ],
+      ),
+    );
+
+    final summary = const ExhibitionTemplateCodec().inspect(template);
+
+    expect(summary.chapterCount, 2);
+    expect(summary.placementCount, 3);
+    expect(summary.chapters.map((chapter) => chapter.slotCount), [1, 2]);
+  });
+
+  test(
+    'applies template with chapter media and appends extra images plainly',
+    () {
+      final codec = const ExhibitionTemplateCodec();
+      final template = codec.encode(
+        GalleryDocument(
+          id: 'template',
+          title: 'Template',
+          createdAt: DateTime(2026, 6, 29),
+          updatedAt: DateTime(2026, 6, 29),
+          chapters: const [
+            GalleryChapter(
+              id: 'chapter-1',
+              title: 'One',
+              order: 0,
+              layout: GalleryLayout.hero,
+              motion: GalleryMotion.push,
+              placements: [
+                GalleryPlacement(
+                  id: 'slot-1',
+                  mediaId: 'template-media-1',
+                  order: 0,
+                  frame: GalleryFrame.wood,
+                  size: GallerySize.large,
+                ),
+                GalleryPlacement(
+                  id: 'slot-2',
+                  mediaId: 'template-media-2',
+                  order: 1,
+                  frame: GalleryFrame.stamp,
+                  size: GallerySize.small,
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+      var id = 0;
+      final applied = codec.applyToDocumentByChapterMedia(
+        base: GalleryDocument.create(
+          id: 'new',
+          title: 'New',
+          createdAt: DateTime(2026, 6, 29),
+        ),
+        templateJson: template,
+        createId: () => 'generated-${++id}',
+        now: DateTime(2026, 6, 29, 12),
+        mediaIdsByChapter: const [
+          ['media-1', 'media-2', 'media-extra'],
+        ],
+        titleOverride: 'Imported',
+        appendExtraMedia: true,
+      );
+
+      final placements = applied.chapters.single.placements;
+      expect(placements, hasLength(3));
+      expect(placements[0].mediaId, 'media-1');
+      expect(placements[0].frame, GalleryFrame.wood);
+      expect(placements[1].mediaId, 'media-2');
+      expect(placements[1].frame, GalleryFrame.stamp);
+      expect(placements[2].mediaId, 'media-extra');
+      expect(placements[2].frame, GalleryFrame.none);
+      expect(placements[2].size, GallerySize.medium);
+    },
+  );
 }

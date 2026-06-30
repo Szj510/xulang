@@ -117,7 +117,9 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
                   decoration: BoxDecoration(
                     color: Colors.black,
                     borderRadius: BorderRadius.circular(24),
-                    border: Border.all(color: Colors.white.withValues(alpha: .08)),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: .08),
+                    ),
                   ),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(24),
@@ -133,6 +135,13 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
                 overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 4),
+              Text(
+                widget.videoPath,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: XulangColors.muted, fontSize: 11),
+              ),
+              const SizedBox(height: 4),
               FutureBuilder<int>(
                 future: File(widget.videoPath).length(),
                 builder: (context, snapshot) {
@@ -141,7 +150,10 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
                     size == null
                         ? l10n.recordingSaved
                         : l10n.recordingSavedWithSize(_formatSize(size)),
-                    style: const TextStyle(color: XulangColors.muted, fontSize: 12),
+                    style: const TextStyle(
+                      color: XulangColors.muted,
+                      fontSize: 12,
+                    ),
                   );
                 },
               ),
@@ -187,7 +199,9 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
     return GestureDetector(
       onTap: () {
         setState(() {
-          _controller.value.isPlaying ? _controller.pause() : _controller.play();
+          _controller.value.isPlaying
+              ? _controller.pause()
+              : _controller.play();
         });
       },
       child: Stack(

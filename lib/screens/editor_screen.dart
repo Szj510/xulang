@@ -7,14 +7,18 @@ import 'dart:ui';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:xulang/data/document_access_service.dart';
+import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/editor/editor_session.dart';
 import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/providers/app_providers.dart';
+import 'package:xulang/screens/music_library_screen.dart';
 import 'package:xulang/screens/viewer_screen.dart';
 import 'package:xulang/share/exhibition_exporter.dart';
 import 'package:xulang/share/export_file_service.dart';
@@ -66,6 +70,7 @@ class _EditorBodyState extends State<_EditorBody> {
   double _panelOpacity = 0.34;
   _EditorInteractionMode _interactionMode = _EditorInteractionMode.canvas;
   GalleryStickerKind? _selectedStickerKind;
+  String? _selectedStickerId;
   String? _selectedPlacementId;
   Offset _floatingBallOffset = const Offset(16, 560);
 
@@ -79,6 +84,7 @@ class _EditorBodyState extends State<_EditorBody> {
     setState(() {
       _interactionMode = _EditorInteractionMode.canvas;
       _selectedStickerKind = null;
+      _selectedStickerId = null;
       _selectedPlacementId = null;
       _showPanel = true;
     });
@@ -88,14 +94,16 @@ class _EditorBodyState extends State<_EditorBody> {
     setState(() {
       _interactionMode = _EditorInteractionMode.image;
       _selectedStickerKind = null;
+      _selectedStickerId = null;
       _selectedPlacementId = placementId;
       _showPanel = true;
     });
   }
 
-  void _focusSticker() {
+  void _focusSticker({String? stickerId}) {
     setState(() {
       _interactionMode = _EditorInteractionMode.sticker;
+      _selectedStickerId = stickerId;
       _showPanel = true;
     });
   }
@@ -104,6 +112,7 @@ class _EditorBodyState extends State<_EditorBody> {
     setState(() {
       _interactionMode = _EditorInteractionMode.sticker;
       _selectedStickerKind = kind;
+      _selectedStickerId = null;
       _showPanel = true;
     });
   }
@@ -246,7 +255,9 @@ class _EditorBodyState extends State<_EditorBody> {
                       child: _Preview(
                         session: session,
                         interactionMode: _interactionMode,
+                        selectedPlacementId: _selectedPlacementId,
                         selectedStickerKind: _selectedStickerKind,
+                        onStickerTap: (id) => _focusSticker(stickerId: id),
                         onStickerPlaced: _placeSticker,
                         onCanvasTap: () {
                           _dismissPanel();
@@ -322,7 +333,9 @@ class _EditorBodyState extends State<_EditorBody> {
                                   icon: Icons.play_arrow_rounded,
                                 ),
                                 PopupMenuButton<_EditorExportAction>(
-                                  tooltip: AppStrings.of(context).exportAndShare,
+                                  tooltip: AppStrings.of(
+                                    context,
+                                  ).exportAndShare,
                                   onSelected: (action) =>
                                       _handleExportAction(context, action),
                                   icon: const Icon(
@@ -339,7 +352,11 @@ class _EditorBodyState extends State<_EditorBody> {
                                             size: 18,
                                           ),
                                           SizedBox(width: 12),
-                                          Text(AppStrings.of(context).shareTemplate),
+                                          Text(
+                                            AppStrings.of(
+                                              context,
+                                            ).shareTemplate,
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -352,7 +369,11 @@ class _EditorBodyState extends State<_EditorBody> {
                                             size: 18,
                                           ),
                                           SizedBox(width: 12),
-                                          Text(AppStrings.of(context).recordAndShareVideo),
+                                          Text(
+                                            AppStrings.of(
+                                              context,
+                                            ).recordAndShareVideo,
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -365,7 +386,11 @@ class _EditorBodyState extends State<_EditorBody> {
                                             size: 18,
                                           ),
                                           SizedBox(width: 12),
-                                          Text(AppStrings.of(context).importTemplate),
+                                          Text(
+                                            AppStrings.of(
+                                              context,
+                                            ).importTemplate,
+                                          ),
                                         ],
                                       ),
                                     ),
@@ -405,12 +430,13 @@ class _EditorBodyState extends State<_EditorBody> {
                         interactionMode: _interactionMode,
                         selectedPlacementId: _selectedPlacementId,
                         selectedStickerKind: _selectedStickerKind,
+                        selectedStickerId: _selectedStickerId,
                         panelOpacity: _panelOpacity,
                         onPanelOpacityChanged: _setPanelOpacity,
                         onFocusCanvas: _focusCanvas,
                         onFocusPlacement: _focusPlacement,
 
-                        onFocusSticker: _focusSticker,
+                        onFocusSticker: () => _focusSticker(),
                         onSelectStickerKind: _selectStickerKind,
                         onDismiss: _dismissPanel,
                         landscape: true,
@@ -440,7 +466,9 @@ class _EditorBodyState extends State<_EditorBody> {
                         child: _Preview(
                           session: session,
                           interactionMode: _interactionMode,
+                          selectedPlacementId: _selectedPlacementId,
                           selectedStickerKind: _selectedStickerKind,
+                          onStickerTap: (id) => _focusSticker(stickerId: id),
                           onStickerPlaced: _placeSticker,
                           onCanvasTap: _dismissPanel,
                           onPlacementTap: _focusPlacement,
@@ -455,12 +483,13 @@ class _EditorBodyState extends State<_EditorBody> {
                       interactionMode: _interactionMode,
                       selectedPlacementId: _selectedPlacementId,
                       selectedStickerKind: _selectedStickerKind,
+                      selectedStickerId: _selectedStickerId,
                       panelOpacity: _panelOpacity,
                       onPanelOpacityChanged: _setPanelOpacity,
                       onFocusCanvas: _focusCanvas,
                       onFocusPlacement: _focusPlacement,
 
-                      onFocusSticker: _focusSticker,
+                      onFocusSticker: () => _focusSticker(),
                       onSelectStickerKind: _selectStickerKind,
                       onDismiss: _dismissPanel,
                       landscape: false,
@@ -509,6 +538,9 @@ class _EditorBodyState extends State<_EditorBody> {
           await service.shareFile(file, title: '${bundle.document.title} 模板');
           if (context.mounted) {
             _showSnack(context, '已生成并打开分享：${p.basename(file.path)}');
+          }
+          if (context.mounted) {
+            await _showTemplateExportDialog(context, service, file, bundle);
           }
         case _EditorExportAction.recordAndShare:
           if (!context.mounted) return;
@@ -579,6 +611,44 @@ class _EditorBodyState extends State<_EditorBody> {
     final root = await getApplicationDocumentsDirectory();
     return ExportFileService(
       outputDirectory: Directory(p.join(root.path, 'exports')),
+    );
+  }
+
+  Future<void> _showTemplateExportDialog(
+    BuildContext context,
+    ExportFileService service,
+    File file,
+    GalleryBundle bundle,
+  ) {
+    return showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppStrings.of(context).shareTemplate),
+        content: SelectableText(file.path),
+        actions: [
+          TextButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: file.path));
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text(AppStrings.of(context).copyPath),
+          ),
+          TextButton(
+            onPressed: () async {
+              await service.shareFile(
+                file,
+                title: '${bundle.document.title} template',
+              );
+              if (context.mounted) Navigator.pop(context);
+            },
+            child: Text(AppStrings.of(context).share),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppStrings.of(context).ok),
+          ),
+        ],
+      ),
     );
   }
 
@@ -778,6 +848,7 @@ class _FloatingPanel extends StatefulWidget {
     required this.interactionMode,
     required this.selectedPlacementId,
     required this.selectedStickerKind,
+    required this.selectedStickerId,
     required this.panelOpacity,
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
@@ -792,6 +863,7 @@ class _FloatingPanel extends StatefulWidget {
   final _EditorInteractionMode interactionMode;
   final String? selectedPlacementId;
   final GalleryStickerKind? selectedStickerKind;
+  final String? selectedStickerId;
   final double panelOpacity;
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
@@ -840,8 +912,8 @@ class _FloatingPanelState extends State<_FloatingPanel>
         ? (MediaQuery.sizeOf(context).width * 0.38).clamp(300.0, 380.0)
         : double.infinity;
     final maxHeight = widget.landscape
-        ? MediaQuery.sizeOf(context).height * 0.85
-        : MediaQuery.sizeOf(context).height * 0.55;
+        ? MediaQuery.sizeOf(context).height * 0.57
+        : MediaQuery.sizeOf(context).height * 0.37;
 
     return Positioned(
       right: widget.landscape ? 8 : 0,
@@ -889,6 +961,7 @@ class _FloatingPanelState extends State<_FloatingPanel>
                         interactionMode: widget.interactionMode,
                         selectedPlacementId: widget.selectedPlacementId,
                         selectedStickerKind: widget.selectedStickerKind,
+                        selectedStickerId: widget.selectedStickerId,
                         panelOpacity: widget.panelOpacity,
                         onPanelOpacityChanged: widget.onPanelOpacityChanged,
                         onFocusCanvas: widget.onFocusCanvas,
@@ -971,6 +1044,21 @@ class _ChapterRail extends StatelessWidget {
             onPressed: session.addChapter,
             icon: Icons.add,
           ),
+          PopupMenuButton<_ChapterAction>(
+            tooltip: AppStrings.of(context).moreActions,
+            icon: const Icon(Icons.more_horiz, size: 20),
+            onSelected: (action) => _handleChapterAction(context, action),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _ChapterAction.rename,
+                child: Text(AppStrings.of(context).rename),
+              ),
+              PopupMenuItem(
+                value: _ChapterAction.delete,
+                child: Text(AppStrings.of(context).delete),
+              ),
+            ],
+          ),
           if (onRename != null)
             _EditorIconButton(
               tooltip: AppStrings.of(context).renameExhibition,
@@ -982,13 +1070,73 @@ class _ChapterRail extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _handleChapterAction(
+    BuildContext context,
+    _ChapterAction action,
+  ) async {
+    final index = session.selectedChapterIndex;
+    final chapter = session.selectedChapter;
+    if (chapter == null) return;
+    switch (action) {
+      case _ChapterAction.rename:
+        var value = chapter.title;
+        final next = await showDialog<String>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(AppStrings.of(context).rename),
+            content: TextFormField(
+              initialValue: value,
+              autofocus: true,
+              onChanged: (text) => value = text,
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: Text(AppStrings.of(context).cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, value),
+                child: Text(AppStrings.of(context).save),
+              ),
+            ],
+          ),
+        );
+        if (next != null && next.trim().isNotEmpty) {
+          await session.renameChapter(next, index: index);
+        }
+      case _ChapterAction.delete:
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(AppStrings.of(context).delete),
+            content: Text(chapter.title),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: Text(AppStrings.of(context).cancel),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: Text(AppStrings.of(context).delete),
+              ),
+            ],
+          ),
+        );
+        if (confirmed == true) await session.deleteChapter(index);
+    }
+  }
 }
+
+enum _ChapterAction { rename, delete }
 
 class _Preview extends StatefulWidget {
   const _Preview({
     required this.session,
     required this.interactionMode,
+    this.selectedPlacementId,
     this.selectedStickerKind,
+    this.onStickerTap,
     this.onStickerPlaced,
     this.onCanvasTap,
     this.onPlacementTap,
@@ -996,7 +1144,9 @@ class _Preview extends StatefulWidget {
 
   final EditorSession session;
   final _EditorInteractionMode interactionMode;
+  final String? selectedPlacementId;
   final GalleryStickerKind? selectedStickerKind;
+  final ValueChanged<String>? onStickerTap;
   final Future<void> Function(CustomPathPoint point)? onStickerPlaced;
   final VoidCallback? onCanvasTap;
   final ValueChanged<String>? onPlacementTap;
@@ -1012,6 +1162,7 @@ class _PreviewState extends State<_Preview> {
       NarrativeCameraController();
   final TransformationController _zoomController = TransformationController();
   GalleryPlacement? _gestureStartPlacement;
+  String? _lastFocusedPlacementId;
   int _previewPointerCount = 0;
   bool _cameraDragActive = false;
   bool _previewPointerMoved = false;
@@ -1059,7 +1210,7 @@ class _PreviewState extends State<_Preview> {
   }
 
   void _beginCameraDragIfNeeded() {
-    if (!_isCanvasMode && !_isStickerMode) return;
+    if (!_isCanvasMode && !_isStickerMode && !_isImageMode) return;
     if (_previewPointerCount == 1 && !_isZoomed && !_cameraDragActive) {
       _cameraController.setProgress(_cameraProgress);
       _cameraController.begin(scale: 1);
@@ -1102,6 +1253,7 @@ class _PreviewState extends State<_Preview> {
     String placementId,
     double scaleDelta,
     Offset delta,
+    double rotationDelta,
     Size viewport,
   ) {
     final start = _gestureStartPlacement;
@@ -1111,6 +1263,10 @@ class _PreviewState extends State<_Preview> {
       scale: (start.scale * scaleDelta).clamp(.45, 1.9),
       offsetX: (current.offsetX + delta.dx / viewport.width).clamp(-.45, .45),
       offsetY: (current.offsetY + delta.dy / viewport.height).clamp(-.45, .45),
+      rotation: (start.rotation + rotationDelta * 180 / math.pi).clamp(
+        -180.0,
+        180.0,
+      ),
     );
     setState(() => _placementDrafts[placementId] = next);
   }
@@ -1124,6 +1280,7 @@ class _PreviewState extends State<_Preview> {
       scale: draft.scale,
       offsetX: draft.offsetX,
       offsetY: draft.offsetY,
+      rotation: draft.rotation,
     );
   }
 
@@ -1138,6 +1295,14 @@ class _PreviewState extends State<_Preview> {
     unawaited(widget.onStickerPlaced!(point));
   }
 
+  void _focusCameraOnPlacement(String placementId, GalleryChapter chapter) {
+    final index = chapter.placements.indexWhere(
+      (item) => item.id == placementId,
+    );
+    if (index < 0 || chapter.placements.length <= 1) return;
+    _setProgress(index / (chapter.placements.length - 1));
+  }
+
   @override
   Widget build(BuildContext context) {
     return LayoutBuilder(
@@ -1146,11 +1311,28 @@ class _PreviewState extends State<_Preview> {
         final landscape =
             NarrativeAxis.fromViewport(viewport) == NarrativeAxis.horizontal;
         final chapter = _chapterWithDrafts(session.selectedChapter!);
+        final requestedPlacementId = widget.selectedPlacementId;
+        if (requestedPlacementId != null &&
+            requestedPlacementId != _lastFocusedPlacementId) {
+          _lastFocusedPlacementId = requestedPlacementId;
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (!mounted) return;
+            _focusCameraOnPlacement(
+              requestedPlacementId,
+              session.selectedChapter!,
+            );
+          });
+        }
         final progress = _cameraProgress;
         final placementEditingEnabled = _isImageMode;
-        final canvasNavigationEnabled = _isCanvasMode || _isStickerMode;
+        final canvasNavigationEnabled =
+            _isCanvasMode || _isStickerMode || _isImageMode;
         final canvasTap = _isCanvasMode ? widget.onCanvasTap : null;
-        final placementTap = _isStickerMode ? null : widget.onPlacementTap;
+        void placementTap(String placementId) {
+          _focusCameraOnPlacement(placementId, chapter);
+          widget.onPlacementTap?.call(placementId);
+        }
+
         final worldSize = viewport;
         return Stack(
           children: [
@@ -1193,7 +1375,7 @@ class _PreviewState extends State<_Preview> {
                       }
                       _beginCameraDragIfNeeded();
                       _cameraController.update(
-                        delta: event.delta,
+                        delta: event.delta * 1.9,
                         viewport: viewport,
                         itemCount: chapter.placements.length,
                         scale: 1,
@@ -1246,15 +1428,17 @@ class _PreviewState extends State<_Preview> {
                         onStickerPlaced: _placeStickerAt,
                         onStickerChanged: session.updateSticker,
                         onStickerDeleted: session.removeSticker,
+                        onStickerTap: widget.onStickerTap,
 
                         onPlacementTap: placementTap,
                         onPlacementTransformStart: _startPlacementTransform,
                         onPlacementTransformUpdate:
-                            (placementId, scaleDelta, delta) =>
+                            (placementId, scaleDelta, delta, rotationDelta) =>
                                 _updatePlacementTransform(
                                   placementId,
                                   scaleDelta,
                                   delta,
+                                  rotationDelta,
                                   worldSize,
                                 ),
                         onPlacementTransformEnd: (placementId) {
@@ -1266,7 +1450,7 @@ class _PreviewState extends State<_Preview> {
                 ),
               ),
             ),
-            if (chapter.placements.length > 1)
+            if (chapter.placements.length > 1 && landscape)
               if (landscape)
                 Positioned(
                   key: const Key('editor-horizontal-progress'),
@@ -1421,7 +1605,9 @@ class _GlassImportButton extends StatelessWidget {
             )
           : const Icon(Icons.add_photo_alternate_outlined, size: 18),
       label: Text(
-        importing ? AppStrings.of(context).importing : AppStrings.of(context).importImages,
+        importing
+            ? AppStrings.of(context).importing
+            : AppStrings.of(context).importImages,
         style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
@@ -1517,6 +1703,7 @@ class _Inspector extends StatefulWidget {
     required this.interactionMode,
     required this.selectedPlacementId,
     required this.selectedStickerKind,
+    required this.selectedStickerId,
     required this.panelOpacity,
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
@@ -1529,6 +1716,7 @@ class _Inspector extends StatefulWidget {
   final _EditorInteractionMode interactionMode;
   final String? selectedPlacementId;
   final GalleryStickerKind? selectedStickerKind;
+  final String? selectedStickerId;
   final double panelOpacity;
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
@@ -1544,6 +1732,7 @@ class _InspectorState extends State<_Inspector> {
   EditorSession get session => widget.session;
 
   Widget _buildCanvasPanel(BuildContext context, GalleryChapter chapter) {
+    final l10n = AppStrings.of(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
@@ -1556,7 +1745,7 @@ class _InspectorState extends State<_Inspector> {
               Row(
                 children: [
                   PopupMenuButton<GalleryTheme>(
-                    tooltip: '画布主题',
+                    tooltip: l10n.canvasTheme,
                     initialValue: session.bundle!.document.theme,
                     onSelected: session.updateTheme,
                     icon: const Icon(
@@ -1564,42 +1753,42 @@ class _InspectorState extends State<_Inspector> {
                       size: 18,
                       color: XulangColors.muted,
                     ),
-                    itemBuilder: (context) => const [
+                    itemBuilder: (context) => [
                       PopupMenuItem(
                         value: GalleryTheme.ink,
-                        child: Text('墨色画布'),
+                        child: Text(l10n.inkCanvas),
                       ),
                       PopupMenuItem(
                         value: GalleryTheme.paper,
-                        child: Text('纸张画布'),
+                        child: Text(l10n.paperCanvas),
                       ),
                       PopupMenuItem(
                         value: GalleryTheme.graphite,
-                        child: Text('石墨画布'),
+                        child: Text(l10n.graphiteCanvas),
                       ),
                       PopupMenuItem(
                         value: GalleryTheme.mist,
-                        child: Text('雾蓝画布'),
+                        child: Text(l10n.mistCanvas),
                       ),
                       PopupMenuItem(
                         value: GalleryTheme.warm,
-                        child: Text('暖沙画布'),
+                        child: Text(l10n.warmSandCanvas),
                       ),
                       PopupMenuItem(
                         value: GalleryTheme.moonlight,
-                        child: Text('月光暗房'),
+                        child: Text(l10n.moonlightRoom),
                       ),
                       PopupMenuItem(
                         value: GalleryTheme.botanical,
-                        child: Text('植物标本'),
+                        child: Text(l10n.botanicalSpecimen),
                       ),
                       PopupMenuItem(
                         value: GalleryTheme.cyanotype,
-                        child: Text('蓝晒纸'),
+                        child: Text(l10n.cyanotype),
                       ),
                       PopupMenuItem(
                         value: GalleryTheme.terracotta,
-                        child: Text('陶土壁龛'),
+                        child: Text(l10n.terracottaGallery),
                       ),
                     ],
                   ),
@@ -1607,14 +1796,14 @@ class _InspectorState extends State<_Inspector> {
                   TextButton.icon(
                     onPressed: () => _editChapterText(context),
                     icon: const Icon(Icons.short_text, size: 17),
-                    label: const Text('标题与短注释'),
+                    label: Text(l10n.titleAndCaption),
                   ),
                 ],
               ),
               const SizedBox(height: 8),
               _CropSlider(
                 key: const Key('editor-panel-opacity-slider'),
-                label: '面板透明度',
+                label: l10n.panelOpacity,
                 value: widget.panelOpacity,
                 min: 0.10,
                 max: 0.62,
@@ -1639,7 +1828,7 @@ class _InspectorState extends State<_Inspector> {
                     ChoiceChip(
                       selected: chapter.layout == layout,
                       onSelected: (_) => session.updateChapter(layout: layout),
-                      label: Text(_layoutLabel(layout)),
+                      label: Text(_layoutLabel(l10n, layout)),
                     ),
                 ],
               ),
@@ -1655,7 +1844,7 @@ class _InspectorState extends State<_Inspector> {
                       selected: chapter.pathStyle == style,
                       onSelected: (_) =>
                           session.updateChapter(pathStyle: style),
-                      label: Text(_pathStyleLabel(style)),
+                      label: Text(_pathStyleLabel(l10n, style)),
                     ),
                 ],
               ),
@@ -1691,7 +1880,8 @@ class _InspectorState extends State<_Inspector> {
                   color: XulangColors.muted,
                 ),
                 title: Text(
-                  session.bundle!.document.musicTitle ?? '未添加背景音乐',
+                  session.bundle!.document.musicTitle ??
+                      l10n.noBackgroundMusicAdded,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13),
                 ),
@@ -1703,7 +1893,7 @@ class _InspectorState extends State<_Inspector> {
                   spacing: 4,
                   children: [
                     TextButton(
-                      onPressed: () => _pickBackgroundMusic(context),
+                      onPressed: () => _pickBackgroundMusicV2(context),
                       child: Text(AppStrings.of(context).choose),
                     ),
                     if (session.bundle!.document.musicPath != null)
@@ -1726,14 +1916,15 @@ class _InspectorState extends State<_Inspector> {
     GalleryChapter chapter,
     GalleryPlacement? placement,
   ) {
+    final l10n = AppStrings.of(context);
     if (placement == null) {
-      return const Center(
+      return Center(
         child: Padding(
           padding: EdgeInsets.symmetric(vertical: 32),
           child: Text(
-            '点击一张图片后，这里会显示\n图片大小、画框、裁切和旋转。',
+            l10n.selectImageFirst,
             textAlign: TextAlign.center,
-            style: TextStyle(
+            style: const TextStyle(
               color: XulangColors.muted,
               fontSize: 13,
               height: 1.7,
@@ -1747,7 +1938,7 @@ class _InspectorState extends State<_Inspector> {
       mainAxisSize: MainAxisSize.min,
       children: [
         _InspectorSection(
-          title: '图层顺序',
+          title: l10n.layerOrder,
           child: SizedBox(
             height: 56,
             child: ReorderableListView.builder(
@@ -1809,7 +2000,7 @@ class _InspectorState extends State<_Inspector> {
         ),
         const SizedBox(height: 12),
         _InspectorSection(
-          title: '画幅',
+          title: l10n.imageSize,
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1819,14 +2010,14 @@ class _InspectorState extends State<_Inspector> {
                   selected: placement.size == size,
                   onSelected: (_) =>
                       session.updatePlacement(placement.id, size: size),
-                  label: Text(_sizeLabel(size)),
+                  label: Text(_sizeLabel(l10n, size)),
                 ),
             ],
           ),
         ),
         const SizedBox(height: 12),
         _InspectorSection(
-          title: '画框',
+          title: l10n.frameStyle,
           child: Wrap(
             spacing: 8,
             runSpacing: 8,
@@ -1836,19 +2027,19 @@ class _InspectorState extends State<_Inspector> {
                   selected: placement.frame == frame,
                   onSelected: (_) =>
                       session.updatePlacement(placement.id, frame: frame),
-                  label: Text(_frameLabel(frame)),
+                  label: Text(_frameLabel(l10n, frame)),
                 ),
             ],
           ),
         ),
         const SizedBox(height: 12),
         _InspectorSection(
-          title: '裁切与构图',
+          title: l10n.cropAndComposition,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               _CropSlider(
-                label: '水平焦点',
+                label: l10n.horizontalFocus,
                 value: placement.focalX,
                 min: 0,
                 max: 1,
@@ -1856,7 +2047,7 @@ class _InspectorState extends State<_Inspector> {
                     session.updatePlacement(placement.id, focalX: value),
               ),
               _CropSlider(
-                label: '垂直焦点',
+                label: l10n.verticalFocus,
                 value: placement.focalY,
                 min: 0,
                 max: 1,
@@ -1864,7 +2055,7 @@ class _InspectorState extends State<_Inspector> {
                     session.updatePlacement(placement.id, focalY: value),
               ),
               _CropSlider(
-                label: '裁切缩放',
+                label: l10n.cropZoom,
                 value: placement.zoom,
                 min: 1,
                 max: 3,
@@ -1872,7 +2063,7 @@ class _InspectorState extends State<_Inspector> {
                     session.updatePlacement(placement.id, zoom: value),
               ),
               _CropSlider(
-                label: '旋转角度',
+                label: l10n.rotationAngle,
                 value: placement.rotation,
                 min: -180,
                 max: 180,
@@ -1884,16 +2075,22 @@ class _InspectorState extends State<_Inspector> {
         ),
         const SizedBox(height: 12),
         _InspectorSection(
-          title: '说明',
+          title: l10n.note,
           child: TextFormField(
             key: ValueKey('placement-caption-${placement.id}'),
             initialValue: placement.caption,
             maxLength: 60,
             style: const TextStyle(fontSize: 13, color: XulangColors.paper),
-            decoration: const InputDecoration(
-              labelText: '单图短注释',
-              labelStyle: TextStyle(fontSize: 12, color: XulangColors.muted),
-              counterStyle: TextStyle(fontSize: 10, color: XulangColors.muted),
+            decoration: InputDecoration(
+              labelText: l10n.singlePhotoCaption,
+              labelStyle: const TextStyle(
+                fontSize: 12,
+                color: XulangColors.muted,
+              ),
+              counterStyle: const TextStyle(
+                fontSize: 10,
+                color: XulangColors.muted,
+              ),
             ),
             onChanged: (value) =>
                 session.updatePlacement(placement.id, caption: value),
@@ -1904,10 +2101,11 @@ class _InspectorState extends State<_Inspector> {
   }
 
   Future<void> _pickCanvasBackground(BuildContext context) async {
+    final l10n = AppStrings.of(context);
     final file = await openFile(
-      acceptedTypeGroups: const [
+      acceptedTypeGroups: [
         XTypeGroup(
-          label: '画布图片',
+          label: l10n.canvasImage,
           extensions: ['jpg', 'jpeg', 'png', 'webp', 'heic'],
           mimeTypes: ['image/*'],
         ),
@@ -1918,15 +2116,17 @@ class _InspectorState extends State<_Inspector> {
     if (context.mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('已设置自定义画布')));
+      ).showSnackBar(SnackBar(content: Text(l10n.customCanvasSet)));
     }
   }
 
+  // ignore: unused_element
   Future<void> _pickBackgroundMusic(BuildContext context) async {
+    final l10n = AppStrings.of(context);
     final file = await openFile(
-      acceptedTypeGroups: const [
+      acceptedTypeGroups: [
         XTypeGroup(
-          label: '音频',
+          label: l10n.audio,
           extensions: ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac'],
           mimeTypes: ['audio/*'],
         ),
@@ -1937,7 +2137,26 @@ class _InspectorState extends State<_Inspector> {
     if (context.mounted) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('已添加背景音乐')));
+      ).showSnackBar(SnackBar(content: Text(l10n.backgroundMusicAdded)));
+    }
+  }
+
+  Future<void> _pickBackgroundMusicV2(BuildContext context) async {
+    final l10n = AppStrings.of(context);
+    final item = await Navigator.of(context).push<MusicLibraryItem>(
+      MaterialPageRoute<MusicLibraryItem>(
+        builder: (_) => const MusicLibraryScreen(selectionMode: true),
+      ),
+    );
+    if (item == null) return;
+    await session.setBackgroundMusicReference(
+      path: item.path,
+      title: item.displayName,
+    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(l10n.backgroundMusicAdded)));
     }
   }
 
@@ -2051,15 +2270,22 @@ class _InspectorState extends State<_Inspector> {
   }
 
   Widget _buildStickerPanel(BuildContext context, GalleryChapter chapter) {
+    final l10n = AppStrings.of(context);
+    final selectedStickerId = widget.selectedStickerId;
+    final controlledStickers = selectedStickerId == null
+        ? chapter.stickers
+        : chapter.stickers
+              .where((sticker) => sticker.id == selectedStickerId)
+              .toList(growable: false);
     return _InspectorSection(
-      title: AppStrings.of(context).stickers,
+      title: l10n.stickers,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text(
-            '选择一个小物品后，点击画布放置；已放置的贴画可以拖动、旋转，点右上角叉删除。',
-            style: TextStyle(fontSize: 11, color: XulangColors.muted),
+          Text(
+            l10n.stickerPanelHint,
+            style: const TextStyle(fontSize: 11, color: XulangColors.muted),
           ),
           const SizedBox(height: 10),
           Wrap(
@@ -2076,21 +2302,21 @@ class _InspectorState extends State<_Inspector> {
                     children: [
                       AtmosphericSticker(kind: kind, size: 22),
                       const SizedBox(width: 6),
-                      Text(_stickerKindLabel(kind)),
+                      Text(_stickerKindLabel(l10n, kind)),
                     ],
                   ),
                 ),
             ],
           ),
-          if (chapter.stickers.isNotEmpty) ...[
+          if (controlledStickers.isNotEmpty) ...[
             const SizedBox(height: 12),
-            _SectionLabel(AppStrings.of(context).addedStickers),
+            _SectionLabel(l10n.addedStickers),
             const SizedBox(height: 6),
-            for (final sticker in chapter.stickers)
+            for (final sticker in controlledStickers)
               StickerControlTile(
                 key: Key('editor-sticker-item-${sticker.id}'),
                 sticker: sticker,
-                label: _stickerKindLabel(sticker.kind),
+                label: _stickerKindLabel(l10n, sticker.kind),
                 onRotationChanged: (degrees) => session.updateSticker(
                   sticker.copyWith(rotation: degrees * math.pi / 180),
                 ),
@@ -2102,26 +2328,27 @@ class _InspectorState extends State<_Inspector> {
   }
 
   Future<void> _editChapterText(BuildContext context) async {
+    final l10n = AppStrings.of(context);
     final chapter = session.selectedChapter!;
     var title = chapter.title;
     var caption = chapter.caption;
     final save = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('章节文字'),
+        title: Text(l10n.chapterText),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextFormField(
               initialValue: title,
-              decoration: const InputDecoration(labelText: '章节标题'),
+              decoration: InputDecoration(labelText: l10n.chapterTitleField),
               onChanged: (value) => title = value,
             ),
             const SizedBox(height: 12),
             TextFormField(
               initialValue: caption,
               maxLength: 80,
-              decoration: const InputDecoration(labelText: '短注释'),
+              decoration: InputDecoration(labelText: l10n.shortNote),
               onChanged: (value) => caption = value,
             ),
           ],
@@ -2161,6 +2388,7 @@ class _CanvasBackgroundControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppStrings.of(context);
     final hasCustom = path != null && path!.trim().isNotEmpty;
     return Container(
       key: const Key('editor-canvas-background-control'),
@@ -2184,31 +2412,34 @@ class _CanvasBackgroundControl extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  hasCustom ? p.basename(path!) : '自定义画布图片',
+                  hasCustom ? p.basename(path!) : l10n.customCanvasImage,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(fontSize: 13),
                 ),
               ),
               TextButton(
                 onPressed: onPick,
-                child: Text(hasCustom ? '更换' : '上传'),
+                child: Text(hasCustom ? l10n.replace : l10n.upload),
               ),
               if (hasCustom)
-                TextButton(onPressed: onClear, child: Text(AppStrings.of(context).clear)),
+                TextButton(
+                  onPressed: onClear,
+                  child: Text(AppStrings.of(context).clear),
+                ),
             ],
           ),
           const SizedBox(height: 6),
           _CropSlider(
             key: const Key('editor-canvas-background-opacity-slider'),
-            label: '画布透明度',
+            label: l10n.canvasOpacity,
             value: opacity.clamp(0, 1).toDouble(),
             min: 0,
             max: 1,
             onChanged: onOpacityChanged,
           ),
-          const Text(
-            '上传的图片会叠在当前内置画布上，适合做纹理、纸张或氛围底图。',
-            style: TextStyle(fontSize: 11, color: XulangColors.muted),
+          Text(
+            l10n.canvasImageHelp,
+            style: const TextStyle(fontSize: 11, color: XulangColors.muted),
           ),
         ],
       ),
@@ -2224,6 +2455,7 @@ class _PlaybackDelayControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppStrings.of(context);
     final value = seconds.clamp(0, 30);
     return Container(
       key: const Key('editor-playback-delay-control'),
@@ -2244,14 +2476,17 @@ class _PlaybackDelayControl extends StatelessWidget {
                 color: XulangColors.muted,
               ),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
-                  '录屏延迟播放',
-                  style: TextStyle(fontSize: 13, color: XulangColors.paper),
+                  l10n.recordingDelayPlayback,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    color: XulangColors.paper,
+                  ),
                 ),
               ),
               Text(
-                '$value 秒',
+                l10n.secondsValue(value),
                 key: const Key('editor-playback-delay-value'),
                 style: const TextStyle(
                   fontSize: 12,
@@ -2267,12 +2502,12 @@ class _PlaybackDelayControl extends StatelessWidget {
             min: 0,
             max: 30,
             divisions: 30,
-            label: '$value 秒',
+            label: l10n.secondsValue(value),
             onChanged: (next) => onChanged(next.round()),
           ),
-          const Text(
-            '开始录屏后先等待这段时间，再自动播放。',
-            style: TextStyle(fontSize: 11, color: XulangColors.muted),
+          Text(
+            l10n.recordingDelayHelp,
+            style: const TextStyle(fontSize: 11, color: XulangColors.muted),
           ),
         ],
       ),
@@ -2346,20 +2581,21 @@ class _SectionLabel extends StatelessWidget {
 
 enum _EditorInteractionMode { canvas, image, sticker }
 
-String _stickerKindLabel(GalleryStickerKind kind) => switch (kind) {
-  GalleryStickerKind.star => '星芒标记',
-  GalleryStickerKind.sparkle => '碎光',
-  GalleryStickerKind.heart => '暖心印',
-  GalleryStickerKind.leaf => '影叶',
-  GalleryStickerKind.flower => '干花',
-  GalleryStickerKind.crescentMoon => '月弧',
-  GalleryStickerKind.firefly => '萤光',
-  GalleryStickerKind.comet => '彗尾',
-  GalleryStickerKind.pressedPetal => '压花瓣',
-  GalleryStickerKind.paperTape => '纸胶带',
-  GalleryStickerKind.fogRibbon => '雾绸',
-  GalleryStickerKind.waxSeal => '蜡封',
-};
+String _stickerKindLabel(AppStrings l10n, GalleryStickerKind kind) =>
+    switch (kind) {
+      GalleryStickerKind.star => l10n.starSticker,
+      GalleryStickerKind.sparkle => l10n.sparkleSticker,
+      GalleryStickerKind.heart => l10n.heartSticker,
+      GalleryStickerKind.leaf => l10n.leafSticker,
+      GalleryStickerKind.flower => l10n.flowerSticker,
+      GalleryStickerKind.crescentMoon => l10n.crescentMoonSticker,
+      GalleryStickerKind.firefly => l10n.fireflySticker,
+      GalleryStickerKind.comet => l10n.cometSticker,
+      GalleryStickerKind.pressedPetal => l10n.pressedPetalSticker,
+      GalleryStickerKind.paperTape => l10n.paperTapeSticker,
+      GalleryStickerKind.fogRibbon => l10n.fogRibbonSticker,
+      GalleryStickerKind.waxSeal => l10n.waxSealSticker,
+    };
 
 class _CropSlider extends StatefulWidget {
   const _CropSlider({
@@ -2511,35 +2747,36 @@ class _CropSliderState extends State<_CropSlider> {
   }
 }
 
-String _layoutLabel(GalleryLayout layout) => switch (layout) {
-  GalleryLayout.hero => '主视觉',
-  GalleryLayout.filmstrip => '横向胶片',
-  GalleryLayout.diptych => '双联画',
-  GalleryLayout.collage => '叙事拼贴',
-  GalleryLayout.storyPath => '故事路径',
+String _layoutLabel(AppStrings l10n, GalleryLayout layout) => switch (layout) {
+  GalleryLayout.hero => l10n.heroLayout,
+  GalleryLayout.filmstrip => l10n.filmstripLayout,
+  GalleryLayout.diptych => l10n.diptychLayout,
+  GalleryLayout.collage => l10n.collageLayout,
+  GalleryLayout.storyPath => l10n.storyPathLayout,
 };
 
-String _sizeLabel(GallerySize size) => switch (size) {
-  GallerySize.small => '小',
-  GallerySize.medium => '中',
-  GallerySize.large => '大',
+String _sizeLabel(AppStrings l10n, GallerySize size) => switch (size) {
+  GallerySize.small => l10n.small,
+  GallerySize.medium => l10n.medium,
+  GallerySize.large => l10n.large,
 };
 
-String _pathStyleLabel(StoryPathStyle style) => switch (style) {
-  StoryPathStyle.solid => '细线',
-  StoryPathStyle.dashed => '虚线',
-  StoryPathStyle.glow => '微光',
-  StoryPathStyle.none => '隐藏',
-};
+String _pathStyleLabel(AppStrings l10n, StoryPathStyle style) =>
+    switch (style) {
+      StoryPathStyle.solid => l10n.solidLine,
+      StoryPathStyle.dashed => l10n.dashedLine,
+      StoryPathStyle.glow => l10n.glowLine,
+      StoryPathStyle.none => l10n.hidden,
+    };
 
-String _frameLabel(GalleryFrame frame) => switch (frame) {
-  GalleryFrame.none => '无',
-  GalleryFrame.hairline => '细线',
-  GalleryFrame.mat => '相纸',
-  GalleryFrame.stamp => '邮票边',
-  GalleryFrame.wood => '木制',
-  GalleryFrame.darkWood => '深木',
-  GalleryFrame.metal => '金属',
-  GalleryFrame.vintage => '复古',
-  GalleryFrame.film => '胶片孔',
+String _frameLabel(AppStrings l10n, GalleryFrame frame) => switch (frame) {
+  GalleryFrame.none => l10n.noFrame,
+  GalleryFrame.hairline => l10n.hairlineFrame,
+  GalleryFrame.mat => l10n.matFrame,
+  GalleryFrame.stamp => l10n.stampFrame,
+  GalleryFrame.wood => l10n.woodFrame,
+  GalleryFrame.darkWood => l10n.darkWoodFrame,
+  GalleryFrame.metal => l10n.metalFrame,
+  GalleryFrame.vintage => l10n.vintageFrame,
+  GalleryFrame.film => l10n.filmFrame,
 };

@@ -28,10 +28,27 @@ class RecordedVideoLibrary {
   }
 
   static Future<String> createOutputPath({required String documentId}) async {
+    return createOutputPathForTitle(title: documentId);
+  }
+
+  static Future<String> createOutputPathForTitle({
+    required String title,
+  }) async {
     final directory = await recordingsDirectory();
-    final safeId = documentId.replaceAll(RegExp(r'[^a-zA-Z0-9_-]'), '-');
-    final fileName = 'xulang-$safeId-${DateTime.now().millisecondsSinceEpoch}.mp4';
-    return p.join(directory.path, fileName);
+    return p.join(directory.path, buildFileName(title: title));
+  }
+
+  static String buildFileName({required String title, DateTime? now}) {
+    final timestamp = now ?? DateTime.now();
+    final safeTitle = _safeName(title);
+    final date =
+        '${timestamp.year.toString().padLeft(4, '0')}'
+        '${timestamp.month.toString().padLeft(2, '0')}'
+        '${timestamp.day.toString().padLeft(2, '0')}-'
+        '${timestamp.hour.toString().padLeft(2, '0')}'
+        '${timestamp.minute.toString().padLeft(2, '0')}'
+        '${timestamp.second.toString().padLeft(2, '0')}';
+    return 'xulang-$safeTitle-$date.mp4';
   }
 
   static Future<List<RecordedVideoInfo>> list() async {
@@ -63,4 +80,29 @@ class RecordedVideoLibrary {
     final file = File(path);
     if (await file.exists()) await file.delete();
   }
+
+  static Future<String> rename(String path, String title) async {
+    final file = File(path);
+    if (!await file.exists()) return path;
+    final directory = file.parent;
+    final extension = p.extension(path).isEmpty ? '.mp4' : p.extension(path);
+    final safeTitle = _safeName(title);
+    var candidate = p.join(directory.path, '$safeTitle$extension');
+    var suffix = 2;
+    while (await File(candidate).exists() && candidate != path) {
+      candidate = p.join(directory.path, '$safeTitle-$suffix$extension');
+      suffix += 1;
+    }
+    return (await file.rename(candidate)).path;
+  }
+}
+
+String _safeName(String value) {
+  final normalized = value
+      .trim()
+      .replaceAll(RegExp(r'[\\/:*?"<>|]+'), '_')
+      .replaceAll(RegExp(r'\s+'), '_')
+      .replaceAll(RegExp(r'_+'), '_')
+      .replaceAll(RegExp(r'^_+|_+$'), '');
+  return normalized.isEmpty ? 'recording' : normalized;
 }

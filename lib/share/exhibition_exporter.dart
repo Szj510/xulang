@@ -61,20 +61,32 @@ class ExhibitionTemplateCodec {
     final chaptersJson = _chaptersJson(decoded);
     final title = (decoded['title'] as String?)?.trim();
     var slotCount = 0;
+    final chapters = <TemplateChapterSummary>[];
     for (final chapterJson in chaptersJson) {
-      slotCount +=
+      final chapterSlotCount =
           (chapterJson['placements'] as List<Object?>? ?? const []).length;
+      slotCount += chapterSlotCount;
+      final chapterTitle = (chapterJson['title'] as String?)?.trim();
+      chapters.add(
+        TemplateChapterSummary(
+          title: chapterTitle == null || chapterTitle.isEmpty
+              ? 'Chapter ${chapters.length + 1}'
+              : chapterTitle,
+          slotCount: chapterSlotCount,
+        ),
+      );
     }
     final firstChapterTitle = chaptersJson.isEmpty
         ? null
         : (chaptersJson.first['title'] as String?)?.trim();
     return TemplateSummary(
-      title: title == null || title.isEmpty ? '导入的模板' : title,
+      title: title == null || title.isEmpty ? 'Imported template' : title,
       firstChapterTitle: firstChapterTitle == null || firstChapterTitle.isEmpty
-          ? '第一章'
+          ? 'Chapter 1'
           : firstChapterTitle,
       chapterCount: chaptersJson.length,
       placementCount: slotCount,
+      chapters: chapters,
     );
   }
 
@@ -94,9 +106,10 @@ class ExhibitionTemplateCodec {
               for (final placement in chapter.placements) placement.mediaId,
           ]
         : mediaIds;
-    var mediaIndex = 0;
     final chaptersJson = _chaptersJson(decoded);
     final chapters = <GalleryChapter>[];
+    var mediaIndex = 0;
+
     for (
       var chapterIndex = 0;
       chapterIndex < chaptersJson.length;
@@ -117,92 +130,77 @@ class ExhibitionTemplateCodec {
                 <String, Object?>{'order': index - mediaIndex},
             ]
           : slots;
-      final placementIds = <String>[];
-      final templatePlacementIds = <String, String>{};
-      final placements = <GalleryPlacement>[];
-      for (var slotIndex = 0; slotIndex < effectiveSlots.length; slotIndex++) {
+      final chapterMediaIds = <String>[];
+      for (var index = 0; index < effectiveSlots.length; index++) {
         if (mediaIndex >= existingMedia.length) break;
-        final slot = effectiveSlots[slotIndex] as Map<String, Object?>;
-        final placementId = createId();
-        placementIds.add(placementId);
-        templatePlacementIds[slot['id'] as String? ?? '$slotIndex'] =
-            placementId;
-        placements.add(
-          GalleryPlacement(
-            id: placementId,
-            mediaId: existingMedia[mediaIndex++],
-            order: slotIndex,
-            size: _byName(GallerySize.values, slot['size'], GallerySize.medium),
-            frame: _byName(
-              GalleryFrame.values,
-              slot['frame'],
-              GalleryFrame.none,
-            ),
-            focalX: (slot['focalX'] as num?)?.toDouble() ?? .5,
-            focalY: (slot['focalY'] as num?)?.toDouble() ?? .5,
-            zoom: (slot['zoom'] as num?)?.toDouble() ?? 1,
-            scale: (slot['scale'] as num?)?.toDouble() ?? 1,
-            offsetX: (slot['offsetX'] as num?)?.toDouble() ?? 0,
-            offsetY: (slot['offsetY'] as num?)?.toDouble() ?? 0,
-            rotation: (slot['rotation'] as num?)?.toDouble() ?? 0,
-            caption: slot['caption'] as String? ?? '',
-          ),
-        );
+        chapterMediaIds.add(existingMedia[mediaIndex++]);
       }
       chapters.add(
-        GalleryChapter(
-          id: createId(),
-          title: _resolveChapterTitle(
-            chapterJson: chapterJson,
-            chapterIndex: chapterIndex,
-            chapterCount: chaptersJson.length,
-            override: chapterTitleOverride,
-          ),
-          caption: chapterJson['caption'] as String? ?? '',
-          order: chapterIndex,
-          layout: _decodeLayout(chapterJson['layout']),
-          motion: _byName(
-            GalleryMotion.values,
-            chapterJson['motion'],
-            GalleryMotion.push,
-          ),
-          pathStyle: _byName(
-            StoryPathStyle.values,
-            chapterJson['pathStyle'],
-            StoryPathStyle.solid,
-          ),
-          placements: placements,
-          customPathAnchors: _decodeCustomPathAnchors(
-            chapterJson['customPathAnchors'],
-          ),
-          customPathConnections: _decodeCustomPathConnections(
-            chapterJson['customPathConnections'],
-            templatePlacementIds,
-            placementIds,
-          ),
-          stickers: _decodeStickers(chapterJson['stickers']),
+        _buildChapter(
+          chapterJson: chapterJson,
+          chapterIndex: chapterIndex,
+          chapterCount: chaptersJson.length,
+          chapterMediaIds: chapterMediaIds,
+          createId: createId,
+          chapterTitleOverride: chapterTitleOverride,
+          appendExtraMedia: false,
+          forceDefaultSlots: effectiveSlots,
         ),
       );
     }
-    if (chapters.isEmpty) {
-      throw const FormatException('模板没有章节');
-    }
-    final title = titleOverride?.trim();
-    return base.copyWith(
-      title: title == null || title.isEmpty
-          ? (decoded['title'] as String? ?? base.title)
-          : title,
-      coverMediaId: mediaIds.isEmpty ? base.coverMediaId : mediaIds.first,
-      theme: _byName(GalleryTheme.values, decoded['theme'], base.theme),
-      showChapterTitleInPlayback:
-          decoded['showChapterTitleInPlayback'] as bool? ??
-          base.showChapterTitleInPlayback,
-      playbackDelaySeconds:
-          ((decoded['playbackDelaySeconds'] as num?)?.round() ??
-                  base.playbackDelaySeconds)
-              .clamp(0, 30),
+
+    return _documentFromTemplate(
+      base: base,
+      decoded: decoded,
+      titleOverride: titleOverride,
+      mediaIds: mediaIds,
       chapters: chapters,
-      updatedAt: now,
+      now: now,
+    );
+  }
+
+  GalleryDocument applyToDocumentByChapterMedia({
+    required GalleryDocument base,
+    required String templateJson,
+    required String Function() createId,
+    required DateTime now,
+    required List<List<String>> mediaIdsByChapter,
+    String? titleOverride,
+    String? chapterTitleOverride,
+    bool appendExtraMedia = false,
+  }) {
+    final decoded = _decodeTemplate(templateJson);
+    final chaptersJson = _chaptersJson(decoded);
+    final chapters = <GalleryChapter>[];
+    for (
+      var chapterIndex = 0;
+      chapterIndex < chaptersJson.length;
+      chapterIndex++
+    ) {
+      chapters.add(
+        _buildChapter(
+          chapterJson: chaptersJson[chapterIndex],
+          chapterIndex: chapterIndex,
+          chapterCount: chaptersJson.length,
+          chapterMediaIds: chapterIndex < mediaIdsByChapter.length
+              ? mediaIdsByChapter[chapterIndex]
+              : const <String>[],
+          createId: createId,
+          chapterTitleOverride: chapterTitleOverride,
+          appendExtraMedia: appendExtraMedia,
+        ),
+      );
+    }
+    return _documentFromTemplate(
+      base: base,
+      decoded: decoded,
+      titleOverride: titleOverride,
+      mediaIds: [
+        for (final chapterMediaIds in mediaIdsByChapter)
+          for (final mediaId in chapterMediaIds) mediaId,
+      ],
+      chapters: chapters,
+      now: now,
     );
   }
 }
@@ -213,18 +211,157 @@ class TemplateSummary {
     required this.firstChapterTitle,
     required this.chapterCount,
     required this.placementCount,
+    required this.chapters,
   });
 
   final String title;
   final String firstChapterTitle;
   final int chapterCount;
   final int placementCount;
+  final List<TemplateChapterSummary> chapters;
+}
+
+class TemplateChapterSummary {
+  const TemplateChapterSummary({required this.title, required this.slotCount});
+
+  final String title;
+  final int slotCount;
+}
+
+GalleryDocument _documentFromTemplate({
+  required GalleryDocument base,
+  required Map<String, Object?> decoded,
+  required String? titleOverride,
+  required List<String> mediaIds,
+  required List<GalleryChapter> chapters,
+  required DateTime now,
+}) {
+  if (chapters.isEmpty) {
+    throw const FormatException('Template has no chapters');
+  }
+  final title = titleOverride?.trim();
+  return base.copyWith(
+    title: title == null || title.isEmpty
+        ? (decoded['title'] as String? ?? base.title)
+        : title,
+    coverMediaId: mediaIds.isEmpty ? base.coverMediaId : mediaIds.first,
+    theme: _byName(GalleryTheme.values, decoded['theme'], base.theme),
+    showChapterTitleInPlayback:
+        decoded['showChapterTitleInPlayback'] as bool? ??
+        base.showChapterTitleInPlayback,
+    playbackDelaySeconds:
+        ((decoded['playbackDelaySeconds'] as num?)?.round() ??
+                base.playbackDelaySeconds)
+            .clamp(0, 30),
+    chapters: chapters,
+    updatedAt: now,
+  );
+}
+
+GalleryChapter _buildChapter({
+  required Map<String, Object?> chapterJson,
+  required int chapterIndex,
+  required int chapterCount,
+  required List<String> chapterMediaIds,
+  required String Function() createId,
+  required String? chapterTitleOverride,
+  required bool appendExtraMedia,
+  List<Object?>? forceDefaultSlots,
+}) {
+  final slots =
+      forceDefaultSlots ??
+      (chapterJson['placements'] as List<Object?>? ?? const []);
+  var mediaIndex = 0;
+  final placementIds = <String>[];
+  final templatePlacementIds = <String, String>{};
+  final placements = <GalleryPlacement>[];
+  for (var slotIndex = 0; slotIndex < slots.length; slotIndex++) {
+    if (mediaIndex >= chapterMediaIds.length) break;
+    final slot = slots[slotIndex] as Map<String, Object?>;
+    final placementId = createId();
+    placementIds.add(placementId);
+    templatePlacementIds[slot['id'] as String? ?? '$slotIndex'] = placementId;
+    placements.add(
+      _placementFromSlot(
+        id: placementId,
+        mediaId: chapterMediaIds[mediaIndex++],
+        order: placements.length,
+        slot: slot,
+      ),
+    );
+  }
+  if (appendExtraMedia) {
+    while (mediaIndex < chapterMediaIds.length) {
+      placements.add(
+        GalleryPlacement(
+          id: createId(),
+          mediaId: chapterMediaIds[mediaIndex++],
+          order: placements.length,
+        ),
+      );
+    }
+  }
+  return GalleryChapter(
+    id: createId(),
+    title: _resolveChapterTitle(
+      chapterJson: chapterJson,
+      chapterIndex: chapterIndex,
+      chapterCount: chapterCount,
+      override: chapterTitleOverride,
+    ),
+    caption: chapterJson['caption'] as String? ?? '',
+    order: chapterIndex,
+    layout: _decodeLayout(chapterJson['layout']),
+    motion: _byName(
+      GalleryMotion.values,
+      chapterJson['motion'],
+      GalleryMotion.push,
+    ),
+    pathStyle: _byName(
+      StoryPathStyle.values,
+      chapterJson['pathStyle'],
+      StoryPathStyle.solid,
+    ),
+    placements: placements,
+    customPathAnchors: _decodeCustomPathAnchors(
+      chapterJson['customPathAnchors'],
+    ),
+    customPathConnections: _decodeCustomPathConnections(
+      chapterJson['customPathConnections'],
+      templatePlacementIds,
+      placementIds,
+    ),
+    stickers: _decodeStickers(chapterJson['stickers']),
+  );
+}
+
+GalleryPlacement _placementFromSlot({
+  required String id,
+  required String mediaId,
+  required int order,
+  required Map<String, Object?> slot,
+}) {
+  return GalleryPlacement(
+    id: id,
+    mediaId: mediaId,
+    order: order,
+    size: _byName(GallerySize.values, slot['size'], GallerySize.medium),
+    frame: _byName(GalleryFrame.values, slot['frame'], GalleryFrame.none),
+    focalX: (slot['focalX'] as num?)?.toDouble() ?? .5,
+    focalY: (slot['focalY'] as num?)?.toDouble() ?? .5,
+    zoom: (slot['zoom'] as num?)?.toDouble() ?? 1,
+    scale: (slot['scale'] as num?)?.toDouble() ?? 1,
+    offsetX: (slot['offsetX'] as num?)?.toDouble() ?? 0,
+    offsetY: (slot['offsetY'] as num?)?.toDouble() ?? 0,
+    rotation: (slot['rotation'] as num?)?.toDouble() ?? 0,
+    caption: slot['caption'] as String? ?? '',
+  );
 }
 
 Map<String, Object?> _decodeTemplate(String templateJson) {
   final decoded = jsonDecode(templateJson) as Map<String, Object?>;
   if (decoded['kind'] != 'xulang-template') {
-    throw const FormatException('不是叙廊模板文件');
+    throw const FormatException('Not a Xulang template file');
   }
   return decoded;
 }
@@ -246,7 +383,7 @@ String _resolveChapterTitle({
   if (trimmed != null && trimmed.isNotEmpty) {
     return chapterCount == 1 ? trimmed : '$trimmed ${chapterIndex + 1}';
   }
-  return chapterJson['title'] as String? ?? '第${chapterIndex + 1}章';
+  return chapterJson['title'] as String? ?? 'Chapter ${chapterIndex + 1}';
 }
 
 List<CustomPathAnchor>? _decodeCustomPathAnchors(Object? data) {

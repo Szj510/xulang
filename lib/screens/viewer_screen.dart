@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/services.dart';
 import 'package:wakelock_plus/wakelock_plus.dart';
+import 'package:xulang/data/document_access_service.dart';
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/l10n/app_strings.dart';
@@ -18,6 +19,7 @@ import 'package:xulang/layout/narrative_navigation_coordinator.dart';
 import 'package:xulang/providers/app_providers.dart';
 import 'package:xulang/recording/native_screen_recorder.dart';
 import 'package:xulang/recording/recorded_video_library.dart';
+import 'package:xulang/screens/music_library_screen.dart';
 import 'package:xulang/screens/recording_result_screen.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
@@ -46,6 +48,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   bool _previewPlaybackMode = false;
   bool _autoPlaybackActive = false;
   double _recordingSpeed = 6.0;
+  bool _recordingSpeedInitialized = false;
   bool _musicPlaying = false;
   bool _changingChapter = false;
   bool _playbackFinished = false;
@@ -54,7 +57,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   String? _activeRecordingPath;
   String? _recordingShareTitle;
   DateTime? _recordingStartedAt;
-  RecordingChapterMode _activePlaybackChapterMode = RecordingChapterMode.current;
+  RecordingChapterMode _activePlaybackChapterMode =
+      RecordingChapterMode.current;
   final AudioPlayer _audioPlayer = AudioPlayer();
   String? _playingMusicPath;
 
@@ -95,6 +99,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             );
           }
           final chapters = bundle.document.chapters;
+          if (!_recordingSpeedInitialized) {
+            _recordingSpeed = appSettings.recordingSpeed;
+            _recordingSpeedInitialized = true;
+          }
           if (chapters.every((chapter) => chapter.placements.isEmpty)) {
             return _ViewerMessage(
               onBack: () => Navigator.pop(context),
@@ -105,7 +113,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             _autoRecordingQueued = true;
             WidgetsBinding.instance.addPostFrameCallback((_) {
               if (!mounted || _recordingMode) return;
-              unawaited(_setRecordingMode(bundle.document, appSettings, true));
+              unawaited(_setRecordingMode(bundle, appSettings, true));
             });
           }
           final chapterIndex = _chapterIndex.clamp(0, chapters.length - 1);
@@ -115,10 +123,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             onTap: _recordingMode || _previewPlaybackMode
                 ? null
                 : () => setState(() => _showChrome = !_showChrome),
-            onDoubleTap:
-                (_recordingMode || _previewPlaybackMode) && _playbackFinished
-                ? () => unawaited(_restoreChromeAfterPlayback())
-                : null,
+            onDoubleTap: () => _handleDoubleTapExit(),
             child: Stack(
               children: [
                 Positioned.fill(
@@ -182,7 +187,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                           bundle.document.canvasBackgroundOpacity,
                       reduceMotion: MediaQuery.disableAnimationsOf(context),
                       showControls:
-                          _showChrome && !_recordingMode && !_previewPlaybackMode,
+                          _showChrome &&
+                          !_recordingMode &&
+                          !_previewPlaybackMode,
                       recordingMode: _autoPlaybackActive,
                       recordingSpeed: _recordingSpeed,
                       initialProgress: _chapterProgress[chapter.id] ?? 0,
@@ -221,15 +228,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                                 chapters,
                                 ChapterNavigationIntent.next,
                               ),
-                        onStartRecording: () => _setRecordingMode(
-                          bundle.document,
-                          appSettings,
-                          true,
-                        ),
-                        onPreviewPlayback: () => _startPreviewPlayback(
-                          bundle.document,
-                          appSettings,
-                        ),
+                        onStartRecording: () =>
+                            _setRecordingMode(bundle, appSettings, true),
+                        onPreviewPlayback: () =>
+                            _startPreviewPlayback(bundle.document, appSettings),
                         onToggleMusic: bundle.document.musicPath == null
                             ? null
                             : () => _toggleMusic(bundle.document),
@@ -247,7 +249,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     right: 24,
                     child: IgnorePointer(
                       child: Text(
-                        AppStrings.of(context).chapterTitle(chapter.id, chapter.title),
+                        AppStrings.of(
+                          context,
+                        ).chapterTitle(chapter.id, chapter.title),
                         textAlign: TextAlign.center,
                         style: const TextStyle(
                           color: XulangColors.paper,
@@ -300,14 +304,27 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (mounted) setState(() => _changingChapter = false);
   }
 
+  void _handleDoubleTapExit() {
+    if (_recordingMode) {
+      unawaited(_stopNativeRecording(share: true));
+      return;
+    }
+    if (_previewPlaybackMode) {
+      unawaited(_restoreChromeAfterPlayback());
+      return;
+    }
+    Navigator.maybePop(context);
+  }
+
   Future<void> _setRecordingMode(
-    GalleryDocument document,
+    GalleryBundle bundle,
     AppSettings appSettings,
     bool enabled,
   ) async {
     if (enabled) {
-      final options = await _showRecordingOptions(document, appSettings);
+      final options = await _showRecordingOptions(bundle, appSettings);
       if (options == null) return;
+      final document = options.document;
       await ref
           .read(galleryRepositoryProvider)
           .saveAppSettings(
@@ -332,7 +349,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         _chapterProgress[document.chapters[index].id] = 0;
       }
       setState(() {
-        _recordingShareTitle = AppStrings.of(context).exhibitionDisplayTitle(document.id, document.title);
+        _recordingShareTitle = AppStrings.of(
+          context,
+        ).exhibitionDisplayTitle(document.id, document.title);
         _recordingSpeed = options.speed;
         _recordingMode = true;
         _previewPlaybackMode = false;
@@ -345,7 +364,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       await Future<void>.delayed(const Duration(milliseconds: 360));
       if (!mounted) return;
-      final recordingPath = await _startNativeRecording(document, options.quality);
+      final recordingPath = await _startNativeRecording(
+        document,
+        options.quality,
+        outputTitle: options.fileTitle,
+      );
       if (recordingPath == null) {
         await _restoreChromeAfterPlayback();
         return;
@@ -393,7 +416,6 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       _chapterProgress[document.chapters[index].id] = 0;
     }
     setState(() {
-      _recordingSpeed = settings.recordingSpeed;
       _recordingMode = false;
       _previewPlaybackMode = true;
       _autoPlaybackActive = true;
@@ -452,8 +474,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
   Future<String?> _startNativeRecording(
     GalleryDocument document,
-    RecordingQuality quality,
-  ) async {
+    RecordingQuality quality, {
+    required String outputTitle,
+  }) async {
     final l10n = AppStrings.of(context);
     if (!Platform.isAndroid) {
       _showRecorderMessage(l10n.androidRecordingOnly);
@@ -462,8 +485,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     try {
       final physicalSize = View.of(context).physicalSize;
       final profile = _recordingEncoderProfile(physicalSize, quality);
-      final outputPath = await RecordedVideoLibrary.createOutputPath(
-        documentId: document.id,
+      final outputPath = await RecordedVideoLibrary.createOutputPathForTitle(
+        title: outputTitle,
       );
       return NativeScreenRecorder.start(
         outputPath: outputPath,
@@ -473,14 +496,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         bitRate: profile.bitRate,
       );
     } on PlatformException catch (error) {
-      _showRecorderMessage(
-        error.message ?? l10n.cannotStartRecording,
-      );
+      _showRecorderMessage(error.message ?? l10n.cannotStartRecording);
       return null;
     } catch (error) {
-      _showRecorderMessage(
-        '${l10n.cannotStartRecording}：$error',
-      );
+      _showRecorderMessage('${l10n.cannotStartRecording}：$error');
       return null;
     }
   }
@@ -543,15 +562,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       }
     } on PlatformException catch (error) {
       if (share) {
-        _showRecorderMessage(
-          error.message ?? l10n.recordingStopFailed,
-        );
+        _showRecorderMessage(error.message ?? l10n.recordingStopFailed);
       }
     } catch (error) {
       if (share) {
-        _showRecorderMessage(
-          '${l10n.recordingStopFailed}：$error',
-        );
+        _showRecorderMessage('${l10n.recordingStopFailed}：$error');
       }
     } finally {
       _activeRecordingPath = null;
@@ -571,10 +586,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       _showRecorderMessage(l10n.recordingSavedOpenResult);
       await Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => RecordingResultScreen(
-            videoPath: resultPath!,
-            title: resultTitle,
-          ),
+          builder: (_) =>
+              RecordingResultScreen(videoPath: resultPath!, title: resultTitle),
         ),
       );
     }
@@ -631,13 +644,17 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   }
 
   Future<_RecordingOptions?> _showRecordingOptions(
-    GalleryDocument document,
+    GalleryBundle bundle,
     AppSettings settings,
   ) {
+    var document = bundle.document;
     var chapterMode = settings.recordingChapterMode;
     var speed = settings.recordingSpeed;
     var quality = settings.recordingQuality;
     var useMusic = settings.recordingUseMusic && document.musicPath != null;
+    var fileTitle = AppStrings.of(
+      context,
+    ).exhibitionDisplayTitle(document.id, document.title);
     return showModalBottomSheet<_RecordingOptions>(
       context: context,
       showDragHandle: true,
@@ -669,6 +686,15 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
+                TextFormField(
+                  initialValue: fileTitle,
+                  decoration: InputDecoration(
+                    labelText: AppStrings.of(context).recordingFileName,
+                    helperText: 'xulang-[name]-yyyyMMdd-HHmmss.mp4',
+                  ),
+                  onChanged: (value) => fileTitle = value,
+                ),
+                const SizedBox(height: 18),
                 Text(AppStrings.of(context).chapterRange),
                 const SizedBox(height: 8),
                 Wrap(
@@ -692,9 +718,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                 Text(AppStrings.of(context).playbackSpeed(speed)),
                 Slider(
                   value: speed,
-                  min: 1,
+                  min: 0.1,
                   max: 12,
-                  divisions: 22,
+                  divisions: 119,
                   label: AppStrings.of(context).speedLabel(speed),
                   onChanged: (value) => setSheetState(() => speed = value),
                 ),
@@ -710,8 +736,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                         label: Text(
                           _recordingQualityLabel(AppStrings.of(context), item),
                         ),
-                        onSelected: (_) =>
-                            setSheetState(() => quality = item),
+                        onSelected: (_) => setSheetState(() => quality = item),
                       ),
                   ],
                 ),
@@ -736,6 +761,77 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                         AppStrings.of(context).noBackgroundMusic,
                   ),
                 ),
+                Row(
+                  children: [
+                    TextButton.icon(
+                      onPressed: () async {
+                        final item = await Navigator.of(context)
+                            .push<MusicLibraryItem>(
+                              MaterialPageRoute<MusicLibraryItem>(
+                                builder: (_) => const MusicLibraryScreen(
+                                  selectionMode: true,
+                                ),
+                              ),
+                            );
+                        if (item == null) return;
+                        final nextDocument = document.copyWith(
+                          musicPath: item.path,
+                          musicTitle: item.displayName,
+                          updatedAt: DateTime.now(),
+                        );
+                        await ref
+                            .read(galleryRepositoryProvider)
+                            .save(
+                              GalleryBundle(
+                                document: nextDocument,
+                                media: bundle.media,
+                              ),
+                            );
+                        if (!mounted) return;
+                        setSheetState(() {
+                          document = nextDocument;
+                          useMusic = true;
+                        });
+                        setState(() {
+                          _bundle = ref
+                              .read(galleryRepositoryProvider)
+                              .load(widget.exhibitionId);
+                        });
+                      },
+                      icon: const Icon(Icons.library_music_outlined, size: 18),
+                      label: Text(AppStrings.of(context).choose),
+                    ),
+                    if (document.musicPath != null)
+                      TextButton(
+                        onPressed: () async {
+                          final nextDocument = document.copyWith(
+                            musicPath: null,
+                            musicTitle: null,
+                            updatedAt: DateTime.now(),
+                          );
+                          await ref
+                              .read(galleryRepositoryProvider)
+                              .save(
+                                GalleryBundle(
+                                  document: nextDocument,
+                                  media: bundle.media,
+                                ),
+                              );
+                          if (!mounted) return;
+                          setSheetState(() {
+                            document = nextDocument;
+                            useMusic = false;
+                          });
+                          setState(() {
+                            _bundle = ref
+                                .read(galleryRepositoryProvider)
+                                .load(widget.exhibitionId);
+                          });
+                        },
+                        child: Text(AppStrings.of(context).clear),
+                      ),
+                  ],
+                ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -748,10 +844,12 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       onPressed: () => Navigator.pop(
                         sheetContext,
                         _RecordingOptions(
+                          document: document,
                           chapterMode: chapterMode,
                           speed: speed,
                           quality: quality,
                           useMusic: useMusic,
+                          fileTitle: fileTitle,
                         ),
                       ),
                       icon: const Icon(Icons.videocam_outlined, size: 18),
@@ -783,7 +881,10 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (path == null) return;
     if (_playingMusicPath != path) {
       _playingMusicPath = path;
-      await _audioPlayer.play(DeviceFileSource(path));
+      final source = path.startsWith('content://')
+          ? UrlSource(path)
+          : DeviceFileSource(path);
+      await _audioPlayer.play(source);
     } else {
       await _audioPlayer.resume();
     }
@@ -793,16 +894,20 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
 
 class _RecordingOptions {
   const _RecordingOptions({
+    required this.document,
     required this.chapterMode,
     required this.speed,
     required this.quality,
     required this.useMusic,
+    required this.fileTitle,
   });
 
+  final GalleryDocument document;
   final RecordingChapterMode chapterMode;
   final double speed;
   final RecordingQuality quality;
   final bool useMusic;
+  final String fileTitle;
 }
 
 class _RecordingEncoderProfile {
@@ -817,6 +922,18 @@ class _RecordingEncoderProfile {
   final int height;
   final int frameRate;
   final int bitRate;
+}
+
+Duration playbackDurationForChapter({
+  required GalleryChapter chapter,
+  required double secondsPerPhoto,
+}) {
+  final photoCount = math.max(1, chapter.placements.length);
+  final durationMs = (secondsPerPhoto * photoCount * 1000).round().clamp(
+    100,
+    120000,
+  );
+  return Duration(milliseconds: durationMs);
 }
 
 String _recordingChapterModeLabel(AppStrings l10n, RecordingChapterMode mode) =>
@@ -920,15 +1037,11 @@ class _ViewerChapterState extends State<_ViewerChapter>
     _recorder.reset();
     _camera.setProgress(0);
     widget.onProgressChanged(0);
-    final durationMs = (widget.recordingSpeed * 1000).round().clamp(
-      1600,
-      120000,
+    final duration = playbackDurationForChapter(
+      chapter: widget.chapter,
+      secondsPerPhoto: widget.recordingSpeed,
     );
-    _recorder.animateTo(
-      1.0,
-      duration: Duration(milliseconds: durationMs),
-      curve: Curves.linear,
-    );
+    _recorder.animateTo(1.0, duration: duration, curve: Curves.linear);
   }
 
   void _handleRecorderStatus(AnimationStatus status) {
@@ -987,15 +1100,16 @@ class _ViewerChapterState extends State<_ViewerChapter>
   void _updatePan(DragUpdateDetails details) {
     final viewport = MediaQuery.sizeOf(context);
     final axis = NarrativeAxis.fromViewport(viewport);
+    final scaledDelta = details.delta * 1.9;
     final gesture = _camera.update(
-      delta: details.delta,
+      delta: scaledDelta,
       viewport: viewport,
       itemCount: widget.chapter.placements.length,
       scale: scale,
       axis: axis,
     );
     widget.onProgressChanged(_camera.progress);
-    final intent = _navigation.update(details.delta, gesture);
+    final intent = _navigation.update(scaledDelta, gesture);
     if (intent != ChapterNavigationIntent.none) {
       _sentChapterIntent = true;
       widget.onChapterIntent(intent);
@@ -1299,15 +1413,15 @@ class _ViewerChrome extends StatelessWidget {
                         onSelected: (v) => onRecordingSpeedChanged?.call(v),
                         itemBuilder: (context) => [
                           PopupMenuItem(
-                            value: 3.0,
+                            value: 1.0,
                             child: Text(AppStrings.of(context).fast3s),
                           ),
                           PopupMenuItem(
-                            value: 6.0,
+                            value: 3.0,
                             child: Text(AppStrings.of(context).medium6s),
                           ),
                           PopupMenuItem(
-                            value: 10.0,
+                            value: 6.0,
                             child: Text(AppStrings.of(context).slow10s),
                           ),
                         ],
@@ -1316,7 +1430,9 @@ class _ViewerChrome extends StatelessWidget {
                         _ChromeIconButton(
                           key: const Key('viewer-music-toggle'),
                           onPressed: onToggleMusic,
-                          tooltip: musicPlaying ? AppStrings.of(context).pauseMusic : AppStrings.of(context).playMusic,
+                          tooltip: musicPlaying
+                              ? AppStrings.of(context).pauseMusic
+                              : AppStrings.of(context).playMusic,
                           icon: musicPlaying
                               ? Icons.music_off_outlined
                               : Icons.music_note_outlined,

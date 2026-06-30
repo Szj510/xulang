@@ -124,8 +124,11 @@ void main() {
       contentHash: 'sample-coast',
     );
     await database.saveDocument(document, [media]);
-    final ids = ['asset-media-copy', 'asset-chapter-copy', 'asset-placement-copy']
-        .iterator;
+    final ids = [
+      'asset-media-copy',
+      'asset-chapter-copy',
+      'asset-placement-copy',
+    ].iterator;
     String nextId() {
       ids.moveNext();
       return ids.current;
@@ -151,4 +154,114 @@ void main() {
       'asset-media-copy',
     );
   });
+
+  test('deleting a category keeps exhibitions as uncategorized', () async {
+    final repository = GalleryRepository(
+      database: database,
+      mediaRoot: mediaRoot,
+      createId: () => 'generated-id',
+    );
+    final now = DateTime.utc(2026, 6, 29);
+    await repository.createCategory(
+      id: 'category-1',
+      title: 'Travel',
+      sortOrder: 0,
+      now: now,
+    );
+    await repository.createExhibition(
+      id: 'exhibition-1',
+      title: 'Trip',
+      now: now,
+      categoryId: 'category-1',
+    );
+
+    await repository.deleteCategory('category-1');
+
+    final loaded = await repository.load('exhibition-1');
+    expect(loaded, isNotNull);
+    expect(loaded!.document.categoryId, isNull);
+  });
+
+  test(
+    'cleanup unused media deletes only unreferenced app-private files',
+    () async {
+      final repository = GalleryRepository(
+        database: database,
+        mediaRoot: mediaRoot,
+        createId: () => 'generated-id',
+      );
+      final usedDirectory = Directory(p.join(mediaRoot.path, 'story', 'used'))
+        ..createSync(recursive: true);
+      final orphanDirectory = Directory(
+        p.join(mediaRoot.path, 'story', 'orphan'),
+      )..createSync(recursive: true);
+      final usedOriginal = File(p.join(usedDirectory.path, 'original.jpg'))
+        ..writeAsBytesSync([1, 2, 3]);
+      final usedThumb = File(p.join(usedDirectory.path, 'thumb.webp'))
+        ..writeAsBytesSync([4, 5]);
+      final orphanOriginal = File(p.join(orphanDirectory.path, 'original.jpg'))
+        ..writeAsBytesSync([6, 7, 8]);
+      final orphanThumb = File(p.join(orphanDirectory.path, 'thumb.webp'))
+        ..writeAsBytesSync([9, 10]);
+      final external = File(p.join(mediaRoot.parent.path, 'external.jpg'))
+        ..writeAsBytesSync([11]);
+
+      await database.saveDocument(
+        GalleryDocument(
+          id: 'story',
+          title: 'Story',
+          createdAt: DateTime.utc(2026, 6, 30),
+          updatedAt: DateTime.utc(2026, 6, 30),
+          chapters: const [
+            GalleryChapter(
+              id: 'chapter',
+              title: 'Chapter',
+              order: 0,
+              layout: GalleryLayout.hero,
+              motion: GalleryMotion.push,
+              placements: [
+                GalleryPlacement(id: 'placement', mediaId: 'used', order: 0),
+              ],
+            ),
+          ],
+        ),
+        [
+          GalleryMedia(
+            id: 'used',
+            originalPath: usedOriginal.path,
+            thumbnailPath: usedThumb.path,
+            width: 10,
+            height: 10,
+            contentHash: 'used',
+          ),
+          GalleryMedia(
+            id: 'orphan',
+            originalPath: orphanOriginal.path,
+            thumbnailPath: orphanThumb.path,
+            width: 10,
+            height: 10,
+            contentHash: 'orphan',
+          ),
+          GalleryMedia(
+            id: 'external',
+            originalPath: external.path,
+            thumbnailPath: external.path,
+            width: 10,
+            height: 10,
+            contentHash: 'external',
+          ),
+        ],
+      );
+
+      final result = await repository.cleanupUnusedAppPrivateMedia();
+
+      expect(result.deletedFileCount, 2);
+      expect(result.deletedBytes, 5);
+      expect(await usedOriginal.exists(), isTrue);
+      expect(await usedThumb.exists(), isTrue);
+      expect(await orphanOriginal.exists(), isFalse);
+      expect(await orphanThumb.exists(), isFalse);
+      expect(await external.exists(), isTrue);
+    },
+  );
 }

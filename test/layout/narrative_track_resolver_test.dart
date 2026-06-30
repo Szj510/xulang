@@ -88,6 +88,44 @@ void main() {
     expect(track.resolve(2), track.resolve(1));
   });
 
+  for (final layout in GalleryLayout.values) {
+    test('$layout gives first and last image a full focus moment', () {
+      final track = NarrativeTrackResolver.resolve(
+        chapter: chapter(layout),
+        viewport: const Size(390, 844),
+      );
+
+      for (final entry in <({String id, double progress})>[
+        (id: placements.first.id, progress: 0),
+        (id: placements.last.id, progress: 1),
+      ]) {
+        final keyframe = track.keyframes.singleWhere(
+          (keyframe) => keyframe.placementId == entry.id,
+        );
+        final node = track
+            .resolve(entry.progress)
+            .nodes
+            .singleWhere((node) => node.placementId == entry.id);
+
+        expect(
+          keyframe.focusProgress,
+          entry.progress,
+          reason: '${entry.id} focus progress',
+        );
+        expect(
+          node.opacity,
+          closeTo(track.sharedCamera ? 1 : keyframe.focus.opacity, .001),
+          reason: '${entry.id} at ${entry.progress}',
+        );
+        expect(
+          node.depth,
+          closeTo(track.sharedCamera ? 1 : keyframe.focus.depth, .001),
+          reason: '${entry.id} at ${entry.progress}',
+        );
+      }
+    });
+  }
+
   test('resolver is deterministic and preserves story order on rotation', () {
     final portrait = NarrativeTrackResolver.resolve(
       chapter: chapter(GalleryLayout.storyPath),
@@ -109,8 +147,8 @@ void main() {
     );
     expect(portrait.resolve(.5), portraitAgain.resolve(.5));
     expect(portrait.resolve(.5).hashCode, portraitAgain.resolve(.5).hashCode);
-    expect(portrait.keyframes.first.focusProgress, greaterThan(0));
-    expect(portrait.keyframes.last.focusProgress, lessThan(1));
+    expect(portrait.keyframes.first.focusProgress, 0);
+    expect(portrait.keyframes.last.focusProgress, 1);
   });
 
   test('empty zero-sized story track resolves without invalid values', () {

@@ -27,6 +27,50 @@ class AppStrings {
 
   bool get isEnglish => language == AppLanguage.english;
 
+  String get renameCategory => isEnglish ? 'Rename category' : '重命名分类';
+  String get deleteCategoryTitle => isEnglish ? 'Delete category?' : '删除分类？';
+  String deleteCategoryBody(String title) => isEnglish
+      ? 'Exhibitions in "$title" will be moved to Uncategorized. The exhibitions and photos will not be deleted.'
+      : '“$title”里的展览会移到未分类；展览和图片不会被删除。';
+  String get manageMusic => isEnglish ? 'Manage music' : '管理音乐';
+  String get musicLibrary => isEnglish ? 'Music library' : '音乐库';
+  String get templateLibrary => isEnglish ? 'Template library' : '模板库';
+  String get authorizeFolder => isEnglish ? 'Authorize folder' : '授权文件夹';
+  String get localPath => isEnglish ? 'Local path' : '本地路径';
+  String get copyPath => isEnglish ? 'Copy path' : '复制路径';
+  String get chooseImagesByChapter =>
+      isEnglish ? 'Choose images by chapter' : '按章节选择图片';
+  String chapterNeedsImages(String title, int count) =>
+      isEnglish ? '$title needs $count images.' : '$title 需要 $count 张图片。';
+  String extraImagesHint(int count) => isEnglish
+      ? '$count extra images will be added with plain default frames.'
+      : '多出的 $count 张图片会以默认无画框方式追加。';
+  String missingImagesHint(int count) => isEnglish
+      ? '$count empty slots will be skipped.'
+      : '缺少的 $count 个槽位会跳过，不生成图片卡片。';
+  String get recordingFileName => isEnglish ? 'Video file name' : '视频文件名';
+  String get renameVideo => isEnglish ? 'Rename video' : '重命名视频';
+  String get playbackSpeedTitle => isEnglish ? 'Playback speed' : '播放速度';
+  String get fastSpeed => isEnglish ? 'Fast' : '快';
+  String get mediumSpeed => isEnglish ? 'Medium' : '中';
+  String get slowSpeed => isEnglish ? 'Slow' : '慢';
+  String get buttonTooltipHint => isEnglish
+      ? 'Tip: long-press icon-only buttons to see what they do.'
+      : '提示：长按无文字说明的图标按钮可以查看功能注释。';
+  String get doubleTapPlaybackHint => isEnglish
+      ? 'Double-tap in playback to pause/exit preview; double-tap while recording to finish and open the result.'
+      : '播放页双击可暂停或退出预览；录屏中双击会结束录制并打开结果页。';
+  String get cleanupUnusedMedia => isEnglish ? 'Clean unused media' : '清理未使用素材';
+  String get cleanupUnusedMediaSubtitle => isEnglish
+      ? 'Remove app-private image copies and thumbnails that are no longer used by any exhibition. External referenced photos are not touched.'
+      : '删除不再被任何展览使用的应用内原图副本和缩略图；不会删除外部引用的相册图片。';
+  String get cleanupUnusedMediaConfirm => isEnglish
+      ? 'This removes only files in Xulang private storage that are not referenced by any exhibition. Photos in your gallery or authorized folders are kept.'
+      : '只会删除叙廊私有空间里未被任何展览引用的文件；相册或授权文件夹中的原文件不会被删除。';
+  String cleanupUnusedMediaResult(int count, String size) => isEnglish
+      ? 'Cleaned $count files, freed $size.'
+      : '已清理 $count 个文件，释放 $size。';
+
   String get appTitle => isEnglish ? 'Xulang' : '叙廊';
   String get localGallery => isEnglish ? 'Your local gallery' : '你的本地展览';
   String get newExhibition => isEnglish ? 'New' : '新建';
@@ -64,11 +108,11 @@ class AppStrings {
       ? 'You can still change this before each recording.'
       : '录制前仍会弹出确认，可临时修改。';
   String speedSecondsPerChapter(double value) => isEnglish
-      ? 'Default speed ${value.toStringAsFixed(1)}s / chapter'
-      : '默认播放速度 ${value.toStringAsFixed(1)} 秒/章';
+      ? 'Default speed ${value.toStringAsFixed(1)}s / photo'
+      : '默认播放速度 ${value.toStringAsFixed(1)} 秒 / 张图片';
   String speedLabel(double value) => isEnglish
-      ? '${value.toStringAsFixed(1)}s / chapter'
-      : '${value.toStringAsFixed(1)} 秒/章';
+      ? '${value.toStringAsFixed(1)}s / photo'
+      : '${value.toStringAsFixed(1)} 秒 / 张图片';
   String get howToUse => isEnglish ? 'How to use' : '怎么使用';
   String get commonEntrances => isEnglish ? 'Common actions' : '常见入口';
   String get privacyLocalStorage =>
@@ -95,7 +139,8 @@ class AppStrings {
   String get playbackPreview => isEnglish ? 'Playback preview' : '播放预览';
   String get generatedVideos => isEnglish ? 'Generated videos' : '生成的视频';
   String get manageVideos => isEnglish ? 'Manage videos' : '管理生成的视频';
-  String get noGeneratedVideos => isEnglish ? 'No generated videos yet' : '还没有生成的视频';
+  String get noGeneratedVideos =>
+      isEnglish ? 'No generated videos yet' : '还没有生成的视频';
   String get deleteVideoTitle => isEnglish ? 'Delete video?' : '删除视频？';
   String get deleteVideoBody => isEnglish
       ? 'This only deletes the generated MP4 file. Your exhibition is kept.'
@@ -105,8 +150,8 @@ class AppStrings {
       : '确认后会进入沉浸播放，完成录制并检测到 MP4 文件后，再打开结果页。';
   String get chapterRange => isEnglish ? 'Chapter range' : '章节范围';
   String playbackSpeed(double value) => isEnglish
-      ? 'Playback speed ${value.toStringAsFixed(1)}s / chapter'
-      : '播放速度 ${value.toStringAsFixed(1)} 秒/章';
+      ? 'Playback speed ${value.toStringAsFixed(1)}s / photo'
+      : '播放速度 ${value.toStringAsFixed(1)} 秒/张';
   String get useBackgroundMusic =>
       isEnglish ? 'Use background music' : '使用背景音乐';
   String get noBackgroundMusic =>
@@ -120,7 +165,8 @@ class AppStrings {
   String get duplicateExhibition => isEnglish ? 'Duplicate exhibition' : '复制展览';
   String get moveCategory => isEnglish ? 'Move category' : '移动分类';
   String get moreActions => isEnglish ? 'More actions' : '更多操作';
-  String get createFirstExhibition => isEnglish ? 'Create first exhibition' : '创建第一个展览';
+  String get createFirstExhibition =>
+      isEnglish ? 'Create first exhibition' : '创建第一个展览';
   String get officialSampleSuffix => isEnglish ? 'Official sample' : '官方示例';
   String get back => isEnglish ? 'Back' : '返回';
   String get undo => isEnglish ? 'Undo' : '撤销';
@@ -128,7 +174,8 @@ class AppStrings {
   String get immersiveView => isEnglish ? 'Immersive view' : '沉浸观看';
   String get exportAndShare => isEnglish ? 'Export & share' : '导出与分享';
   String get shareTemplate => isEnglish ? 'Share template' : '分享模板';
-  String get recordAndShareVideo => isEnglish ? 'Record & share video' : '录制并分享视频';
+  String get recordAndShareVideo =>
+      isEnglish ? 'Record & share video' : '录制并分享视频';
   String get chapters => isEnglish ? 'Chapters' : '章节';
   String get addChapter => isEnglish ? 'Add chapter' : '添加章节';
   String get renameExhibition => isEnglish ? 'Rename exhibition' : '重命名展览';
@@ -140,12 +187,12 @@ class AppStrings {
   String get nextChapter => isEnglish ? 'Next chapter' : '下一章';
   String get exitViewer => isEnglish ? 'Exit viewer' : '退出观看';
   String get recordingMode => isEnglish ? 'Recording mode' : '录屏模式';
-  String get recordingSpeed => isEnglish ? 'Recording speed' : '录屏速度';
+  String get recordingSpeed => playbackSpeedTitle;
   String get pauseMusic => isEnglish ? 'Pause music' : '暂停音乐';
   String get playMusic => isEnglish ? 'Play music' : '播放音乐';
-  String get fast3s => isEnglish ? 'Fast (3s)' : '快 (3s)';
-  String get medium6s => isEnglish ? 'Medium (6s)' : '中 (6s)';
-  String get slow10s => isEnglish ? 'Slow (10s)' : '慢 (10s)';
+  String get fast3s => isEnglish ? 'Fast (1s/photo)' : '快（1秒/张）';
+  String get medium6s => isEnglish ? 'Medium (3s/photo)' : '中（3秒/张）';
+  String get slow10s => isEnglish ? 'Slow (6s/photo)' : '慢（6秒/张）';
   String get androidRecordingOnly => isEnglish
       ? 'Automatic recording is currently available on Android only. You can still use the system recorder and share manually.'
       : '当前自动录屏仅支持 Android；可使用系统录屏后再分享。';
@@ -162,10 +209,14 @@ class AppStrings {
   String get recordingResult => isEnglish ? 'Recording result' : '录制结果';
   String get share => isEnglish ? 'Share' : '分享';
   String get recordingSaved => isEnglish ? 'Recording saved' : '录制已保存';
-  String recordingSavedWithSize(String size) => isEnglish ? 'Recording saved · $size' : '录制已保存 · $size';
-  String get videoPreviewFailed => isEnglish ? 'Unable to preview this video. You can still share the MP4 file.' : '无法预览这个视频，但仍可以分享生成的 MP4 文件。';
+  String recordingSavedWithSize(String size) =>
+      isEnglish ? 'Recording saved · $size' : '录制已保存 · $size';
+  String get videoPreviewFailed => isEnglish
+      ? 'Unable to preview this video. You can still share the MP4 file.'
+      : '无法预览这个视频，但仍可以分享生成的 MP4 文件。';
   String get uncategorized => isEnglish ? 'Uncategorized' : '未分类';
-  String exhibitionCount(int count) => isEnglish ? '$count exhibitions' : '$count 个展览';
+  String exhibitionCount(int count) =>
+      isEnglish ? '$count exhibitions' : '$count 个展览';
   String photoCount(int count) => isEnglish ? '$count photos' : '$count 张照片';
   String get backToCategories => isEnglish ? 'Back to categories' : '返回分类';
   String get searchExhibitions => isEnglish ? 'Search exhibitions' : '搜索展览';
@@ -175,11 +226,16 @@ class AppStrings {
   String get newExhibitionTitle => isEnglish ? 'New exhibition' : '新建展览';
   String get exhibitionName => isEnglish ? 'Exhibition name' : '展览名称';
   String get create => isEnglish ? 'Create' : '创建';
-  String get deleteExhibitionTitle => isEnglish ? 'Delete exhibition?' : '删除展览？';
-  String deleteExhibitionBody(String title) => isEnglish ? '“$title” and copied images in the app will be permanently deleted.' : '“$title”及复制到应用中的图片会被永久删除。';
-  String get cannotReadExhibitions => isEnglish ? 'Unable to read exhibitions' : '无法读取展览';
+  String get deleteExhibitionTitle =>
+      isEnglish ? 'Delete exhibition?' : '删除展览？';
+  String deleteExhibitionBody(String title) => isEnglish
+      ? '“$title” and copied images in the app will be permanently deleted.'
+      : '“$title”及复制到应用中的图片会被永久删除。';
+  String get cannotReadExhibitions =>
+      isEnglish ? 'Unable to read exhibitions' : '无法读取展览';
   String get moveToCategory => isEnglish ? 'Move to category' : '移动到分类';
-  String monthDay(DateTime date) => isEnglish ? '${date.month}/${date.day}' : '${date.month}月${date.day}日';
+  String monthDay(DateTime date) =>
+      isEnglish ? '${date.month}/${date.day}' : '${date.month}月${date.day}日';
   String get importImages => isEnglish ? 'Import images' : '导入图片';
   String get importing => isEnglish ? 'Importing' : '导入中';
   String get canvasAndStory => isEnglish ? 'Canvas & story' : '画布与叙事';
@@ -192,14 +248,102 @@ class AppStrings {
   String get sticker => isEnglish ? 'Sticker' : '贴画';
   String get stickers => isEnglish ? 'Stickers' : '贴画';
   String get addedStickers => isEnglish ? 'Added stickers' : '已添加贴画';
-  String get recordingSavedOpenResult => isEnglish ? 'Recording saved. Review it before sharing.' : '录制已保存，请查看效果后再分享。';
+  String get canvasTheme => isEnglish ? 'Canvas theme' : '画布主题';
+  String get inkCanvas => isEnglish ? 'Ink canvas' : '墨色画布';
+  String get paperCanvas => isEnglish ? 'Paper canvas' : '纸张画布';
+  String get graphiteCanvas => isEnglish ? 'Graphite canvas' : '石墨画布';
+  String get mistCanvas => isEnglish ? 'Mist canvas' : '雾蓝画布';
+  String get warmSandCanvas => isEnglish ? 'Warm sand canvas' : '暖沙画布';
+  String get moonlightRoom => isEnglish ? 'Moonlight room' : '月光暗房';
+  String get botanicalSpecimen => isEnglish ? 'Botanical specimen' : '植物标本';
+  String get cyanotype => isEnglish ? 'Cyanotype' : '蓝晒纸';
+  String get terracottaGallery => isEnglish ? 'Terracotta gallery' : '陶土壁龛';
+  String get titleAndCaption => isEnglish ? 'Title & note' : '标题与短注释';
+  String get panelOpacity => isEnglish ? 'Panel opacity' : '面板透明度';
+  String get noBackgroundMusicAdded =>
+      isEnglish ? 'No background music' : '未添加背景音乐';
+  String get selectImageFirst => isEnglish
+      ? 'Tap a photo to edit size, frame, crop and rotation here.'
+      : '点击一张图片后，这里会显示图片大小、画框、裁切和旋转。';
+  String get layerOrder => isEnglish ? 'Layer order' : '图层顺序';
+  String get imageSize => isEnglish ? 'Image size' : '画幅';
+  String get frameStyle => isEnglish ? 'Frame' : '画框';
+  String get cropAndComposition => isEnglish ? 'Crop & composition' : '裁切与构图';
+  String get horizontalFocus => isEnglish ? 'Horizontal focus' : '水平焦点';
+  String get verticalFocus => isEnglish ? 'Vertical focus' : '垂直焦点';
+  String get cropZoom => isEnglish ? 'Crop zoom' : '裁切缩放';
+  String get rotationAngle => isEnglish ? 'Rotation' : '旋转角度';
+  String get note => isEnglish ? 'Note' : '说明';
+  String get singlePhotoCaption => isEnglish ? 'Photo note' : '单图短注释';
+  String get canvasImage => isEnglish ? 'Canvas image' : '画布图片';
+  String get customCanvasSet => isEnglish ? 'Custom canvas set' : '已设置自定义画布';
+  String get audio => isEnglish ? 'Audio' : '音频';
+  String get backgroundMusicAdded =>
+      isEnglish ? 'Background music added' : '已添加背景音乐';
+  String get stickerPanelHint => isEnglish
+      ? 'Choose a small object, then tap the canvas to place it. Placed stickers can be dragged and rotated; tap the corner cross to delete.'
+      : '选择一个小物品后，点击画布放置；已放置的贴画可以拖动、旋转，点右上角叉删除。';
+  String get chapterText => isEnglish ? 'Chapter text' : '章节文字';
+  String get chapterTitleField => isEnglish ? 'Chapter title' : '章节标题';
+  String get shortNote => isEnglish ? 'Short note' : '短注释';
+  String get customCanvasImage => isEnglish ? 'Custom canvas image' : '自定义画布图片';
+  String get replace => isEnglish ? 'Replace' : '更换';
+  String get upload => isEnglish ? 'Upload' : '上传';
+  String get canvasOpacity => isEnglish ? 'Canvas opacity' : '画布透明度';
+  String get canvasImageHelp => isEnglish
+      ? 'Uploaded images are layered above the built-in canvas, useful for texture, paper, or atmosphere backgrounds.'
+      : '上传的图片会叠在当前内置画布上，适合做纹理、纸张或氛围底图。';
+  String get recordingDelayPlayback => isEnglish ? 'Recording delay' : '录屏延迟播放';
+  String secondsValue(int value) => isEnglish ? '${value}s' : '$value 秒';
+  String get recordingDelayHelp => isEnglish
+      ? 'After recording starts, wait this long before automatic playback.'
+      : '开始录屏后先等待这段时间，再自动播放。';
+  String get heroLayout => isEnglish ? 'Hero' : '主视觉';
+  String get filmstripLayout => isEnglish ? 'Filmstrip' : '横向胶片';
+  String get diptychLayout => isEnglish ? 'Diptych' : '双联画';
+  String get collageLayout => isEnglish ? 'Narrative collage' : '叙事拼贴';
+  String get storyPathLayout => isEnglish ? 'Story path' : '故事路径';
+  String get small => isEnglish ? 'Small' : '小';
+  String get medium => isEnglish ? 'Medium' : '中';
+  String get large => isEnglish ? 'Large' : '大';
+  String get solidLine => isEnglish ? 'Solid line' : '细线';
+  String get dashedLine => isEnglish ? 'Dashed line' : '虚线';
+  String get glowLine => isEnglish ? 'Glow' : '微光';
+  String get hidden => isEnglish ? 'Hidden' : '隐藏';
+  String get noFrame => isEnglish ? 'None' : '无';
+  String get hairlineFrame => isEnglish ? 'Hairline' : '细线';
+  String get matFrame => isEnglish ? 'Mat' : '相纸';
+  String get stampFrame => isEnglish ? 'Stamp edge' : '邮票边';
+  String get woodFrame => isEnglish ? 'Wood' : '木制';
+  String get darkWoodFrame => isEnglish ? 'Dark wood' : '深木';
+  String get metalFrame => isEnglish ? 'Metal' : '金属';
+  String get vintageFrame => isEnglish ? 'Vintage' : '复古';
+  String get filmFrame => isEnglish ? 'Film case' : '胶片匣';
+  String get starSticker => isEnglish ? 'Star mark' : '星芒标记';
+  String get sparkleSticker => isEnglish ? 'Sparkle' : '碎光';
+  String get heartSticker => isEnglish ? 'Warm heart' : '暖心印';
+  String get leafSticker => isEnglish ? 'Shadow leaf' : '影叶';
+  String get flowerSticker => isEnglish ? 'Dried flower' : '干花';
+  String get crescentMoonSticker => isEnglish ? 'Crescent moon' : '月弯';
+  String get fireflySticker => isEnglish ? 'Firefly' : '萤光';
+  String get cometSticker => isEnglish ? 'Comet tail' : '彗尾';
+  String get pressedPetalSticker => isEnglish ? 'Pressed petal' : '压花瓣';
+  String get paperTapeSticker => isEnglish ? 'Paper tape' : '纸胶带';
+  String get fogRibbonSticker => isEnglish ? 'Fog ribbon' : '雾缎';
+  String get waxSealSticker => isEnglish ? 'Wax seal' : '蜡封';
+  String get stickerRotation => isEnglish ? 'Rotation' : '旋转';
+  String get deleteStickerOnCanvas =>
+      isEnglish ? 'Tap the cross on the canvas to delete' : '在画布上点叉删除';
+  String get recordingSavedOpenResult => isEnglish
+      ? 'Recording saved. Review it before sharing.'
+      : '录制已保存，请查看效果后再分享。';
   String exhibitionDisplayTitle(String id, String title) {
     if (id == 'sample-exhibition') {
       return isEnglish
           ? 'Between Mountains and Sea (Official sample)'
           : title.contains('官方示例')
-              ? title
-              : '$title（官方示例）';
+          ? title
+          : '$title（官方示例）';
     }
     return title;
   }
@@ -216,8 +360,10 @@ class AppStrings {
   String chapterCaption(String id, String fallback) {
     if (!isEnglish) return fallback;
     return switch (id) {
-      'sample-chapter-1' => 'Walking along the coast, the wind slowly pulls the horizon closer.',
-      'sample-chapter-2' => 'The breeze moved through the hair and through that unhurried slice of time.',
+      'sample-chapter-1' =>
+        'Walking along the coast, the wind slowly pulls the horizon closer.',
+      'sample-chapter-2' =>
+        'The breeze moved through the hair and through that unhurried slice of time.',
       _ => fallback,
     };
   }
@@ -232,6 +378,14 @@ class AppStrings {
       _ => fallback,
     };
   }
+
+  String get chapterImageCountMismatch =>
+      isEnglish ? 'Image count differs from template' : '图片数量与模板不一致';
+  String selectedImagesCount(int count) =>
+      isEnglish ? 'Selected $count images.' : '已选择 $count 张图片。';
+  String get continueImport => isEnglish ? 'Continue import' : '继续导入';
+  String get noImagesSelected =>
+      isEnglish ? 'No images were selected. Import cancelled.' : '未选择图片，已取消导入。';
 
   String get recordPermissionHint => isEnglish
       ? 'Android requires screen-capture permission for every recording session; apps cannot turn it into an always-allow permission.'

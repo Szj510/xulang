@@ -181,6 +181,13 @@ void main() {
     expect(await database.loadMedia('exhibition-1'), isEmpty);
   });
 
+  test('app settings persist sub-second recording speed', () async {
+    await database.saveAppSettings(const AppSettings(recordingSpeed: 0.5));
+
+    final restored = await database.watchAppSettings().first;
+    expect(restored.recordingSpeed, 0.5);
+  });
+
   test('persists the story path layout by stable name', () async {
     final document = GalleryDocument.create(
       id: 'story-path-exhibition',

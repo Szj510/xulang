@@ -232,6 +232,30 @@ void main() {
     final persisted = await repository.load('exhibition');
     expect(persisted!.document.chapters.single.layout, GalleryLayout.filmstrip);
   });
+
+  test('renames chapters and refuses to delete the last chapter', () async {
+    await session.renameChapter('Renamed chapter');
+
+    expect(session.selectedChapter!.title, 'Renamed chapter');
+
+    final deleted = await session.deleteChapter(0);
+
+    expect(deleted, isFalse);
+    expect(session.bundle!.document.chapters, hasLength(1));
+    final persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters.single.title, 'Renamed chapter');
+  });
+
+  test('deletes a non-last chapter without deleting media assets', () async {
+    await session.addChapter();
+    await session.deleteChapter(0);
+
+    expect(session.bundle!.document.chapters, hasLength(1));
+    expect(session.bundle!.media.single.id, 'media');
+    final persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters, hasLength(1));
+    expect(persisted.media.single.id, 'media');
+  });
 }
 
 class _NoImages implements ImageSelectionService {
