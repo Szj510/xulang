@@ -96,6 +96,44 @@ void main() {
     expect(placement.offsetY, -.45);
   });
 
+  test('deletes a placement without deleting media', () async {
+    final now = DateTime(2026, 7);
+    final document = GalleryDocument(
+      id: 'exhibition',
+      title: 'Delete placement test',
+      createdAt: now,
+      updatedAt: now,
+      chapters: const [
+        GalleryChapter(
+          id: 'chapter',
+          title: 'Chapter',
+          order: 0,
+          layout: GalleryLayout.hero,
+          motion: GalleryMotion.push,
+          placements: [
+            GalleryPlacement(id: 'first', mediaId: 'media', order: 0),
+            GalleryPlacement(id: 'second', mediaId: 'media', order: 1),
+          ],
+        ),
+      ],
+    );
+    await repository.save(
+      GalleryBundle(document: document, media: session.bundle!.media),
+    );
+    await session.load();
+
+    await session.deletePlacement('first');
+
+    final chapter = session.selectedChapter!;
+    expect(chapter.placements, hasLength(1));
+    expect(chapter.placements.single.id, 'second');
+    expect(chapter.placements.single.order, 0);
+    expect(session.bundle!.media, hasLength(1));
+    final persisted = await repository.load('exhibition');
+    expect(persisted!.document.chapters.single.placements.single.id, 'second');
+    expect(persisted.media, hasLength(1));
+  });
+
   test('clears a recoverable editor error', () {
     session.error = StateError('temporary');
 

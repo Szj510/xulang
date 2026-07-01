@@ -161,6 +161,7 @@ class AppStrings {
   String get play => isEnglish ? 'Play' : '播放';
   String get edit => isEnglish ? 'Edit' : '编辑';
   String get delete => isEnglish ? 'Delete' : '删除';
+  String get deleteImage => isEnglish ? 'Delete image' : '删除图片';
   String get rename => isEnglish ? 'Rename' : '重命名';
   String get duplicateExhibition => isEnglish ? 'Duplicate exhibition' : '复制展览';
   String get moveCategory => isEnglish ? 'Move category' : '移动分类';
