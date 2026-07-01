@@ -108,6 +108,26 @@ class _EditorBodyState extends State<_EditorBody> {
     });
   }
 
+  Future<void> _deletePlacement(String placementId) async {
+    final chapter = session.selectedChapter;
+    if (chapter == null) return;
+    final index = chapter.placements.indexWhere(
+      (item) => item.id == placementId,
+    );
+    if (index < 0) return;
+    await session.deletePlacement(placementId);
+    final nextChapter = session.selectedChapter;
+    final nextPlacements =
+        nextChapter?.placements ?? const <GalleryPlacement>[];
+    if (!mounted) return;
+    if (nextPlacements.isEmpty) {
+      _focusCanvas();
+      return;
+    }
+    final nextIndex = index.clamp(0, nextPlacements.length - 1);
+    _focusPlacement(nextPlacements[nextIndex].id);
+  }
+
   void _selectStickerKind(GalleryStickerKind kind) {
     setState(() {
       _interactionMode = _EditorInteractionMode.sticker;
@@ -435,6 +455,7 @@ class _EditorBodyState extends State<_EditorBody> {
                         onPanelOpacityChanged: _setPanelOpacity,
                         onFocusCanvas: _focusCanvas,
                         onFocusPlacement: _focusPlacement,
+                        onDeletePlacement: _deletePlacement,
 
                         onFocusSticker: () => _focusSticker(),
                         onSelectStickerKind: _selectStickerKind,
@@ -488,6 +509,7 @@ class _EditorBodyState extends State<_EditorBody> {
                       onPanelOpacityChanged: _setPanelOpacity,
                       onFocusCanvas: _focusCanvas,
                       onFocusPlacement: _focusPlacement,
+                      onDeletePlacement: _deletePlacement,
 
                       onFocusSticker: () => _focusSticker(),
                       onSelectStickerKind: _selectStickerKind,
@@ -853,6 +875,7 @@ class _FloatingPanel extends StatefulWidget {
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
+    required this.onDeletePlacement,
     required this.onFocusSticker,
     required this.onSelectStickerKind,
     required this.onDismiss,
@@ -868,6 +891,7 @@ class _FloatingPanel extends StatefulWidget {
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
+  final ValueChanged<String> onDeletePlacement;
   final VoidCallback onFocusSticker;
   final ValueChanged<GalleryStickerKind> onSelectStickerKind;
   final VoidCallback onDismiss;
@@ -966,6 +990,7 @@ class _FloatingPanelState extends State<_FloatingPanel>
                         onPanelOpacityChanged: widget.onPanelOpacityChanged,
                         onFocusCanvas: widget.onFocusCanvas,
                         onFocusPlacement: widget.onFocusPlacement,
+                        onDeletePlacement: widget.onDeletePlacement,
 
                         onFocusSticker: widget.onFocusSticker,
                         onSelectStickerKind: widget.onSelectStickerKind,
@@ -1708,6 +1733,7 @@ class _Inspector extends StatefulWidget {
     required this.onPanelOpacityChanged,
     required this.onFocusCanvas,
     required this.onFocusPlacement,
+    required this.onDeletePlacement,
     required this.onFocusSticker,
     required this.onSelectStickerKind,
   });
@@ -1721,6 +1747,7 @@ class _Inspector extends StatefulWidget {
   final ValueChanged<double> onPanelOpacityChanged;
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
+  final ValueChanged<String> onDeletePlacement;
   final VoidCallback onFocusSticker;
   final ValueChanged<GalleryStickerKind> onSelectStickerKind;
 
@@ -2094,6 +2121,20 @@ class _InspectorState extends State<_Inspector> {
             ),
             onChanged: (value) =>
                 session.updatePlacement(placement.id, caption: value),
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            key: const Key('editor-delete-placement-button'),
+            onPressed: () => widget.onDeletePlacement(placement.id),
+            icon: const Icon(Icons.delete_outline, size: 18),
+            label: Text(l10n.deleteImage),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.redAccent.shade100,
+              side: BorderSide(color: Colors.redAccent.withValues(alpha: .45)),
+            ),
           ),
         ),
       ],

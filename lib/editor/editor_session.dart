@@ -544,6 +544,32 @@ class EditorSession extends ChangeNotifier {
     );
   }
 
+  Future<void> deletePlacement(String placementId) async {
+    final current = bundle;
+    if (current == null) return;
+    final chapters = List<GalleryChapter>.of(current.document.chapters);
+    final chapter = chapters[selectedChapterIndex];
+    final remaining = [
+      for (final placement in chapter.placements)
+        if (placement.id != placementId) placement,
+    ];
+    if (remaining.length == chapter.placements.length) return;
+    chapters[selectedChapterIndex] = chapter.copyWith(
+      placements: [
+        for (var index = 0; index < remaining.length; index++)
+          remaining[index].copyWith(order: index),
+      ],
+    );
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          chapters: chapters,
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
   Future<void> movePlacement(int oldIndex, int newIndex) async {
     final current = bundle;
     if (current == null) return;
