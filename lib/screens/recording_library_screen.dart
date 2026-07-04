@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/recording/recorded_video_library.dart';
@@ -27,7 +28,16 @@ class _RecordingLibraryScreenState extends State<RecordingLibraryScreen> {
 
   Future<void> _share(RecordedVideoInfo video) async {
     await SharePlus.instance.share(
-      ShareParams(text: video.name, files: [XFile(video.path)]),
+      ShareParams(
+        text: video.name,
+        files: [
+          XFile(
+            video.path,
+            mimeType: 'video/mp4',
+            name: p.basename(video.path),
+          ),
+        ],
+      ),
     );
   }
 

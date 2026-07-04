@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as p;
 import 'package:share_plus/share_plus.dart';
 import 'package:video_player/video_player.dart';
 import 'package:xulang/l10n/app_strings.dart';
@@ -56,7 +57,13 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
     await SharePlus.instance.share(
       ShareParams(
         text: '${widget.title} ${l10n.recordingVideoSuffix}',
-        files: [XFile(widget.videoPath)],
+        files: [
+          XFile(
+            widget.videoPath,
+            mimeType: 'video/mp4',
+            name: p.basename(widget.videoPath),
+          ),
+        ],
       ),
     );
   }
@@ -139,6 +146,11 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
                 widget.videoPath,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
+                style: const TextStyle(color: XulangColors.muted, fontSize: 11),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                l10n.shareOriginalVideoHint,
                 style: const TextStyle(color: XulangColors.muted, fontSize: 11),
               ),
               const SizedBox(height: 4),

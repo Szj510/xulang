@@ -645,6 +645,22 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
     final settings = ref
         .read(appSettingsProvider)
         .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
+    return showModalBottomSheet<TemplateFileCandidate>(
+      context: context,
+      showDragHandle: true,
+      isScrollControlled: true,
+      builder: (_) => _TemplateFilePickerSheet(initialSettings: settings),
+    );
+  }
+
+  // Kept as a fallback reference for the original direct-scan picker flow.
+  // ignore: unused_element
+  Future<TemplateFileCandidate?> _pickTemplateFileLegacy(
+    BuildContext context,
+  ) async {
+    final settings = ref
+        .read(appSettingsProvider)
+        .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
     final access = ref.read(documentAccessServiceProvider);
     final candidates = await access.scanTemplates(
       authorizedDirectories: settings.authorizedFolderPaths,
@@ -723,6 +739,214 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _TemplateFilePickerSheet extends ConsumerStatefulWidget {
+  const _TemplateFilePickerSheet({required this.initialSettings});
+
+  final AppSettings initialSettings;
+
+  @override
+  ConsumerState<_TemplateFilePickerSheet> createState() =>
+      _TemplateFilePickerSheetState();
+}
+
+class _TemplateFilePickerSheetState
+    extends ConsumerState<_TemplateFilePickerSheet> {
+  late List<String> _authorizedDirectories;
+  List<TemplateFileCandidate>? _candidates;
+  bool _loadingCache = true;
+  bool _refreshing = false;
+  Object? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _authorizedDirectories = [...widget.initialSettings.authorizedFolderPaths];
+    _loadCachedThenRefresh();
+  }
+
+  Future<void> _loadCachedThenRefresh() async {
+    final access = ref.read(documentAccessServiceProvider);
+    setState(() {
+      _loadingCache = true;
+      _error = null;
+    });
+    final cached = await access.readCachedTemplates();
+    if (!mounted) return;
+    setState(() {
+      _candidates = cached;
+      _loadingCache = false;
+    });
+    await _refresh();
+  }
+
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() {
+      _refreshing = true;
+      _error = null;
+    });
+    try {
+      final candidates = await ref
+          .read(documentAccessServiceProvider)
+          .scanTemplates(authorizedDirectories: _authorizedDirectories);
+      if (!mounted) return;
+      setState(() => _candidates = candidates);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error);
+      if ((_candidates ?? const <TemplateFileCandidate>[]).isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${AppStrings.of(context).templateLibrary}: $error'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
+  }
+
+  Future<void> _authorizeFolder() async {
+    final access = ref.read(documentAccessServiceProvider);
+    final path = await access.requestDirectory();
+    if (path == null || path.trim().isEmpty) return;
+    final normalized = path.trim();
+    if (!_authorizedDirectories.contains(normalized)) {
+      _authorizedDirectories = [..._authorizedDirectories, normalized];
+    }
+    final settings = ref
+        .read(appSettingsProvider)
+        .maybeWhen(
+          data: (value) => value,
+          orElse: () => widget.initialSettings,
+        );
+    final next = settings.copyWith(
+      authorizedFolderPaths: [
+        ...settings.authorizedFolderPaths,
+        if (!settings.authorizedFolderPaths.contains(normalized)) normalized,
+      ],
+    );
+    await ref.read(galleryRepositoryProvider).saveAppSettings(next);
+    if (mounted) await _refresh();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppStrings.of(context);
+    final candidates = _candidates ?? const <TemplateFileCandidate>[];
+    return SafeArea(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.sizeOf(context).height * .72,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              title: Text(l10n.templateLibrary),
+              subtitle: Text(
+                _refreshing
+                    ? l10n.refreshingLocalFiles
+                    : l10n.importTemplateSubtitle,
+              ),
+              trailing: TextButton.icon(
+                onPressed: _authorizeFolder,
+                icon: const Icon(Icons.folder_open_outlined),
+                label: Text(l10n.authorizeFolder),
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(child: _buildBody(l10n, candidates)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBody(AppStrings l10n, List<TemplateFileCandidate> candidates) {
+    if (_loadingCache && candidates.isEmpty) {
+      return _InlineLoadingMessage(message: l10n.scanningTemplates);
+    }
+    if (_error != null && candidates.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            '${l10n.templateLibrary}\n$_error',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: XulangColors.muted),
+          ),
+        ),
+      );
+    }
+    if (candidates.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            _refreshing ? l10n.scanningTemplates : l10n.importTemplateSubtitle,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: XulangColors.muted),
+          ),
+        ),
+      );
+    }
+    return ListView.separated(
+      itemCount: candidates.length + (_refreshing ? 1 : 0),
+      separatorBuilder: (_, _) => const Divider(height: 1),
+      itemBuilder: (context, index) {
+        if (_refreshing && index == 0) {
+          return ListTile(
+            leading: const SizedBox.square(
+              dimension: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            title: Text(l10n.refreshingLocalFiles),
+          );
+        }
+        final candidate = candidates[_refreshing ? index - 1 : index];
+        return ListTile(
+          leading: const Icon(Icons.description_outlined),
+          title: Text(candidate.summary.title),
+          subtitle: Text(
+            '${candidate.summary.chapterCount} chapters · '
+            '${candidate.summary.placementCount} images · '
+            '${_formatBytes(candidate.bytes)}\n'
+            '${candidate.path}',
+            maxLines: 3,
+            overflow: TextOverflow.ellipsis,
+          ),
+          onTap: () => Navigator.pop(context, candidate),
+        );
+      },
+    );
+  }
+}
+
+class _InlineLoadingMessage extends StatelessWidget {
+  const _InlineLoadingMessage({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const CircularProgressIndicator(),
+          const SizedBox(height: 14),
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: XulangColors.muted),
+          ),
+        ],
       ),
     );
   }
