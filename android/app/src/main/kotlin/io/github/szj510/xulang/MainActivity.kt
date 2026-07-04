@@ -1,4 +1,4 @@
-package com.example.xulang
+package io.github.szj510.xulang
 
 import android.app.Activity
 import android.content.Context
