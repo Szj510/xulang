@@ -1,10 +1,23 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:xulang/data/document_access_service.dart';
 import 'package:xulang/share/exhibition_exporter.dart';
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+  TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+      .setMockMethodCallHandler(
+        const MethodChannel('plugins.flutter.io/path_provider'),
+        (call) async {
+          if (call.method == 'getApplicationDocumentsDirectory') {
+            return Directory.systemTemp.path;
+          }
+          return null;
+        },
+      );
+
   test('scanMusic finds audio files in authorized folders', () async {
     final temp = await Directory.systemTemp.createTemp(
       'xulang_document_access_',
@@ -104,5 +117,29 @@ void main() {
     expect(cached.single.summary.title, 'Summer');
     expect(cached.single.summary.chapterCount, 2);
     expect(cached.single.summary.placementCount, 10);
+  });
+
+  test('scanTemplates ignores oversized template files', () async {
+    final temp = await Directory.systemTemp.createTemp(
+      'xulang_template_oversized_',
+    );
+    addTearDown(() async {
+      if (await temp.exists()) {
+        await temp.delete(recursive: true);
+      }
+    });
+    final mediaRoot = Directory('${temp.path}/media')..createSync();
+    final authorized = Directory('${temp.path}/authorized')..createSync();
+    final padding = 'x' * ExhibitionTemplateCodec.maxTemplateBytes;
+    await File('${authorized.path}/xulang-huge-template.json').writeAsString(
+      '{"kind":"xulang-template","chapters":[],"padding":"$padding"}',
+    );
+
+    final service = DocumentAccessService(mediaRoot: mediaRoot);
+    final templates = await service.scanTemplates(
+      authorizedDirectories: [authorized.path],
+    );
+
+    expect(templates, isEmpty);
   });
 }

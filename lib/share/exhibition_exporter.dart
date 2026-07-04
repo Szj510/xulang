@@ -5,6 +5,10 @@ import 'package:xulang/domain/gallery_document.dart';
 class ExhibitionTemplateCodec {
   const ExhibitionTemplateCodec();
 
+  static const maxTemplateBytes = 2 * 1024 * 1024;
+  static const maxChapters = 100;
+  static const maxPlacements = 2000;
+
   String encode(GalleryDocument document) {
     return const JsonEncoder.withIndent('  ').convert({
       'kind': 'xulang-template',
@@ -359,7 +363,15 @@ GalleryPlacement _placementFromSlot({
 }
 
 Map<String, Object?> _decodeTemplate(String templateJson) {
-  final decoded = jsonDecode(templateJson) as Map<String, Object?>;
+  if (utf8.encode(templateJson).length >
+      ExhibitionTemplateCodec.maxTemplateBytes) {
+    throw const FormatException('Template file is too large');
+  }
+  final raw = jsonDecode(templateJson);
+  if (raw is! Map) {
+    throw const FormatException('Template root must be an object');
+  }
+  final decoded = Map<String, Object?>.from(raw);
   if (decoded['kind'] != 'xulang-template') {
     throw const FormatException('Not a Xulang template file');
   }
@@ -367,10 +379,23 @@ Map<String, Object?> _decodeTemplate(String templateJson) {
 }
 
 List<Map<String, Object?>> _chaptersJson(Map<String, Object?> decoded) {
-  return [
+  final rawChapters = decoded['chapters'] as List<Object?>? ?? const [];
+  if (rawChapters.length > ExhibitionTemplateCodec.maxChapters) {
+    throw const FormatException('Template has too many chapters');
+  }
+  final chapters = [
     for (final item in decoded['chapters'] as List<Object?>? ?? const [])
       if (item is Map) Map<String, Object?>.from(item),
   ];
+  final placementCount = chapters.fold<int>(
+    0,
+    (count, chapter) =>
+        count + (chapter['placements'] as List<Object?>? ?? const []).length,
+  );
+  if (placementCount > ExhibitionTemplateCodec.maxPlacements) {
+    throw const FormatException('Template has too many image placements');
+  }
+  return chapters;
 }
 
 String _resolveChapterTitle({

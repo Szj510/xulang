@@ -122,6 +122,17 @@ void main() {
     expect(summary.chapters.map((chapter) => chapter.slotCount), [1, 2]);
   });
 
+  test('rejects oversized template json before decoding', () {
+    final padding = 'x' * ExhibitionTemplateCodec.maxTemplateBytes;
+    final oversized =
+        '{"kind":"xulang-template","chapters":[],"padding":"$padding"}';
+
+    expect(
+      () => const ExhibitionTemplateCodec().inspect(oversized),
+      throwsA(isA<FormatException>()),
+    );
+  });
+
   test(
     'applies template with chapter media and appends extra images plainly',
     () {

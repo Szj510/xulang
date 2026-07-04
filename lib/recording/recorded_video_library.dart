@@ -77,11 +77,25 @@ class RecordedVideoLibrary {
   }
 
   static Future<void> delete(String path) async {
+    final directory = await recordingsDirectory();
+    if (!isManagedRecordingPath(
+      path: path,
+      recordingsDirectoryPath: directory.path,
+    )) {
+      return;
+    }
     final file = File(path);
     if (await file.exists()) await file.delete();
   }
 
   static Future<String> rename(String path, String title) async {
+    final recordings = await recordingsDirectory();
+    if (!isManagedRecordingPath(
+      path: path,
+      recordingsDirectoryPath: recordings.path,
+    )) {
+      return path;
+    }
     final file = File(path);
     if (!await file.exists()) return path;
     final directory = file.parent;
@@ -94,6 +108,15 @@ class RecordedVideoLibrary {
       suffix += 1;
     }
     return (await file.rename(candidate)).path;
+  }
+
+  static bool isManagedRecordingPath({
+    required String path,
+    required String recordingsDirectoryPath,
+  }) {
+    final target = p.normalize(p.absolute(path));
+    final root = p.normalize(p.absolute(recordingsDirectoryPath));
+    return p.equals(target, root) || p.isWithin(root, target);
   }
 }
 

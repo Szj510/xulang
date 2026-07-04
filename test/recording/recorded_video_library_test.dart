@@ -10,4 +10,21 @@ void main() {
 
     expect(fileName, 'xulang-Summer_Walk_Preview-20260629-190805.mp4');
   });
+
+  test('managed path check rejects traversal outside recordings directory', () {
+    expect(
+      RecordedVideoLibrary.isManagedRecordingPath(
+        path: r'C:\app\docs\xulang-recordings\video.mp4',
+        recordingsDirectoryPath: r'C:\app\docs\xulang-recordings',
+      ),
+      isTrue,
+    );
+    expect(
+      RecordedVideoLibrary.isManagedRecordingPath(
+        path: r'C:\app\docs\xulang-recordings\..\secrets.sqlite',
+        recordingsDirectoryPath: r'C:\app\docs\xulang-recordings',
+      ),
+      isFalse,
+    );
+  });
 }

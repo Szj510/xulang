@@ -164,6 +164,9 @@ class DocumentAccessService {
   }
 
   Future<String> readTemplateText(TemplateFileCandidate candidate) {
+    if (candidate.bytes > ExhibitionTemplateCodec.maxTemplateBytes) {
+      throw const FormatException('Template file is too large');
+    }
     if (_isContentUri(candidate.path)) {
       return _readNativeText(candidate.path);
     }
@@ -267,9 +270,10 @@ class DocumentAccessService {
           continue;
         }
         try {
+          final stat = await file.stat();
+          if (stat.size > ExhibitionTemplateCodec.maxTemplateBytes) continue;
           final text = await file.readAsString();
           final summary = codec.inspect(text);
-          final stat = await file.stat();
           candidates.add(
             TemplateFileCandidate(
               path: file.path,
@@ -292,6 +296,7 @@ class DocumentAccessService {
       );
       for (final file in nativeFiles) {
         if (!_isTemplateFile(file.name) || !seen.add(file.uri)) continue;
+        if (file.size > ExhibitionTemplateCodec.maxTemplateBytes) continue;
         try {
           final text = await _readNativeText(file.uri);
           final summary = codec.inspect(text);
