@@ -1,4 +1,4 @@
-package com.example.xulang
+package io.github.szj510.xulang
 
 import android.app.Notification
 import android.app.NotificationChannel
@@ -12,8 +12,8 @@ import android.os.IBinder
 
 class MediaProjectionForegroundService : Service() {
     companion object {
-        const val ACTION_START = "com.example.xulang.action.START_MEDIA_PROJECTION_FOREGROUND"
-        const val ACTION_STOP = "com.example.xulang.action.STOP_MEDIA_PROJECTION_FOREGROUND"
+        const val ACTION_START = "io.github.szj510.xulang.action.START_MEDIA_PROJECTION_FOREGROUND"
+        const val ACTION_STOP = "io.github.szj510.xulang.action.STOP_MEDIA_PROJECTION_FOREGROUND"
         private const val CHANNEL_ID = "xulang_screen_recording"
         private const val NOTIFICATION_ID = 9172
     }
