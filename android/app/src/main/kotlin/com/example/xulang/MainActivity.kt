@@ -20,6 +20,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
+import java.io.ByteArrayOutputStream
 import kotlin.math.max
 
 class MainActivity : FlutterActivity() {
@@ -29,6 +30,7 @@ class MainActivity : FlutterActivity() {
     private val documentTreeRequestCode = 4208
     private val documentScanFileLimit = 500
     private val documentScanVisitLimit = 4000
+    private val documentTextReadLimitBytes = 2 * 1024 * 1024
 
     private var pendingResult: MethodChannel.Result? = null
     private var pendingArgs: RecorderArgs? = null
@@ -101,7 +103,6 @@ class MainActivity : FlutterActivity() {
         pendingDocumentTreeResult = result
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT_TREE).apply {
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
             addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
             addFlags(Intent.FLAG_GRANT_PREFIX_URI_PERMISSION)
         }
@@ -116,8 +117,7 @@ class MainActivity : FlutterActivity() {
             result.success(null)
             return
         }
-        val flags = data.flags and
-            (Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_WRITE_URI_PERMISSION)
+        val flags = data.flags and Intent.FLAG_GRANT_READ_URI_PERMISSION
         try {
             contentResolver.takePersistableUriPermission(uri, flags)
         } catch (_: Throwable) {
@@ -197,8 +197,8 @@ class MainActivity : FlutterActivity() {
         Thread {
             try {
                 val text = contentResolver.openInputStream(Uri.parse(uriText)).use { stream ->
-                    stream?.bufferedReader(Charsets.UTF_8)?.use { it.readText() }
-                        ?: throw IllegalStateException("Unable to open document.")
+                    val input = stream ?: throw IllegalStateException("Unable to open document.")
+                    readLimitedText(input)
                 }
                 postMethodResult { result.success(text) }
             } catch (error: Throwable) {
@@ -209,6 +209,22 @@ class MainActivity : FlutterActivity() {
 
     private fun postMethodResult(action: () -> Unit) {
         Handler(Looper.getMainLooper()).post(action)
+    }
+
+    private fun readLimitedText(stream: java.io.InputStream): String {
+        val output = ByteArrayOutputStream()
+        val buffer = ByteArray(8192)
+        var total = 0
+        while (true) {
+            val read = stream.read(buffer)
+            if (read == -1) break
+            total += read
+            if (total > documentTextReadLimitBytes) {
+                throw IllegalStateException("Document is too large.")
+            }
+            output.write(buffer, 0, read)
+        }
+        return output.toString(Charsets.UTF_8.name())
     }
 
     private fun startRecording(call: MethodCall, result: MethodChannel.Result) {
