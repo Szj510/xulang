@@ -43,33 +43,70 @@ class _MusicLibraryBody extends ConsumerStatefulWidget {
 }
 
 class _MusicLibraryBodyState extends ConsumerState<_MusicLibraryBody> {
-  late Future<List<MusicLibraryItem>> _items;
+  List<MusicLibraryItem>? _items;
+  bool _loadingCache = true;
+  bool _refreshing = false;
+  Object? _error;
 
   @override
   void initState() {
     super.initState();
-    _items = _load();
+    _loadCachedThenRefresh();
   }
 
   @override
   void didUpdateWidget(covariant _MusicLibraryBody oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.settings != widget.settings) {
-      _items = _load();
+      _loadCachedThenRefresh();
     }
   }
 
-  Future<List<MusicLibraryItem>> _load() {
-    return ref
-        .read(documentAccessServiceProvider)
-        .scanMusic(
-          authorizedDirectories: widget.settings.authorizedFolderPaths,
-          displayNames: widget.settings.musicDisplayNames,
-        );
+  Future<void> _loadCachedThenRefresh() async {
+    final access = ref.read(documentAccessServiceProvider);
+    setState(() {
+      _loadingCache = true;
+      _error = null;
+    });
+    final cached = await access.readCachedMusic(
+      displayNames: widget.settings.musicDisplayNames,
+    );
+    if (!mounted) return;
+    setState(() {
+      _items = cached;
+      _loadingCache = false;
+    });
+    await _refresh();
   }
 
-  void _reload() {
-    setState(() => _items = _load());
+  Future<void> _refresh() async {
+    if (_refreshing) return;
+    setState(() {
+      _refreshing = true;
+      _error = null;
+    });
+    try {
+      final items = await ref
+          .read(documentAccessServiceProvider)
+          .scanMusic(
+            authorizedDirectories: widget.settings.authorizedFolderPaths,
+            displayNames: widget.settings.musicDisplayNames,
+          );
+      if (!mounted) return;
+      setState(() => _items = items);
+    } catch (error) {
+      if (!mounted) return;
+      setState(() => _error = error);
+      if ((_items ?? const <MusicLibraryItem>[]).isNotEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${AppStrings.of(context).authorizeFolder}: $error'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _refreshing = false);
+    }
   }
 
   Future<void> _authorizeFolder() async {
@@ -83,7 +120,7 @@ class _MusicLibraryBodyState extends ConsumerState<_MusicLibraryBody> {
       ],
     );
     await ref.read(galleryRepositoryProvider).saveAppSettings(next);
-    if (mounted) _reload();
+    if (mounted) await _loadCachedThenRefresh();
   }
 
   Future<void> _rename(MusicLibraryItem item) async {
@@ -116,7 +153,7 @@ class _MusicLibraryBodyState extends ConsumerState<_MusicLibraryBody> {
     await ref
         .read(galleryRepositoryProvider)
         .saveAppSettings(widget.settings.copyWith(musicDisplayNames: names));
-    if (mounted) _reload();
+    if (mounted) await _loadCachedThenRefresh();
   }
 
   @override
@@ -134,25 +171,26 @@ class _MusicLibraryBodyState extends ConsumerState<_MusicLibraryBody> {
         ],
       ),
       body: SafeArea(
-        child: FutureBuilder<List<MusicLibraryItem>>(
-          future: _items,
-          builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+        child: Builder(
+          builder: (context) {
+            final items = _items ?? const <MusicLibraryItem>[];
+            if (_loadingCache && items.isEmpty) {
+              return Center(
+                child: _LoadingMessage(message: l10n.scanningMusic),
+              );
             }
-            if (snapshot.hasError) {
+            if (_error != null && items.isEmpty) {
               return Center(
                 child: Padding(
                   padding: const EdgeInsets.all(28),
                   child: Text(
-                    '${l10n.authorizeFolder}\n${snapshot.error}',
+                    '${l10n.authorizeFolder}\n$_error',
                     textAlign: TextAlign.center,
                     style: const TextStyle(color: XulangColors.muted),
                   ),
                 ),
               );
             }
-            final items = snapshot.data ?? const <MusicLibraryItem>[];
             if (items.isEmpty) {
               return Center(
                 child: Padding(
@@ -168,7 +206,7 @@ class _MusicLibraryBodyState extends ConsumerState<_MusicLibraryBody> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        l10n.localPath,
+                        _refreshing ? l10n.scanningMusic : l10n.localPath,
                         style: const TextStyle(color: XulangColors.muted),
                       ),
                     ],
@@ -178,10 +216,22 @@ class _MusicLibraryBodyState extends ConsumerState<_MusicLibraryBody> {
             }
             return ListView.separated(
               padding: const EdgeInsets.fromLTRB(16, 10, 16, 28),
-              itemCount: items.length,
+              itemCount: items.length + (_refreshing ? 1 : 0),
               separatorBuilder: (_, _) => const SizedBox(height: 8),
               itemBuilder: (context, index) {
-                final item = items[index];
+                if (_refreshing && index == 0) {
+                  return Card(
+                    child: ListTile(
+                      leading: const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                      title: Text(l10n.refreshingLocalFiles),
+                    ),
+                  );
+                }
+                final itemIndex = _refreshing ? index - 1 : index;
+                final item = items[itemIndex];
                 return Card(
                   child: ListTile(
                     leading: const Icon(Icons.audio_file_outlined),
@@ -211,6 +261,28 @@ class _MusicLibraryBodyState extends ConsumerState<_MusicLibraryBody> {
           },
         ),
       ),
+    );
+  }
+}
+
+class _LoadingMessage extends StatelessWidget {
+  const _LoadingMessage({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const CircularProgressIndicator(),
+        const SizedBox(height: 14),
+        Text(
+          message,
+          textAlign: TextAlign.center,
+          style: const TextStyle(color: XulangColors.muted),
+        ),
+      ],
     );
   }
 }

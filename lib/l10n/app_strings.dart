@@ -138,6 +138,14 @@ class AppStrings {
   String get recordingAndShare => isEnglish ? 'Record & Share' : '录制与分享';
   String get playbackPreview => isEnglish ? 'Playback preview' : '播放预览';
   String get generatedVideos => isEnglish ? 'Generated videos' : '生成的视频';
+  String get scanningMusic => isEnglish ? 'Scanning music files…' : '正在查找音乐文件…';
+  String get scanningTemplates =>
+      isEnglish ? 'Scanning template files…' : '正在查找模板文件…';
+  String get refreshingLocalFiles =>
+      isEnglish ? 'Refreshing local files in the background…' : '正在后台刷新本地文件…';
+  String get shareOriginalVideoHint => isEnglish
+      ? 'Sharing sends the original MP4 file. Some apps, including WeChat, may still compress video after receiving it.'
+      : '分享会发送原始 MP4 文件。微信等应用接收后仍可能二次压缩画质。';
   String get manageVideos => isEnglish ? 'Manage videos' : '管理生成的视频';
   String get noGeneratedVideos =>
       isEnglish ? 'No generated videos yet' : '还没有生成的视频';

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
@@ -24,6 +25,55 @@ class TemplateFileCandidate {
   final DateTime modifiedAt;
   final TemplateSummary summary;
   final DocumentCandidateSource source;
+
+  Map<String, Object?> toCacheJson() => {
+    'path': path,
+    'name': name,
+    'bytes': bytes,
+    'modifiedAt': modifiedAt.millisecondsSinceEpoch,
+    'source': source.name,
+    'summary': {
+      'title': summary.title,
+      'firstChapterTitle': summary.firstChapterTitle,
+      'chapterCount': summary.chapterCount,
+      'placementCount': summary.placementCount,
+      'chapters': [
+        for (final chapter in summary.chapters)
+          {'title': chapter.title, 'slotCount': chapter.slotCount},
+      ],
+    },
+  };
+
+  static TemplateFileCandidate? fromCacheJson(Map<String, Object?> json) {
+    final summaryJson = json['summary'];
+    if (summaryJson is! Map) return null;
+    final chaptersJson = summaryJson['chapters'];
+    return TemplateFileCandidate(
+      path: json['path']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      bytes: (json['bytes'] as num?)?.toInt() ?? 0,
+      modifiedAt: DateTime.fromMillisecondsSinceEpoch(
+        (json['modifiedAt'] as num?)?.toInt() ?? 0,
+      ),
+      source: _sourceFromName(json['source']?.toString()),
+      summary: TemplateSummary(
+        title: summaryJson['title']?.toString() ?? 'Imported template',
+        firstChapterTitle:
+            summaryJson['firstChapterTitle']?.toString() ?? 'Chapter 1',
+        chapterCount: (summaryJson['chapterCount'] as num?)?.toInt() ?? 0,
+        placementCount: (summaryJson['placementCount'] as num?)?.toInt() ?? 0,
+        chapters: [
+          if (chaptersJson is List)
+            for (final chapter in chaptersJson)
+              if (chapter is Map)
+                TemplateChapterSummary(
+                  title: chapter['title']?.toString() ?? '',
+                  slotCount: (chapter['slotCount'] as num?)?.toInt() ?? 0,
+                ),
+        ],
+      ),
+    );
+  }
 }
 
 class MusicLibraryItem {
@@ -42,6 +92,42 @@ class MusicLibraryItem {
   final int bytes;
   final DateTime modifiedAt;
   final DocumentCandidateSource source;
+
+  Map<String, Object?> toCacheJson() => {
+    'path': path,
+    'fileName': fileName,
+    'displayName': displayName,
+    'bytes': bytes,
+    'modifiedAt': modifiedAt.millisecondsSinceEpoch,
+    'source': source.name,
+  };
+
+  MusicLibraryItem withDisplayName(String value) => MusicLibraryItem(
+    path: path,
+    fileName: fileName,
+    displayName: value,
+    bytes: bytes,
+    modifiedAt: modifiedAt,
+    source: source,
+  );
+
+  static MusicLibraryItem? fromCacheJson(Map<String, Object?> json) {
+    final path = json['path']?.toString() ?? '';
+    if (path.isEmpty) return null;
+    final fileName = json['fileName']?.toString() ?? p.basename(path);
+    return MusicLibraryItem(
+      path: path,
+      fileName: fileName,
+      displayName:
+          json['displayName']?.toString() ??
+          _basenameWithoutExtension(fileName),
+      bytes: (json['bytes'] as num?)?.toInt() ?? 0,
+      modifiedAt: DateTime.fromMillisecondsSinceEpoch(
+        (json['modifiedAt'] as num?)?.toInt() ?? 0,
+      ),
+      source: _sourceFromName(json['source']?.toString()),
+    );
+  }
 }
 
 class DocumentAccessService {
@@ -82,6 +168,71 @@ class DocumentAccessService {
       return _readNativeText(candidate.path);
     }
     return File(candidate.path).readAsString();
+  }
+
+  Future<List<TemplateFileCandidate>> readCachedTemplates() async {
+    try {
+      final file = await _cacheFile('templates.json');
+      if (!await file.exists()) return const [];
+      final raw = jsonDecode(await file.readAsString());
+      if (raw is! List) return const [];
+      return [
+        for (final item in raw)
+          if (item is Map)
+            TemplateFileCandidate.fromCacheJson(
+              Map<String, Object?>.from(item),
+            ),
+      ].whereType<TemplateFileCandidate>().toList(growable: false);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> writeCachedTemplates(
+    List<TemplateFileCandidate> candidates,
+  ) async {
+    final file = await _cacheFile('templates.json');
+    await file.writeAsString(
+      jsonEncode([for (final candidate in candidates) candidate.toCacheJson()]),
+    );
+  }
+
+  Future<List<MusicLibraryItem>> readCachedMusic({
+    required Map<String, String> displayNames,
+  }) async {
+    try {
+      final file = await _cacheFile('music.json');
+      if (!await file.exists()) return const [];
+      final raw = jsonDecode(await file.readAsString());
+      if (raw is! List) return const [];
+      final items =
+          [
+                for (final item in raw)
+                  if (item is Map)
+                    MusicLibraryItem.fromCacheJson(
+                      Map<String, Object?>.from(item),
+                    ),
+              ]
+              .whereType<MusicLibraryItem>()
+              .map((item) {
+                final displayName = displayNames[item.path];
+                return displayName == null
+                    ? item
+                    : item.withDisplayName(displayName);
+              })
+              .toList(growable: false);
+      items.sort((a, b) => a.displayName.compareTo(b.displayName));
+      return items;
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  Future<void> writeCachedMusic(List<MusicLibraryItem> items) async {
+    final file = await _cacheFile('music.json');
+    await file.writeAsString(
+      jsonEncode([for (final item in items) item.toCacheJson()]),
+    );
   }
 
   Future<List<TemplateFileCandidate>> scanTemplates({
@@ -160,6 +311,11 @@ class DocumentAccessService {
       }
     }
     candidates.sort((a, b) => b.modifiedAt.compareTo(a.modifiedAt));
+    try {
+      await writeCachedTemplates(candidates);
+    } catch (_) {
+      // Cache failures must not block template import.
+    }
     return candidates;
   }
 
@@ -226,7 +382,18 @@ class DocumentAccessService {
       }
     }
     candidates.sort((a, b) => a.displayName.compareTo(b.displayName));
+    try {
+      await writeCachedMusic(candidates);
+    } catch (_) {
+      // Cache failures must not block music management.
+    }
     return candidates;
+  }
+
+  Future<File> _cacheFile(String name) async {
+    final directory = Directory(p.join(mediaRoot.path, '.document-cache'));
+    await directory.create(recursive: true);
+    return File(p.join(directory.path, name));
   }
 
   Future<List<_NativeDocumentFile>> _listNativeFiles({
@@ -295,6 +462,13 @@ String _basenameWithoutExtension(String name) {
 
 bool _isContentUri(String path) {
   return path.startsWith('content://');
+}
+
+DocumentCandidateSource _sourceFromName(String? name) {
+  return DocumentCandidateSource.values.firstWhere(
+    (source) => source.name == name,
+    orElse: () => DocumentCandidateSource.authorizedFolder,
+  );
 }
 
 class _NativeDocumentFile {
