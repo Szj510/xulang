@@ -188,6 +188,19 @@ void main() {
     expect(restored.recordingSpeed, 0.5);
   });
 
+  test('app settings persist and reset a custom home hero image', () async {
+    await database.saveAppSettings(
+      const AppSettings(homeHeroImagePath: '/private/home/hero.jpg'),
+    );
+
+    var restored = await database.watchAppSettings().first;
+    expect(restored.homeHeroImagePath, '/private/home/hero.jpg');
+
+    await database.saveAppSettings(restored.copyWith(resetHomeHeroImage: true));
+    restored = await database.watchAppSettings().first;
+    expect(restored.homeHeroImagePath, isNull);
+  });
+
   test('persists the story path layout by stable name', () async {
     final document = GalleryDocument.create(
       id: 'story-path-exhibition',

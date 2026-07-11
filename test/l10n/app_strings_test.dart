@@ -25,10 +25,16 @@ void main() {
       strings.deleteStickerOnCanvas,
       'Tap the cross on the canvas to delete',
     );
-    expect(strings.recordingDelayPlayback, 'Recording delay');
     expect(strings.orbitLayout, 'Orbit');
     expect(strings.orbFrame, 'Circle');
     expect(strings.starfieldCanvas, 'Starfield canvas');
+    expect(strings.quickAccess, 'Shortcuts');
+    expect(strings.libraryCategories, 'Categories');
+    expect(strings.changeHomeHero, 'Change cover');
+    expect(strings.homeAppearance, 'Home appearance');
+    expect(strings.homeCover, 'Home cover');
+    expect(strings.restoreDefaultHomeHero, 'Use the default cover');
+    expect(strings.close, 'Close');
     expect(strings.importImagesWithCapacity(6), 'Import 6/16');
     expect(strings.galleryCapacityMessage(2), contains('2 extra photos'));
   });
