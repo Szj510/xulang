@@ -1,5 +1,6 @@
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/layout/narrative_axis.dart';
 
 void main() {
@@ -34,5 +35,16 @@ void main() {
     expect(axis.primaryExtent(const Size(12, 18)), 12);
     expect(axis.crossExtent(const Size(12, 18)), 18);
     expect(axis.shiftPrimary(rect, 3), const Rect.fromLTWH(7, 9, 12, 18));
+  });
+
+  test('editor camera follows layout orientation rather than viewport', () {
+    expect(
+      editorCameraAxisForLayout(GalleryLayout.storyPath),
+      NarrativeAxis.vertical,
+    );
+    for (final layout in GalleryLayout.values) {
+      if (layout == GalleryLayout.storyPath) continue;
+      expect(editorCameraAxisForLayout(layout), NarrativeAxis.horizontal);
+    }
   });
 }
