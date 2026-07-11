@@ -279,7 +279,12 @@ GalleryChapter _buildChapter({
   final placementIds = <String>[];
   final templatePlacementIds = <String, String>{};
   final placements = <GalleryPlacement>[];
-  for (var slotIndex = 0; slotIndex < slots.length; slotIndex++) {
+  for (
+    var slotIndex = 0;
+    slotIndex < slots.length &&
+        placements.length < maxGalleryPlacementsPerChapter;
+    slotIndex++
+  ) {
     if (mediaIndex >= chapterMediaIds.length) break;
     final slot = slots[slotIndex] as Map<String, Object?>;
     final placementId = createId();
@@ -295,7 +300,8 @@ GalleryChapter _buildChapter({
     );
   }
   if (appendExtraMedia) {
-    while (mediaIndex < chapterMediaIds.length) {
+    while (mediaIndex < chapterMediaIds.length &&
+        placements.length < maxGalleryPlacementsPerChapter) {
       placements.add(
         GalleryPlacement(
           id: createId(),

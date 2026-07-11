@@ -3,6 +3,7 @@ import 'dart:math' as math;
 import 'package:flutter/widgets.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/layout/narrative_axis.dart';
+import 'package:xulang/layout/orbit_geometry.dart';
 
 class LayoutResolver {
   const LayoutResolver._();
@@ -17,7 +18,7 @@ class LayoutResolver {
       GalleryLayout.diptych => _diptych(chapter.placements, viewport),
       GalleryLayout.collage => _collage(chapter.placements, viewport),
       GalleryLayout.storyPath => _storyPath(chapter.placements, viewport),
-
+      GalleryLayout.orbit => _orbit(chapter.placements, viewport),
     };
   }
 
@@ -324,6 +325,168 @@ class LayoutResolver {
     );
   }
 
+  static ResolvedScene _orbit(List<GalleryPlacement> items, Size size) {
+    if (!size.width.isFinite ||
+        !size.height.isFinite ||
+        size.width <= 0 ||
+        size.height <= 0) {
+      return const ResolvedScene(
+        nodes: [],
+        primaryAxis: Axis.vertical,
+        contentExtent: 0,
+      );
+    }
+    if (items.isEmpty) {
+      return ResolvedScene(
+        nodes: const [],
+        primaryAxis: Axis.vertical,
+        contentExtent: size.height,
+      );
+    }
+
+    final portrait = size.height >= size.width;
+    final center = Offset(size.width * .5, size.height * .49);
+    final planeRotation = orbitPlaneRotation(size);
+    final nodes = <SceneNode>[];
+    final occupiedOrbitSlots = <_OrbitSlot>[];
+    final crowding = math.max(0, items.length - 4);
+    final heroDensity = (1 - crowding * .025).clamp(.68, 1.0);
+    final satelliteDensity = (1 - crowding * .014).clamp(.80, 1.0);
+
+    final heroScale = _sizeScale(items.first.size);
+    final heroSize = Size(
+      size.width * (portrait ? .44 : .30) * heroScale * heroDensity,
+      size.height * (portrait ? .18 : .44) * heroScale * heroDensity,
+    );
+    nodes.add(
+      _applyManualTransform(
+        item: items.first,
+        viewport: size,
+        node: SceneNode(
+          placementId: items.first.id,
+          rect: Rect.fromCenter(
+            center: center,
+            width: heroSize.width,
+            height: heroSize.height,
+          ),
+          depth: 1,
+        ),
+      ),
+    );
+
+    const innerSlots = 6;
+    final satelliteCount = items.length - 1;
+    final innerCount = math.min(innerSlots, satelliteCount);
+    final outerCount = math.max(0, satelliteCount - innerSlots);
+    final orbitSeed = items.map((item) => item.id).join('|');
+    final innerPhase =
+        -math.pi / 2 + _stableUnit('inner:$orbitSeed') * math.pi * 2;
+    final outerSpacing = outerCount == 0 ? 0.0 : math.pi * 2 / outerCount;
+    final outerPhase =
+        innerPhase +
+        outerSpacing / 2 +
+        (_stableUnit('outer:$orbitSeed') - .5) * outerSpacing * .28;
+    for (var index = 1; index < items.length; index++) {
+      final item = items[index];
+      final satelliteIndex = index - 1;
+      final outerRing = satelliteIndex >= innerSlots;
+      final slot = outerRing ? satelliteIndex - innerSlots : satelliteIndex;
+      final slots = outerRing ? outerCount : innerCount;
+      final spacing = math.pi * 2 / slots;
+      final jitter = (_stableUnit('orbit:${item.id}') - .5) * spacing * .26;
+      final seededAngle =
+          (outerRing ? outerPhase : innerPhase) + spacing * slot + jitter;
+      final radii = orbitRadii(size, outer: outerRing);
+      final radiusX = radii.width;
+      final radiusY = radii.height;
+      final scale =
+          _sizeScale(item.size) * satelliteDensity * (outerRing ? .72 : 1);
+      var nodeSize = Size(
+        size.width * (portrait ? .25 : .17) * scale,
+        size.height * (portrait ? .15 : .28) * scale,
+      );
+      var angle = seededAngle;
+      if (outerRing) {
+        final goldenAngle = math.pi * (3 - math.sqrt(5));
+        var placed = false;
+        for (var shrink = 0; shrink < 8 && !placed; shrink++) {
+          for (var attempt = 0; attempt < 72; attempt++) {
+            angle = seededAngle + goldenAngle * attempt;
+            if (!_orbitSlotCollides(
+              center: center,
+              angle: angle,
+              radiusX: radiusX,
+              radiusY: radiusY,
+              nodeSize: nodeSize,
+              occupied: occupiedOrbitSlots,
+              planeRotation: planeRotation,
+            )) {
+              placed = true;
+              break;
+            }
+          }
+          if (!placed) {
+            nodeSize = Size(nodeSize.width * .82, nodeSize.height * .82);
+          }
+        }
+      }
+      occupiedOrbitSlots.add(
+        _OrbitSlot(
+          angle: angle,
+          radiusX: radiusX,
+          radiusY: radiusY,
+          nodeSize: nodeSize,
+        ),
+      );
+      final rawCenter = orbitPoint(
+        center: center,
+        radiusX: radiusX,
+        radiusY: radiusY,
+        angle: angle,
+        planeRotation: planeRotation,
+      );
+      final margin = outerRing ? 5.0 : 8.0;
+      final nodeCenter = Offset(
+        rawCenter.dx.clamp(
+          nodeSize.width / 2 + margin,
+          size.width - nodeSize.width / 2 - margin,
+        ),
+        rawCenter.dy.clamp(
+          nodeSize.height / 2 + margin,
+          size.height - nodeSize.height / 2 - margin,
+        ),
+      );
+      final rotationPattern = outerRing
+          ? const [-.055, .035, -.025, .05, -.04]
+          : const [-.045, .025, .05, -.03, .035, -.055];
+      final depthPattern = outerRing
+          ? const [.28, .38, .32, .44, .35]
+          : const [.58, .76, .48, .68, .54, .82];
+      nodes.add(
+        _applyManualTransform(
+          item: item,
+          viewport: size,
+          node: SceneNode(
+            placementId: item.id,
+            rect: Rect.fromCenter(
+              center: nodeCenter,
+              width: nodeSize.width,
+              height: nodeSize.height,
+            ),
+            depth: depthPattern[slot % depthPattern.length],
+            rotation: rotationPattern[slot % rotationPattern.length],
+          ),
+        ),
+      );
+    }
+
+    return ResolvedScene(
+      nodes: nodes,
+      primaryAxis: Axis.vertical,
+      contentExtent: size.height,
+    );
+  }
+
   static List<SceneNode> _nodesFromPattern(
     List<GalleryPlacement> items,
     List<Rect> pattern, {
@@ -360,6 +523,81 @@ class LayoutResolver {
     GallerySize.large => 1,
   };
 
+  static double _stableUnit(String value) {
+    var hash = 0x811C9DC5;
+    for (final unit in value.codeUnits) {
+      hash ^= unit;
+      hash = (hash * 0x01000193) & 0xFFFFFFFF;
+    }
+    return hash / 0xFFFFFFFF;
+  }
+
+  static bool _orbitSlotCollides({
+    required Offset center,
+    required double angle,
+    required double radiusX,
+    required double radiusY,
+    required Size nodeSize,
+    required List<_OrbitSlot> occupied,
+    required double planeRotation,
+  }) {
+    for (var sample = 0; sample < 72; sample++) {
+      final phase = math.pi * 2 * sample / 72;
+      final candidate = _orbitSlotRect(
+        center: center,
+        angle: angle + phase,
+        radiusX: radiusX,
+        radiusY: radiusY,
+        nodeSize: nodeSize,
+        planeRotation: planeRotation,
+      );
+      for (final slot in occupied) {
+        final existing = _orbitSlotRect(
+          center: center,
+          angle: slot.angle + phase,
+          radiusX: slot.radiusX,
+          radiusY: slot.radiusY,
+          nodeSize: slot.nodeSize,
+          planeRotation: planeRotation,
+        );
+        if (_overlapRatio(candidate, existing) > .60) return true;
+      }
+    }
+    return false;
+  }
+
+  static double _overlapRatio(Rect first, Rect second) {
+    if (!first.overlaps(second)) return 0;
+    final overlap = first.intersect(second);
+    final overlapArea = overlap.width * overlap.height;
+    final smallerArea = math.min(
+      first.width * first.height,
+      second.width * second.height,
+    );
+    return smallerArea <= 0 ? 0 : overlapArea / smallerArea;
+  }
+
+  static Rect _orbitSlotRect({
+    required Offset center,
+    required double angle,
+    required double radiusX,
+    required double radiusY,
+    required Size nodeSize,
+    required double planeRotation,
+  }) {
+    return Rect.fromCenter(
+      center: orbitPoint(
+        center: center,
+        radiusX: radiusX,
+        radiusY: radiusY,
+        angle: angle,
+        planeRotation: planeRotation,
+      ),
+      width: nodeSize.width,
+      height: nodeSize.height,
+    );
+  }
+
   static Rect _scaleAroundCenter(Rect rect, GallerySize size) {
     final scale = _sizeScale(size);
     return Rect.fromCenter(
@@ -388,6 +626,20 @@ class LayoutResolver {
       rotation: node.rotation,
     );
   }
+}
+
+class _OrbitSlot {
+  const _OrbitSlot({
+    required this.angle,
+    required this.radiusX,
+    required this.radiusY,
+    required this.nodeSize,
+  });
+
+  final double angle;
+  final double radiusX;
+  final double radiusY;
+  final Size nodeSize;
 }
 
 class ResolvedScene {

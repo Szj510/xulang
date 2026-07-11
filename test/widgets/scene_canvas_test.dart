@@ -100,6 +100,102 @@ void main() {
     );
   });
 
+  testWidgets('starfield theme reaches the scene background painter', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      const MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(
+            chapter: chapter,
+            media: [media],
+            sceneTheme: GalleryTheme.starfield,
+          ),
+        ),
+      ),
+    );
+
+    final background = tester.widget<CustomPaint>(
+      find.byKey(const Key('scene-background')),
+    );
+    expect(
+      background.painter,
+      isA<SceneBackgroundPainter>().having(
+        (painter) => painter.sceneTheme,
+        'theme',
+        GalleryTheme.starfield,
+      ),
+    );
+  });
+
+  testWidgets('orbit layout adds its dedicated orbital backdrop', (
+    tester,
+  ) async {
+    final orbitChapter = chapter.copyWith(
+      layout: GalleryLayout.orbit,
+      placements: [
+        ...chapter.placements,
+        const GalleryPlacement(id: 'satellite', mediaId: 'media', order: 1),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(chapter: orbitChapter, media: const [media]),
+        ),
+      ),
+    );
+
+    final backTrack = tester.widget<CustomPaint>(
+      find.byKey(const Key('orbit-track-back')),
+    );
+    expect(
+      backTrack.painter,
+      isA<OrbitBackdropPainter>().having(
+        (painter) => painter.ringCount,
+        'ring count',
+        1,
+      ),
+    );
+    final frontTrack = tester.widget<CustomPaint>(
+      find.byKey(const Key('orbit-track-front')),
+    );
+    expect(
+      (backTrack.painter! as OrbitBackdropPainter).segment,
+      OrbitRingSegment.back,
+    );
+    expect(
+      (frontTrack.painter! as OrbitBackdropPainter).segment,
+      OrbitRingSegment.front,
+    );
+    expect(
+      find.byKey(const Key('scene-orbit-lighting-placement')),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('single image orbit does not draw an empty track', (
+    tester,
+  ) async {
+    final singleOrbitChapter = chapter.copyWith(layout: GalleryLayout.orbit);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(chapter: singleOrbitChapter, media: [media]),
+        ),
+      ),
+    );
+
+    expect(find.byKey(const Key('orbit-track-back')), findsNothing);
+    expect(find.byKey(const Key('orbit-track-front')), findsNothing);
+  });
+
   testWidgets('custom canvas image is layered above the painted theme', (
     tester,
   ) async {

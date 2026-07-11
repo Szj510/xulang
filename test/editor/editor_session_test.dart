@@ -15,6 +15,7 @@ void main() {
   late Directory mediaRoot;
   late GalleryRepository repository;
   late EditorSession session;
+  late _TrackingImages imageSelection;
 
   setUp(() async {
     database = GalleryDatabase.forTesting(NativeDatabase.memory());
@@ -58,6 +59,7 @@ void main() {
         ],
       ),
     );
+    imageSelection = _TrackingImages();
     session = EditorSession(
       exhibitionId: 'exhibition',
       repository: repository,
@@ -65,7 +67,7 @@ void main() {
         rootDirectory: mediaRoot,
         createId: () => 'imported-id',
       ),
-      imageSelection: const _NoImages(),
+      imageSelection: imageSelection,
     );
     await session.load();
   });
@@ -140,6 +142,29 @@ void main() {
     session.clearError();
 
     expect(session.error, isNull);
+  });
+
+  test('refuses image selection when the chapter reaches its limit', () async {
+    final chapter = session.selectedChapter!;
+    final fullChapter = chapter.copyWith(
+      placements: List.generate(
+        maxGalleryPlacementsPerChapter,
+        (index) =>
+            GalleryPlacement(id: 'full-$index', mediaId: 'media', order: index),
+      ),
+    );
+    await repository.save(
+      session.bundle!.copyWith(
+        document: session.bundle!.document.copyWith(chapters: [fullChapter]),
+      ),
+    );
+    await session.load();
+
+    await session.importImages();
+
+    expect(imageSelection.calls, 0);
+    expect(session.remainingPlacementCapacity, 0);
+    expect(session.error, isA<GalleryCapacityException>());
   });
 
   test('updates and persists the exhibition scene theme', () async {
@@ -296,9 +321,12 @@ void main() {
   });
 }
 
-class _NoImages implements ImageSelectionService {
-  const _NoImages();
+class _TrackingImages implements ImageSelectionService {
+  int calls = 0;
 
   @override
-  Future<List<String>> selectImages() async => const [];
+  Future<List<String>> selectImages() async {
+    calls++;
+    return const [];
+  }
 }

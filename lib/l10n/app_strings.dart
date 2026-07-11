@@ -247,6 +247,14 @@ class AppStrings {
       isEnglish ? '${date.month}/${date.day}' : '${date.month}月${date.day}日';
   String get importImages => isEnglish ? 'Import images' : '导入图片';
   String get importing => isEnglish ? 'Importing' : '导入中';
+  String importImagesWithCapacity(int current) => isEnglish
+      ? 'Import $current/$maxGalleryPlacementsPerChapter'
+      : '导入 $current/$maxGalleryPlacementsPerChapter';
+  String galleryCapacityMessage(int skipped) => isEnglish
+      ? 'Each chapter supports up to $maxGalleryPlacementsPerChapter photos.'
+            '${skipped > 0 ? ' $skipped extra photos were skipped.' : ''}'
+      : '每个章节最多支持 $maxGalleryPlacementsPerChapter 张图片。'
+            '${skipped > 0 ? ' 已跳过多选的 $skipped 张。' : ''}';
   String get canvasAndStory => isEnglish ? 'Canvas & story' : '画布与叙事';
   String get layout => isEnglish ? 'Layout' : '布局';
   String get storyLine => isEnglish ? 'Story line' : '路径线条';
@@ -267,6 +275,7 @@ class AppStrings {
   String get botanicalSpecimen => isEnglish ? 'Botanical specimen' : '植物标本';
   String get cyanotype => isEnglish ? 'Cyanotype' : '蓝晒纸';
   String get terracottaGallery => isEnglish ? 'Terracotta gallery' : '陶土壁龛';
+  String get starfieldCanvas => isEnglish ? 'Starfield canvas' : '星空画布';
   String get titleAndCaption => isEnglish ? 'Title & note' : '标题与短注释';
   String get panelOpacity => isEnglish ? 'Panel opacity' : '面板透明度';
   String get noBackgroundMusicAdded =>
@@ -312,6 +321,7 @@ class AppStrings {
   String get diptychLayout => isEnglish ? 'Diptych' : '双联画';
   String get collageLayout => isEnglish ? 'Narrative collage' : '叙事拼贴';
   String get storyPathLayout => isEnglish ? 'Story path' : '故事路径';
+  String get orbitLayout => isEnglish ? 'Orbit' : '星轨';
   String get small => isEnglish ? 'Small' : '小';
   String get medium => isEnglish ? 'Medium' : '中';
   String get large => isEnglish ? 'Large' : '大';
@@ -328,6 +338,7 @@ class AppStrings {
   String get metalFrame => isEnglish ? 'Metal' : '金属';
   String get vintageFrame => isEnglish ? 'Vintage' : '复古';
   String get filmFrame => isEnglish ? 'Film case' : '胶片匣';
+  String get orbFrame => isEnglish ? 'Circle' : '圆形框';
   String get starSticker => isEnglish ? 'Star mark' : '星芒标记';
   String get sparkleSticker => isEnglish ? 'Sparkle' : '碎光';
   String get heartSticker => isEnglish ? 'Warm heart' : '暖心印';

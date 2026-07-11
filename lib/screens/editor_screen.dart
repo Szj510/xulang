@@ -1528,7 +1528,13 @@ class _PreviewState extends State<_Preview> {
               top: 14,
               child: _GlassImportButton(
                 importing: session.importing,
-                onPressed: session.importing ? null : session.importImages,
+                currentCount: chapter.placements.length,
+                onPressed:
+                    session.importing ||
+                        chapter.placements.length >=
+                            maxGalleryPlacementsPerChapter
+                    ? null
+                    : session.importImages,
               ),
             ),
             Positioned(
@@ -1582,7 +1588,12 @@ class _PreviewState extends State<_Preview> {
                 child: MaterialBanner(
                   backgroundColor: XulangColors.elevated,
                   content: Text(
-                    '${session.error}',
+                    session.error is GalleryCapacityException
+                        ? AppStrings.of(context).galleryCapacityMessage(
+                            (session.error! as GalleryCapacityException)
+                                .skipped,
+                          )
+                        : '${session.error}',
                     style: const TextStyle(
                       color: XulangColors.paper,
                       fontSize: 13,
@@ -1604,9 +1615,14 @@ class _PreviewState extends State<_Preview> {
 }
 
 class _GlassImportButton extends StatelessWidget {
-  const _GlassImportButton({required this.importing, required this.onPressed});
+  const _GlassImportButton({
+    required this.importing,
+    required this.currentCount,
+    required this.onPressed,
+  });
 
   final bool importing;
+  final int currentCount;
   final VoidCallback? onPressed;
 
   @override
@@ -1632,7 +1648,7 @@ class _GlassImportButton extends StatelessWidget {
       label: Text(
         importing
             ? AppStrings.of(context).importing
-            : AppStrings.of(context).importImages,
+            : AppStrings.of(context).importImagesWithCapacity(currentCount),
         style: const TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w500,
@@ -1817,6 +1833,10 @@ class _InspectorState extends State<_Inspector> {
                         value: GalleryTheme.terracotta,
                         child: Text(l10n.terracottaGallery),
                       ),
+                      PopupMenuItem(
+                        value: GalleryTheme.starfield,
+                        child: Text(l10n.starfieldCanvas),
+                      ),
                     ],
                   ),
                   const SizedBox(width: 8),
@@ -1859,22 +1879,24 @@ class _InspectorState extends State<_Inspector> {
                     ),
                 ],
               ),
-              const SizedBox(height: 14),
-              _SectionLabel(AppStrings.of(context).storyLine),
-              const SizedBox(height: 6),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final style in StoryPathStyle.values)
-                    ChoiceChip(
-                      selected: chapter.pathStyle == style,
-                      onSelected: (_) =>
-                          session.updateChapter(pathStyle: style),
-                      label: Text(_pathStyleLabel(l10n, style)),
-                    ),
-                ],
-              ),
+              if (showsStoryPathControls(chapter.layout)) ...[
+                const SizedBox(height: 14),
+                _SectionLabel(AppStrings.of(context).storyLine),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final style in StoryPathStyle.values)
+                      ChoiceChip(
+                        selected: chapter.pathStyle == style,
+                        onSelected: (_) =>
+                            session.updateChapter(pathStyle: style),
+                        label: Text(_pathStyleLabel(l10n, style)),
+                      ),
+                  ],
+                ),
+              ],
             ],
           ),
         ),
@@ -2794,7 +2816,11 @@ String _layoutLabel(AppStrings l10n, GalleryLayout layout) => switch (layout) {
   GalleryLayout.diptych => l10n.diptychLayout,
   GalleryLayout.collage => l10n.collageLayout,
   GalleryLayout.storyPath => l10n.storyPathLayout,
+  GalleryLayout.orbit => l10n.orbitLayout,
 };
+
+bool showsStoryPathControls(GalleryLayout layout) =>
+    layout == GalleryLayout.storyPath;
 
 String _sizeLabel(AppStrings l10n, GallerySize size) => switch (size) {
   GallerySize.small => l10n.small,
@@ -2820,4 +2846,5 @@ String _frameLabel(AppStrings l10n, GalleryFrame frame) => switch (frame) {
   GalleryFrame.metal => l10n.metalFrame,
   GalleryFrame.vintage => l10n.vintageFrame,
   GalleryFrame.film => l10n.filmFrame,
+  GalleryFrame.orb => l10n.orbFrame,
 };
