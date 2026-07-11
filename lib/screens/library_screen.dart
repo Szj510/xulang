@@ -1,4 +1,6 @@
 import 'dart:convert';
+import 'dart:math' as math;
+
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -404,7 +406,13 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
       final importResult = await importer.importFiles(
         exhibitionId: id,
-        sourcePaths: [for (final image in pickedImages) image.path],
+        sourcePaths: [
+          for (final image in pickedImages.take(
+            (maxGalleryPlacementsPerChapter * math.max(1, summary.chapterCount))
+                .toInt(),
+          ))
+            image.path,
+        ],
         existingAssets: const [],
         importMode: settings.mediaImportMode,
       );
@@ -524,7 +532,9 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
         } else if (paths.length > chapter.slotCount) {
           extraImages += paths.length - chapter.slotCount;
         }
-        sourcePathsByChapter.add(paths);
+        sourcePathsByChapter.add(
+          paths.take(maxGalleryPlacementsPerChapter).toList(growable: false),
+        );
       }
 
       final allSourcePaths = [

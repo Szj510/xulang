@@ -1,4 +1,6 @@
-enum GalleryLayout { hero, filmstrip, diptych, collage, storyPath }
+enum GalleryLayout { hero, filmstrip, diptych, collage, storyPath, orbit }
+
+const maxGalleryPlacementsPerChapter = 16;
 
 enum GalleryMotion { pan, push, focus, unfold }
 
@@ -14,6 +16,7 @@ enum GalleryFrame {
   metal,
   vintage,
   film,
+  orb,
 }
 
 enum GallerySize { small, medium, large }
@@ -28,6 +31,7 @@ enum GalleryTheme {
   botanical,
   cyanotype,
   terracotta,
+  starfield,
 }
 
 enum ExhibitionSortMode { updatedDesc, titleAsc }

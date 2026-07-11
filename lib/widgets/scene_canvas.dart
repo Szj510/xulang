@@ -7,6 +7,7 @@ import 'package:xulang/layout/motion_resolver.dart';
 import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_track.dart';
 import 'package:xulang/layout/narrative_track_resolver.dart';
+import 'package:xulang/layout/orbit_geometry.dart';
 import 'package:xulang/layout/story_path_geometry.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/atmospheric_sticker.dart';
@@ -130,6 +131,69 @@ class SceneCanvas extends StatelessWidget {
         };
         final nodes = [...frame.nodes]
           ..sort((a, b) => a.depth.compareTo(b.depth));
+        final orbitLayout = chapter.layout == GalleryLayout.orbit;
+        final orbitCenterId = orbitLayout && chapter.placements.isNotEmpty
+            ? chapter.placements.first.id
+            : null;
+        final orbitCenterNode = orbitCenterId == null
+            ? null
+            : nodesByPlacement[orbitCenterId];
+        final orbitBackNodes = orbitLayout
+            ? nodes
+                  .where(
+                    (node) =>
+                        node.placementId != orbitCenterId && node.depth < .50,
+                  )
+                  .toList()
+            : const <NarrativeNodeFrame>[];
+        final orbitFrontNodes = orbitLayout
+            ? nodes
+                  .where(
+                    (node) =>
+                        node.placementId != orbitCenterId && node.depth >= .50,
+                  )
+                  .toList()
+            : const <NarrativeNodeFrame>[];
+
+        Widget buildSceneNode(
+          NarrativeNodeFrame node,
+          GalleryPlacement placement,
+        ) => _SceneNodeWidget(
+          node: node,
+          placement: placement,
+          media: mediaById[placement.mediaId],
+          motion: motion,
+          viewport: viewport,
+          useOriginals: useOriginals,
+          sceneTheme: sceneTheme,
+          orbitLighting: orbitLayout,
+          onTap: onPlacementTap,
+          onTransformStart: placementEditingEnabled
+              ? onPlacementTransformStart
+              : null,
+          onTransformUpdate: placementEditingEnabled
+              ? onPlacementTransformUpdate
+              : null,
+          onTransformEnd: placementEditingEnabled
+              ? onPlacementTransformEnd
+              : null,
+        );
+
+        Widget orbitTrackLayer(OrbitRingSegment segment) => Positioned.fill(
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: motion.opacity.clamp(0, 1),
+              child: CustomPaint(
+                key: Key('orbit-track-${segment.name}'),
+                painter: OrbitBackdropPainter(
+                  sceneTheme,
+                  ringCount: orbitRingCount(chapter.placements.length),
+                  segment: segment,
+                ),
+              ),
+            ),
+          ),
+        );
         return ClipRect(
           child: CustomPaint(
             key: const Key('scene-background'),
@@ -142,6 +206,9 @@ class SceneCanvas extends StatelessWidget {
                     path: canvasBackgroundPath,
                     opacity: canvasBackgroundOpacity,
                   ),
+                if (chapter.layout == GalleryLayout.orbit &&
+                    orbitRingCount(chapter.placements.length) > 0)
+                  orbitTrackLayer(OrbitRingSegment.back),
                 if (showStoryPath &&
                     chapter.layout == GalleryLayout.storyPath &&
                     chapter.pathStyle != StoryPathStyle.none)
@@ -161,28 +228,25 @@ class SceneCanvas extends StatelessWidget {
                       ),
                     ),
                   ),
-                for (final node in nodes)
-                  if (placementsById[node.placementId] case final placement?)
-                    _SceneNodeWidget(
-                      node: node,
-                      placement: placement,
-                      media: mediaById[placement.mediaId],
-                      motion: motion,
-                      viewport: viewport,
-                      useOriginals: useOriginals,
-                      sceneTheme: sceneTheme,
-
-                      onTap: onPlacementTap,
-                      onTransformStart: placementEditingEnabled
-                          ? onPlacementTransformStart
-                          : null,
-                      onTransformUpdate: placementEditingEnabled
-                          ? onPlacementTransformUpdate
-                          : null,
-                      onTransformEnd: placementEditingEnabled
-                          ? onPlacementTransformEnd
-                          : null,
-                    ),
+                if (!orbitLayout)
+                  for (final node in nodes)
+                    if (placementsById[node.placementId] case final placement?)
+                      buildSceneNode(node, placement),
+                if (orbitLayout)
+                  for (final node in orbitBackNodes)
+                    if (placementsById[node.placementId] case final placement?)
+                      buildSceneNode(node, placement),
+                if (orbitCenterNode case final centerNode?)
+                  if (placementsById[centerNode.placementId]
+                      case final placement?)
+                    buildSceneNode(centerNode, placement),
+                if (orbitLayout &&
+                    orbitRingCount(chapter.placements.length) > 0)
+                  orbitTrackLayer(OrbitRingSegment.front),
+                if (orbitLayout)
+                  for (final node in orbitFrontNodes)
+                    if (placementsById[node.placementId] case final placement?)
+                      buildSceneNode(node, placement),
                 if (chapter.layout == GalleryLayout.storyPath &&
                     customPathAnchors == null)
                   for (
@@ -582,6 +646,7 @@ class _SceneNodeWidget extends StatelessWidget {
     required this.viewport,
     required this.useOriginals,
     required this.sceneTheme,
+    required this.orbitLighting,
 
     this.onTap,
     this.onTransformStart,
@@ -596,6 +661,7 @@ class _SceneNodeWidget extends StatelessWidget {
   final Size viewport;
   final bool useOriginals;
   final GalleryTheme sceneTheme;
+  final bool orbitLighting;
 
   final void Function(String placementId)? onTap;
   final void Function(String placementId)? onTransformStart;
@@ -621,6 +687,13 @@ class _SceneNodeWidget extends StatelessWidget {
       ..rotateY(yRotation)
       ..rotateZ(node.rotation + motion.rotation)
       ..scaleByDouble(motion.scale, motion.scale, 1, 1);
+    final photoFrame = PhotoFrame(
+      placement: placement,
+      media: media,
+      depth: node.depth,
+      useOriginals: useOriginals,
+      sceneTheme: sceneTheme,
+    );
     return Positioned.fromRect(
       rect: node.rect,
       child: Opacity(
@@ -647,18 +720,46 @@ class _SceneNodeWidget extends StatelessWidget {
             onScaleEnd: onTransformUpdate == null
                 ? null
                 : (_) => onTransformEnd?.call(placement.id),
-            child: PhotoFrame(
-              placement: placement,
-              media: media,
-              depth: node.depth,
-              useOriginals: useOriginals,
-              sceneTheme: sceneTheme,
-            ),
+            child: orbitLighting
+                ? ColorFiltered(
+                    key: Key('scene-orbit-lighting-${placement.id}'),
+                    colorFilter: ColorFilter.matrix(
+                      _orbitLightMatrix(node.depth),
+                    ),
+                    child: photoFrame,
+                  )
+                : photoFrame,
           ),
         ),
       ),
     );
   }
+}
+
+List<double> _orbitLightMatrix(double depth) {
+  final light = .46 + depth.clamp(0.0, 1.0) * .64;
+  return <double>[
+    light,
+    0,
+    0,
+    0,
+    0,
+    0,
+    light,
+    0,
+    0,
+    0,
+    0,
+    0,
+    light,
+    0,
+    0,
+    0,
+    0,
+    0,
+    1,
+    0,
+  ];
 }
 
 class _StoryNodeLabel extends StatelessWidget {
@@ -788,8 +889,111 @@ Color sceneForegroundColor(GalleryTheme sceneTheme) => switch (sceneTheme) {
   GalleryTheme.graphite ||
   GalleryTheme.mist ||
   GalleryTheme.moonlight ||
-  GalleryTheme.cyanotype => XulangColors.paper,
+  GalleryTheme.cyanotype ||
+  GalleryTheme.starfield => XulangColors.paper,
 };
+
+enum OrbitRingSegment { back, front }
+
+class OrbitBackdropPainter extends CustomPainter {
+  const OrbitBackdropPainter(
+    this.sceneTheme, {
+    required this.ringCount,
+    required this.segment,
+  });
+
+  final GalleryTheme sceneTheme;
+  final int ringCount;
+  final OrbitRingSegment segment;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty || ringCount <= 0) return;
+    final center = Offset(size.width * .5, size.height * .49);
+    final foreground = sceneForegroundColor(sceneTheme);
+    final planeRotation = orbitPlaneRotation(size);
+    canvas.save();
+    canvas.translate(center.dx, center.dy);
+    canvas.rotate(planeRotation);
+    canvas.translate(-center.dx, -center.dy);
+
+    if (segment == OrbitRingSegment.back) {
+      final haloRect = Rect.fromCenter(
+        center: center,
+        width: size.width * .76,
+        height: size.height * (size.height >= size.width ? .28 : .58),
+      );
+      canvas.drawOval(
+        haloRect,
+        Paint()
+          ..shader = RadialGradient(
+            colors: [
+              foreground.withValues(alpha: .075),
+              foreground.withValues(alpha: 0),
+            ],
+          ).createShader(haloRect),
+      );
+    }
+
+    final rings = <Rect>[
+      for (var index = 0; index < ringCount; index++)
+        Rect.fromCenter(
+          center: center,
+          width: orbitRadii(size, outer: index == 1).width * 2,
+          height: orbitRadii(size, outer: index == 1).height * 2,
+        ),
+    ];
+    for (var ringIndex = 0; ringIndex < rings.length; ringIndex++) {
+      final ring = rings[ringIndex];
+      final front = segment == OrbitRingSegment.front;
+      final baseAlpha = ringIndex == 0 ? .13 : .065;
+      canvas.drawArc(
+        ring,
+        front ? 0 : math.pi,
+        math.pi,
+        false,
+        Paint()
+          ..color = foreground.withValues(
+            alpha: baseAlpha * (front ? 2.4 : .58),
+          )
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = front ? (ringIndex == 0 ? 1.9 : 1.35) : .65,
+      );
+      final tickCount = ringIndex == 0 ? 18 : 24;
+      for (var tick = 0; tick < tickCount; tick++) {
+        final angle = -math.pi / 2 + math.pi * 2 * tick / tickCount;
+        final tickIsFront = math.sin(angle) >= 0;
+        if (tickIsFront != front) continue;
+        final point = Offset(
+          center.dx + math.cos(angle) * ring.width / 2,
+          center.dy + math.sin(angle) * ring.height / 2,
+        );
+        final radius = tick % 3 == 0 ? 1.45 : .75;
+        canvas.drawCircle(
+          point,
+          radius,
+          Paint()
+            ..color = foreground.withValues(alpha: tick % 3 == 0 ? .26 : .14),
+        );
+      }
+    }
+
+    if (segment == OrbitRingSegment.back) {
+      canvas.drawCircle(
+        center,
+        2.2,
+        Paint()..color = foreground.withValues(alpha: .38),
+      );
+    }
+    canvas.restore();
+  }
+
+  @override
+  bool shouldRepaint(covariant OrbitBackdropPainter oldDelegate) =>
+      sceneTheme != oldDelegate.sceneTheme ||
+      ringCount != oldDelegate.ringCount ||
+      segment != oldDelegate.segment;
+}
 
 class SceneBackgroundPainter extends CustomPainter {
   const SceneBackgroundPainter(this.sceneTheme, {this.room = false});
@@ -811,6 +1015,7 @@ class SceneBackgroundPainter extends CustomPainter {
       GalleryTheme.botanical => const [Color(0xFFE2D7BC), Color(0xFF8A9B77)],
       GalleryTheme.cyanotype => const [Color(0xFF061D37), Color(0xFF1D5C80)],
       GalleryTheme.terracotta => const [Color(0xFFF2D7BD), Color(0xFF9C5C42)],
+      GalleryTheme.starfield => const [Color(0xFF02040D), Color(0xFF15254A)],
     };
     canvas.drawRect(
       rect,
@@ -821,6 +1026,9 @@ class SceneBackgroundPainter extends CustomPainter {
           colors: colors,
         ).createShader(rect),
     );
+    if (sceneTheme == GalleryTheme.starfield) {
+      _paintStarfield(canvas, size);
+    }
     if (room) _paintRoom(canvas, size);
     final lightCanvas =
         sceneTheme == GalleryTheme.paper ||
@@ -839,6 +1047,56 @@ class SceneBackgroundPainter extends CustomPainter {
           colors: [Colors.transparent, vignette],
         ).createShader(rect),
     );
+  }
+
+  void _paintStarfield(Canvas canvas, Size size) {
+    final rect = Offset.zero & size;
+    final nebulaPaint = Paint()
+      ..shader = RadialGradient(
+        center: const Alignment(-.42, -.18),
+        radius: .78,
+        colors: [
+          const Color(0xFF6D79C9).withValues(alpha: .14),
+          const Color(0xFF2E8FA4).withValues(alpha: .055),
+          Colors.transparent,
+        ],
+        stops: const [0, .38, 1],
+      ).createShader(rect);
+    canvas.drawRect(rect, nebulaPaint);
+
+    for (var index = 0; index < 96; index++) {
+      final xSeed = (index * 73 + index * index * 17 + 31) % 997;
+      final ySeed = (index * 151 + index * index * 7 + 47) % 991;
+      final point = Offset(size.width * xSeed / 997, size.height * ySeed / 991);
+      final bright = index % 17 == 0;
+      final radius = bright ? 1.35 : .35 + (index % 5) * .12;
+      if (bright) {
+        canvas.drawCircle(
+          point,
+          radius * 3.8,
+          Paint()
+            ..shader =
+                RadialGradient(
+                  colors: [
+                    const Color(0xFFDBE9FF).withValues(alpha: .22),
+                    Colors.transparent,
+                  ],
+                ).createShader(
+                  Rect.fromCircle(center: point, radius: radius * 3.8),
+                ),
+        );
+      }
+      canvas.drawCircle(
+        point,
+        radius,
+        Paint()
+          ..color = Color.lerp(
+            const Color(0xFFAEC8FF),
+            Colors.white,
+            (index % 7) / 7,
+          )!.withValues(alpha: bright ? .92 : .38 + (index % 4) * .11),
+      );
+    }
   }
 
   void _paintRoom(Canvas canvas, Size size) {

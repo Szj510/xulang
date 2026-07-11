@@ -18,6 +18,11 @@ void main() {
     (index) =>
         GalleryPlacement(id: 'film-$index', mediaId: 'm$index', order: index),
   );
+  final orbitPlacements = List.generate(
+    10,
+    (index) =>
+        GalleryPlacement(id: 'orbit-$index', mediaId: 'm$index', order: index),
+  );
 
   GalleryChapter chapter(GalleryLayout layout) => GalleryChapter(
     id: 'chapter',
@@ -76,6 +81,73 @@ void main() {
       overview.nodes.where((node) => node.opacity > .20),
       hasLength(placements.length),
     );
+  });
+
+  test('orbit keeps the full constellation visible while focus changes', () {
+    final track = NarrativeTrackResolver.resolve(
+      chapter: chapter(GalleryLayout.orbit),
+      viewport: const Size(390, 844),
+    );
+
+    expect(track.sharedCamera, isTrue);
+    for (final progress in const [0.0, .5, 1.0]) {
+      final frame = track.resolve(progress);
+      expect(
+        frame.nodes.where((node) => node.opacity > .1),
+        hasLength(placements.length),
+      );
+    }
+  });
+
+  test('orbit satellites travel while the hero remains anchored', () {
+    final track = NarrativeTrackResolver.resolve(
+      chapter: chapter(GalleryLayout.orbit),
+      viewport: const Size(390, 844),
+    );
+    final start = track.resolve(0);
+    final quarter = track.resolve(.25);
+    final end = track.resolve(1);
+
+    expect(quarter.nodes.first.rect.center, start.nodes.first.rect.center);
+    expect(quarter.nodes.first.opacity, lessThan(start.nodes.first.opacity));
+    expect(quarter.nodes[1].rect.center, isNot(start.nodes[1].rect.center));
+    expect(
+      (quarter.nodes[1].rect.center - start.nodes[1].rect.center).distance,
+      greaterThan(100),
+    );
+    expect(
+      end.nodes[1].rect.center.dx,
+      closeTo(start.nodes[1].rect.center.dx, .001),
+    );
+    expect(
+      end.nodes[1].rect.center.dy,
+      closeTo(start.nodes[1].rect.center.dy, .001),
+    );
+    expect(quarter.nodes[1].depth, isNot(start.nodes[1].depth));
+  });
+
+  test('multiple orbit tracks avoid heavy overlap throughout the motion', () {
+    final track = NarrativeTrackResolver.resolve(
+      chapter: chapter(
+        GalleryLayout.orbit,
+      ).copyWith(placements: orbitPlacements),
+      viewport: const Size(390, 844),
+    );
+
+    for (var step = 0; step <= 100; step++) {
+      final nodes = track.resolve(step / 100).nodes;
+      for (var left = 0; left < nodes.length; left++) {
+        for (var right = left + 1; right < nodes.length; right++) {
+          expect(
+            _overlapRatio(nodes[left].rect, nodes[right].rect),
+            lessThanOrEqualTo(.68),
+            reason:
+                'progress=${step / 100}, ${nodes[left].placementId} and '
+                '${nodes[right].placementId}',
+          );
+        }
+      }
+    }
   });
 
   test('progress is clamped to the track boundaries', () {
@@ -250,4 +322,14 @@ void main() {
       },
     );
   }
+}
+
+double _overlapRatio(Rect first, Rect second) {
+  if (!first.overlaps(second)) return 0;
+  final overlap = first.intersect(second);
+  final firstArea = first.width * first.height;
+  final secondArea = second.width * second.height;
+  return overlap.width *
+      overlap.height /
+      (firstArea < secondArea ? firstArea : secondArea);
 }

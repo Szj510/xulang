@@ -198,4 +198,47 @@ void main() {
       expect(placements[2].size, GallerySize.medium);
     },
   );
+
+  test('template application caps every chapter at the gallery limit', () {
+    final codec = const ExhibitionTemplateCodec();
+    final template = codec.encode(
+      GalleryDocument(
+        id: 'template-limit',
+        title: 'Limit',
+        createdAt: DateTime(2026, 7, 10),
+        updatedAt: DateTime(2026, 7, 10),
+        chapters: const [
+          GalleryChapter(
+            id: 'chapter',
+            title: 'Chapter',
+            order: 0,
+            layout: GalleryLayout.orbit,
+            motion: GalleryMotion.push,
+            placements: [
+              GalleryPlacement(id: 'slot', mediaId: 'slot-media', order: 0),
+            ],
+          ),
+        ],
+      ),
+    );
+    final mediaIds = List.generate(24, (index) => 'media-$index');
+
+    final applied = codec.applyToDocumentByChapterMedia(
+      base: GalleryDocument.create(
+        id: 'new-limit',
+        title: 'New',
+        createdAt: DateTime(2026, 7, 10),
+      ),
+      templateJson: template,
+      createId: () => 'generated',
+      now: DateTime(2026, 7, 10),
+      mediaIdsByChapter: [mediaIds],
+      appendExtraMedia: true,
+    );
+
+    expect(
+      applied.chapters.single.placements,
+      hasLength(maxGalleryPlacementsPerChapter),
+    );
+  });
 }

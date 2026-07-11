@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'dart:ui';
 
 import 'package:xulang/layout/narrative_axis.dart';
+import 'package:xulang/layout/orbit_geometry.dart';
 import 'package:xulang/layout/story_path_geometry.dart';
 
 class NarrativeTransform {
@@ -147,6 +148,7 @@ class ResolvedNarrativeTrack {
     required this.viewport,
     required this.contentExtent,
     required this.sharedCamera,
+    this.orbitMotion = false,
   });
 
   final List<NarrativeKeyframe> keyframes;
@@ -155,9 +157,11 @@ class ResolvedNarrativeTrack {
   final Size viewport;
   final double contentExtent;
   final bool sharedCamera;
+  final bool orbitMotion;
 
   ResolvedNarrativeFrame resolve(double rawProgress) {
     final progress = rawProgress.clamp(0.0, 1.0);
+    if (orbitMotion) return _resolveOrbit(progress);
     if (sharedCamera) return _resolveSharedCamera(progress);
     return ResolvedNarrativeFrame(
       progress: progress,
@@ -166,6 +170,108 @@ class ResolvedNarrativeTrack {
       nodes: [
         for (final keyframe in keyframes) _resolveKeyframe(keyframe, progress),
       ],
+    );
+  }
+
+  ResolvedNarrativeFrame _resolveOrbit(double progress) {
+    if (keyframes.isEmpty || viewport.isEmpty) {
+      return ResolvedNarrativeFrame(
+        progress: progress,
+        nodes: const [],
+        axis: axis,
+        path: const StoryPathGeometry.empty(),
+      );
+    }
+
+    final center = Offset(viewport.width * .5, viewport.height * .49);
+    final planeRotation = orbitPlaneRotation(viewport);
+    final orbitPhase = progress * math.pi * 2;
+    final nodes = <NarrativeNodeFrame>[];
+
+    for (var index = 0; index < keyframes.length; index++) {
+      final keyframe = keyframes[index];
+      if (index == 0) {
+        const focusWindow = .20;
+        final focusDistance = (progress / focusWindow).clamp(0.0, 1.0);
+        final focus = 1 - _easeInOut(focusDistance);
+        nodes.add(
+          NarrativeNodeFrame(
+            placementId: keyframe.placementId,
+            rect: _scaled(keyframe.focus.rect, .94 + focus * .06),
+            depth: .58 + focus * .42,
+            opacity: .58 + focus * .42,
+            rotation: keyframe.focus.rotation,
+            rotateY: 0,
+          ),
+        );
+        continue;
+      }
+
+      final outerRing = index > 6;
+      final radii = orbitRadii(viewport, outer: outerRing);
+      final radiusX = radii.width;
+      final radiusY = radii.height;
+      final sourceCenter = keyframe.focus.rect.center;
+      final sourceAngle = orbitAngleForPoint(
+        point: sourceCenter,
+        center: center,
+        radiusX: radiusX,
+        radiusY: radiusY,
+        planeRotation: planeRotation,
+      );
+      final sourceEllipsePoint = orbitPoint(
+        center: center,
+        radiusX: radiusX,
+        radiusY: radiusY,
+        angle: sourceAngle,
+        planeRotation: planeRotation,
+      );
+      final manualOffset = sourceCenter - sourceEllipsePoint;
+      final angle = sourceAngle + orbitPhase;
+      final animatedCenter =
+          orbitPoint(
+            center: center,
+            radiusX: radiusX,
+            radiusY: radiusY,
+            angle: angle,
+            planeRotation: planeRotation,
+          ) +
+          manualOffset;
+
+      final front = (math.sin(angle) + 1) / 2;
+      final focusWindow = math.min(.22, visibilityWindow * .42);
+      final progressDistance =
+          ((progress - keyframe.focusProgress).abs() / focusWindow).clamp(
+            0.0,
+            1.0,
+          );
+      final focus = 1 - _easeInOut(progressDistance);
+      final orbitScale = .75 + front * .15 + focus * .14;
+      final orbitDepth = .18 + front * .57;
+      final orbitOpacity = .18 + front * .52;
+      final rect = Rect.fromCenter(
+        center: animatedCenter,
+        width: keyframe.focus.rect.width,
+        height: keyframe.focus.rect.height,
+      );
+      nodes.add(
+        NarrativeNodeFrame(
+          placementId: keyframe.placementId,
+          rect: _scaled(rect, orbitScale),
+          depth: math.max(orbitDepth, focus),
+          opacity: math.max(orbitOpacity, focus),
+          rotation:
+              keyframe.focus.rotation + math.sin(angle + math.pi / 4) * .018,
+          rotateY: (1 - front) * .14,
+        ),
+      );
+    }
+
+    return ResolvedNarrativeFrame(
+      progress: progress,
+      nodes: nodes,
+      axis: axis,
+      path: const StoryPathGeometry.empty(),
     );
   }
 

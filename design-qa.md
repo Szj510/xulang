@@ -81,3 +81,61 @@
 - 可选：增加真实墨色纸纹资产；不作为本轮阻塞项。
 
 final result: passed
+
+## Saturn orbit layering verification — 2026-07-10
+
+- source visual truth path: `C:/Users/suzij/AppData/Local/Temp/codex-clipboard-aeaac9cb-b30c-4a78-b1b0-60ef8890edf9.png`
+- implementation screenshot path: `E:/flutter/projs/xulang/test/goldens/orbit_saturn_landscape_ink.png`
+- viewport: source `980x556`; implementation `844x390`, compared as normalized landscape content regions without browser chrome
+- state: Orbit layout, four photos, 35% camera progress, ink theme, all photos using the new Orb frame
+
+**Findings**
+
+- No actionable P0/P1/P2 differences remain for the requested Saturn-style behavior.
+- [P3] The reference uses a photographic textured ring while the implementation uses theme-aware vector strokes and ticks.
+  Location: orbit track.
+  Evidence: the source ring contains banded dust texture; the implementation stays deliberately restrained so it remains legible across all gallery themes and animates continuously.
+  Impact: lower literal texture fidelity, but the requested depth, occlusion, elliptical plane, and planet silhouette are preserved.
+  Follow-up: optional theme-specific ring texture can be introduced later if it remains performant and does not compete with user photos.
+
+**Full-view comparison evidence**
+
+- Source and implementation were opened together in the same visual comparison input.
+- Both use a dark landscape field, a dominant circular center body, a nearly horizontal elliptical ring, smaller orbiting bodies, and clear front/back depth.
+- The implementation intentionally retains Xulang's existing ink palette and user-photo content rather than copying the source's astronomy image.
+
+**Focused region comparison evidence**
+
+- A separate crop was not required: at the 844x390 implementation viewport, the central body and both ring intersections are large enough to inspect directly.
+- The upper/back arc disappears beneath the center Orb frame, while the brighter lower/front arc crosses above it and then continues outward. Foreground orbiting photos are drawn above the front arc.
+- Orb photos remain circular at portrait and landscape sizes because the frame uses a constrained 1:1 mask rather than stretching the source image into an oval.
+
+**Required fidelity surfaces**
+
+- Fonts and typography: not applicable to the supplied visual target; no text was introduced into the scene.
+- Spacing and layout rhythm: the central body dominates, satellites remain secondary, and one or two rings are selected from photo count as designed.
+- Colors and visual tokens: the implementation uses Xulang ink/paper foreground tokens, with the front arc brighter and thicker than the back arc.
+- Image quality and asset fidelity: real gallery photos remain sharp inside circular masks; no placeholder astronomy assets were substituted.
+- Copy and content: the editor exposes the frame as `Orb / 星体圆框`; existing frame choices remain unchanged.
+
+**Comparison history**
+
+- Earlier P2: the full ellipse was painted in one layer, so the center photo could not create a Saturn-like occlusion. Fix: split the orbit into back and front half-arcs and render the center photo between them.
+- Earlier P2: the inner ring was tangent to the center circle, making the crossing too subtle. Fix: flatten the inner ring so both intersections visibly pass through the center Orb silhouette, then strengthen the front arc.
+- Earlier P2: compressed dual tracks could fall back to nearly complete satellite overlap. Fix: use a moderate overlap allowance with phase search and validate the full motion cycle.
+- Post-fix evidence: `orbit_saturn_landscape_ink.png`, plus portrait and dense orbit goldens.
+
+**Implementation checklist**
+
+- [x] Back ring renders behind the central body.
+- [x] Front ring renders over the central body.
+- [x] Foreground satellites render over the front ring.
+- [x] Orb frame is selectable and persists by stable enum name.
+- [x] Single/dual ring count behavior remains intact.
+- [x] Portrait, landscape, dense, frame, motion, and localization coverage added.
+
+**Follow-up polish**
+
+- Optional P3: add a low-contrast banded ring material per gallery theme after performance profiling.
+
+final result: passed

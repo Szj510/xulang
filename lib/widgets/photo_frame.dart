@@ -23,6 +23,13 @@ class PhotoFrame extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (placement.frame == GalleryFrame.orb) {
+      return _OrbFrame(
+        depth: depth,
+        sceneTheme: sceneTheme,
+        child: _image(context),
+      );
+    }
     final frame = DecoratedBox(
       decoration: BoxDecoration(
         boxShadow: [
@@ -116,6 +123,7 @@ class PhotoFrame extends StatelessWidget {
             ),
           ),
         ),
+        GalleryFrame.orb => throw StateError('Orb frame handled above'),
       },
     );
     if (placement.rotation == 0) return frame;
@@ -149,6 +157,60 @@ class PhotoFrame extends StatelessWidget {
                 (MediaQuery.sizeOf(context).width * 2).round(),
               ),
             ),
+    );
+  }
+}
+
+class _OrbFrame extends StatelessWidget {
+  const _OrbFrame({
+    required this.depth,
+    required this.sceneTheme,
+    required this.child,
+  });
+
+  final double depth;
+  final GalleryTheme sceneTheme;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final light =
+        sceneTheme == GalleryTheme.paper ||
+        sceneTheme == GalleryTheme.warm ||
+        sceneTheme == GalleryTheme.botanical ||
+        sceneTheme == GalleryTheme.terracotta;
+    final edge = light
+        ? const Color(0xFF6E6253).withValues(alpha: .62)
+        : const Color(0xFFF1E6D2).withValues(alpha: .72);
+    return Center(
+      child: AspectRatio(
+        aspectRatio: 1,
+        child: DecoratedBox(
+          key: const Key('frame-orb'),
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: light ? const Color(0xFFE7DCC8) : const Color(0xFF171A19),
+            border: Border.all(color: edge, width: 1.5),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: .28 + depth * .30),
+                blurRadius: 18 + depth * 22,
+                spreadRadius: depth * 1.5,
+                offset: Offset(0, 8 + depth * 9),
+              ),
+              BoxShadow(
+                color: edge.withValues(alpha: .18 + depth * .16),
+                blurRadius: 12,
+                spreadRadius: 1,
+              ),
+            ],
+          ),
+          child: Padding(
+            padding: const EdgeInsets.all(3),
+            child: ClipOval(child: child),
+          ),
+        ),
+      ),
     );
   }
 }

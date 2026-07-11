@@ -57,6 +57,13 @@ void main() {
       if (frame == GalleryFrame.vintage) {
         expect(find.byKey(const Key('vintage-paper-painter')), findsOneWidget);
       }
+      if (frame == GalleryFrame.orb) {
+        expect(find.byType(ClipOval), findsOneWidget);
+        expect(
+          tester.widget<AspectRatio>(find.byType(AspectRatio)).aspectRatio,
+          1,
+        );
+      }
     });
   }
 }

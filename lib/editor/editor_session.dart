@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart' as p;
@@ -35,6 +36,9 @@ class EditorSession extends ChangeNotifier {
 
   bool get canUndo => _history?.canUndo ?? false;
   bool get canRedo => _history?.canRedo ?? false;
+  int get remainingPlacementCapacity =>
+      maxGalleryPlacementsPerChapter -
+      (selectedChapter?.placements.length ?? maxGalleryPlacementsPerChapter);
   GalleryChapter? get selectedChapter {
     final document = bundle?.document;
     if (document == null || document.chapters.isEmpty) return null;
@@ -247,13 +251,18 @@ class EditorSession extends ChangeNotifier {
   }) async {
     final current = bundle;
     if (current == null || sourcePaths.isEmpty) return;
+    final summary = const ExhibitionTemplateCodec().inspect(templateJson);
+    final maxTemplateImages =
+        (maxGalleryPlacementsPerChapter * math.max(1, summary.chapterCount))
+            .toInt();
+    final limitedSourcePaths = sourcePaths.take(maxTemplateImages).toList();
     importing = true;
     _notify();
     try {
       final settings = await repository.watchAppSettings().first;
       final result = await importer.importFiles(
         exhibitionId: exhibitionId,
-        sourcePaths: sourcePaths,
+        sourcePaths: limitedSourcePaths,
         existingAssets: current.media,
         importMode: settings.mediaImportMode,
       );
@@ -588,8 +597,17 @@ class EditorSession extends ChangeNotifier {
 
   Future<void> importImages() async {
     if (importing || bundle == null) return;
+    final currentCount = selectedChapter?.placements.length ?? 0;
+    final remaining = maxGalleryPlacementsPerChapter - currentCount;
+    if (remaining <= 0) {
+      error = GalleryCapacityException(current: currentCount);
+      _notify();
+      return;
+    }
     final paths = await imageSelection.selectImages();
     if (paths.isEmpty) return;
+    final limitedPaths = paths.take(remaining).toList(growable: false);
+    final skipped = paths.length - limitedPaths.length;
     importing = true;
     _notify();
     try {
@@ -597,7 +615,7 @@ class EditorSession extends ChangeNotifier {
       final settings = await repository.watchAppSettings().first;
       final result = await importer.importFiles(
         exhibitionId: exhibitionId,
-        sourcePaths: paths,
+        sourcePaths: limitedPaths,
         existingAssets: current.media,
         importMode: settings.mediaImportMode,
       );
@@ -629,6 +647,13 @@ class EditorSession extends ChangeNotifier {
           media: mediaById.values.toList(growable: false),
         ),
       );
+      if (skipped > 0) {
+        error = GalleryCapacityException(
+          current: maxGalleryPlacementsPerChapter,
+          skipped: skipped,
+        );
+        _notify();
+      }
     } catch (caught) {
       error = caught;
       _notify();
@@ -676,6 +701,17 @@ class EditorSession extends ChangeNotifier {
     _disposed = true;
     super.dispose();
   }
+}
+
+class GalleryCapacityException implements Exception {
+  const GalleryCapacityException({required this.current, this.skipped = 0});
+
+  final int current;
+  final int skipped;
+
+  @override
+  String toString() =>
+      'Each chapter supports up to $maxGalleryPlacementsPerChapter photos.';
 }
 
 const Object _editorUnchanged = Object();
