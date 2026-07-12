@@ -1702,6 +1702,15 @@ class _Inspector extends StatefulWidget {
 
 class _InspectorState extends State<_Inspector> {
   EditorSession get session => widget.session;
+  FrameFamily? _frameFamilyOverride;
+
+  @override
+  void didUpdateWidget(covariant _Inspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedPlacementId != widget.selectedPlacementId) {
+      _frameFamilyOverride = null;
+    }
+  }
 
   Widget _buildCanvasPanel(BuildContext context, GalleryChapter chapter) {
     final l10n = AppStrings.of(context);
@@ -1962,18 +1971,58 @@ class _InspectorState extends State<_Inspector> {
         const SizedBox(height: 12),
         _InspectorSection(
           title: l10n.frameStyle,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final frame in GalleryFrame.values)
-                ChoiceChip(
-                  selected: placement.frame == frame,
-                  onSelected: (_) =>
-                      session.updatePlacement(placement.id, frame: frame),
-                  label: Text(_frameLabel(l10n, frame)),
-                ),
-            ],
+          child: Builder(
+            builder: (context) {
+              final family =
+                  _frameFamilyOverride ?? frameFamilyFor(placement.frame);
+              final frames = switch (family) {
+                FrameFamily.classic => classicGalleryFrames,
+                FrameFamily.handDrawn => handDrawnGalleryFrames,
+              };
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<FrameFamily>(
+                      key: const Key('frame-family-switcher'),
+                      showSelectedIcon: false,
+                      expandedInsets: EdgeInsets.zero,
+                      segments: [
+                        ButtonSegment(
+                          value: FrameFamily.classic,
+                          label: Text(l10n.classicFrames),
+                        ),
+                        ButtonSegment(
+                          value: FrameFamily.handDrawn,
+                          label: Text(l10n.handDrawnFrames),
+                        ),
+                      ],
+                      selected: {family},
+                      onSelectionChanged: (selection) => setState(() {
+                        _frameFamilyOverride = selection.single;
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final frame in frames)
+                        ChoiceChip(
+                          selected: placement.frame == frame,
+                          onSelected: (_) => session.updatePlacement(
+                            placement.id,
+                            frame: frame,
+                          ),
+                          label: Text(_frameLabel(l10n, frame)),
+                        ),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 12),
@@ -2789,4 +2838,41 @@ String _frameLabel(AppStrings l10n, GalleryFrame frame) => switch (frame) {
   GalleryFrame.vintage => l10n.vintageFrame,
   GalleryFrame.film => l10n.filmFrame,
   GalleryFrame.orb => l10n.orbFrame,
+  GalleryFrame.tapedPaper => l10n.tapedPaperFrame,
+  GalleryFrame.crayon => l10n.crayonFrame,
+  GalleryFrame.watercolor => l10n.watercolorFrame,
+  GalleryFrame.doodleTape => l10n.doodleTapeFrame,
+  GalleryFrame.scallop => l10n.scallopFrame,
+  GalleryFrame.cornerSketch => l10n.cornerSketchFrame,
+  GalleryFrame.wavy => l10n.wavyFrame,
 };
+
+const classicGalleryFrames = <GalleryFrame>[
+  GalleryFrame.none,
+  GalleryFrame.hairline,
+  GalleryFrame.mat,
+  GalleryFrame.stamp,
+  GalleryFrame.wood,
+  GalleryFrame.darkWood,
+  GalleryFrame.metal,
+  GalleryFrame.vintage,
+  GalleryFrame.film,
+  GalleryFrame.orb,
+  GalleryFrame.tapedPaper,
+];
+
+const handDrawnGalleryFrames = <GalleryFrame>[
+  GalleryFrame.crayon,
+  GalleryFrame.watercolor,
+  GalleryFrame.doodleTape,
+  GalleryFrame.scallop,
+  GalleryFrame.cornerSketch,
+  GalleryFrame.wavy,
+];
+
+enum FrameFamily { classic, handDrawn }
+
+FrameFamily frameFamilyFor(GalleryFrame frame) =>
+    handDrawnGalleryFrames.contains(frame)
+    ? FrameFamily.handDrawn
+    : FrameFamily.classic;

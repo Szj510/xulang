@@ -17,6 +17,13 @@ enum GalleryFrame {
   vintage,
   film,
   orb,
+  tapedPaper,
+  crayon,
+  watercolor,
+  doodleTape,
+  scallop,
+  cornerSketch,
+  wavy,
 }
 
 enum GallerySize { small, medium, large }

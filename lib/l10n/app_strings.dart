@@ -311,6 +311,8 @@ class AppStrings {
   String get layerOrder => isEnglish ? 'Layer order' : '图层顺序';
   String get imageSize => isEnglish ? 'Image size' : '画幅';
   String get frameStyle => isEnglish ? 'Frame' : '画框';
+  String get classicFrames => isEnglish ? 'Classic' : '经典';
+  String get handDrawnFrames => isEnglish ? 'Hand-drawn' : '手绘';
   String get cropAndComposition => isEnglish ? 'Crop & composition' : '裁切与构图';
   String get horizontalFocus => isEnglish ? 'Horizontal focus' : '水平焦点';
   String get verticalFocus => isEnglish ? 'Vertical focus' : '垂直焦点';
@@ -359,6 +361,13 @@ class AppStrings {
   String get vintageFrame => isEnglish ? 'Vintage' : '复古';
   String get filmFrame => isEnglish ? 'Film case' : '胶片匣';
   String get orbFrame => isEnglish ? 'Circle' : '圆形框';
+  String get tapedPaperFrame => isEnglish ? 'Taped paper' : '胶带纸框';
+  String get crayonFrame => isEnglish ? 'Oil pastel' : '油画棒';
+  String get watercolorFrame => isEnglish ? 'Watercolor bloom' : '水彩花边';
+  String get doodleTapeFrame => isEnglish ? 'Playful doodle' : '童趣涂鸦';
+  String get scallopFrame => isEnglish ? 'Looped lace' : '环形花边';
+  String get cornerSketchFrame => isEnglish ? 'Corner sketch' : '手绘角标';
+  String get wavyFrame => isEnglish ? 'Wavy outline' : '波浪线框';
   String get starSticker => isEnglish ? 'Star mark' : '星芒标记';
   String get sparkleSticker => isEnglish ? 'Sparkle' : '碎光';
   String get heartSticker => isEnglish ? 'Warm heart' : '暖心印';

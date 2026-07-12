@@ -218,4 +218,42 @@ void main() {
 
     expect(restored!.chapters.single.layout, GalleryLayout.storyPath);
   });
+
+  test('persists a hand-drawn frame by stable name', () async {
+    final base = GalleryDocument.create(
+      id: 'hand-drawn-frame',
+      title: 'Sketchbook',
+      createdAt: DateTime.utc(2026, 7, 12),
+    );
+    final document = base.copyWith(
+      chapters: [
+        base.chapters.single.copyWith(
+          placements: const [
+            GalleryPlacement(
+              id: 'sketch-placement',
+              mediaId: 'media',
+              order: 0,
+              frame: GalleryFrame.watercolor,
+            ),
+          ],
+        ),
+      ],
+    );
+    const media = GalleryMedia(
+      id: 'media',
+      originalPath: '/media/original.jpg',
+      thumbnailPath: '/media/thumb.webp',
+      width: 100,
+      height: 100,
+      contentHash: 'hand-drawn',
+    );
+
+    await database.saveDocument(document, const [media]);
+    final restored = await database.loadDocument(document.id);
+
+    expect(
+      restored!.chapters.single.placements.single.frame,
+      GalleryFrame.watercolor,
+    );
+  });
 }

@@ -82,6 +82,37 @@
 
 final result: passed
 
+## Hand-drawn frame family — 2026-07-12
+
+**Scope**
+
+- Added a classic Taped paper frame plus a distinct hand-drawn family: Oil pastel, Watercolor bloom, Playful doodle, Looped lace, Corner sketch, and Wavy outline.
+- Kept the classic and hand-drawn choices in labeled groups so the expanded collection remains scannable.
+- Removed the visually similar Pencil sketch and Dry-brush ink choices. Every remaining hand-drawn frame uses a clearly different silhouette, and fine line frames adapt their ink color to light or dark canvases.
+
+**Evidence**
+
+- Golden overview: `test/goldens/hand_drawn_frame_family.png`.
+- Classic taped-paper golden: `test/goldens/taped_paper_frame.png`.
+- Emulator picker: `C:/Users/suzij/AppData/Local/Temp/xulang-hand-drawn-frames-panel.png`.
+- Emulator applied state after the full-frame redesign: `C:/Users/suzij/AppData/Local/Temp/xulang-hand-drawn-redesign.png`.
+- Compact frame-family switcher, hand-drawn state: `C:/Users/suzij/AppData/Local/Temp/xulang-frame-family-tabs.png`.
+- Compact frame-family switcher, classic state: `C:/Users/suzij/AppData/Local/Temp/xulang-frame-family-classic-tab.png`.
+- Watercolor bloom was selected on-device and visibly updated both the frame and selected control state.
+
+**Verification**
+
+- [x] The classic taped-paper frame and all six hand-drawn frame names are localized in English and Chinese.
+- [x] Classic and hand-drawn frames share one segmented switcher and only the active family is rendered in the inspector.
+- [x] Frame values persist by stable enum name through the gallery database.
+- [x] Classic and hand-drawn groups cover every frame exactly once.
+- [x] Golden rendering covers the complete five-frame family.
+- [x] `dart analyze lib test` passes.
+- [x] Full Flutter suite passes: 208 tests.
+- [x] Android debug APK builds successfully.
+
+final result: passed
+
 ### Home cover, unified dark surface, and editor canvas navigation
 
 - implementation screenshots:
