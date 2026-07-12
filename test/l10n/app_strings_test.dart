@@ -27,6 +27,15 @@ void main() {
     );
     expect(strings.orbitLayout, 'Orbit');
     expect(strings.orbFrame, 'Circle');
+    expect(strings.classicFrames, 'Classic');
+    expect(strings.handDrawnFrames, 'Hand-drawn');
+    expect(strings.tapedPaperFrame, 'Taped paper');
+    expect(strings.crayonFrame, 'Oil pastel');
+    expect(strings.watercolorFrame, 'Watercolor bloom');
+    expect(strings.doodleTapeFrame, 'Playful doodle');
+    expect(strings.scallopFrame, 'Looped lace');
+    expect(strings.cornerSketchFrame, 'Corner sketch');
+    expect(strings.wavyFrame, 'Wavy outline');
     expect(strings.starfieldCanvas, 'Starfield canvas');
     expect(strings.quickAccess, 'Shortcuts');
     expect(strings.libraryCategories, 'Categories');

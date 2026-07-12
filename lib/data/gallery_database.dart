@@ -462,7 +462,11 @@ class GalleryDatabase extends _$GalleryDatabase {
                 mediaId: item.mediaId,
                 order: item.sortOrder,
                 size: GallerySize.values.byName(item.size),
-                frame: GalleryFrame.values.byName(item.frame),
+                frame: _enumByName(
+                  GalleryFrame.values,
+                  item.frame,
+                  GalleryFrame.hairline,
+                ),
                 focalX: item.focalX,
                 focalY: item.focalY,
                 zoom: item.zoom,
