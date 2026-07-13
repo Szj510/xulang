@@ -19,6 +19,7 @@ void main() {
     expect(strings.canvasTheme, 'Canvas theme');
     expect(strings.customCanvasImage, 'Custom canvas image');
     expect(strings.backgroundMusicAdded, 'Background music added');
+    expect(strings.musicPlaybackFailed, 'Unable to play the background music');
     expect(strings.stickerPanelHint, startsWith('Choose a small object'));
     expect(strings.stickerRotation, 'Rotation');
     expect(

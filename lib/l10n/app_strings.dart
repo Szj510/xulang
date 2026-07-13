@@ -224,6 +224,8 @@ class AppStrings {
   String get recordingSpeed => playbackSpeedTitle;
   String get pauseMusic => isEnglish ? 'Pause music' : '暂停音乐';
   String get playMusic => isEnglish ? 'Play music' : '播放音乐';
+  String get musicPlaybackFailed =>
+      isEnglish ? 'Unable to play the background music' : '背景音乐播放失败，请重新选择音乐';
   String get fast3s => isEnglish ? 'Fast (1s/photo)' : '快（1秒/张）';
   String get medium6s => isEnglish ? 'Medium (3s/photo)' : '中（3秒/张）';
   String get slow10s => isEnglish ? 'Slow (6s/photo)' : '慢（6秒/张）';
