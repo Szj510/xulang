@@ -21,6 +21,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.ByteArrayOutputStream
+import java.io.FileOutputStream
 import kotlin.math.max
 
 class MainActivity : FlutterActivity() {
@@ -58,6 +59,7 @@ class MainActivity : FlutterActivity() {
                     "openTree" -> openDocumentTree(result)
                     "listFiles" -> listDocumentFiles(call, result)
                     "readText" -> readDocumentText(call, result)
+                    "materializeAudio" -> materializeAudio(call, result)
                     else -> result.notImplemented()
                 }
             }
@@ -203,6 +205,43 @@ class MainActivity : FlutterActivity() {
                 postMethodResult { result.success(text) }
             } catch (error: Throwable) {
                 postMethodResult { result.error("document_read_failed", error.message, null) }
+            }
+        }.start()
+    }
+
+    private fun materializeAudio(call: MethodCall, result: MethodChannel.Result) {
+        val uriText = call.argument<String>("uri")
+        if (uriText.isNullOrBlank()) {
+            result.error("missing_uri", "Audio URI is required.", null)
+            return
+        }
+        Thread {
+            try {
+                val uri = Uri.parse(uriText)
+                val extension = DocumentFile.fromSingleUri(this, uri)?.name
+                    ?.substringAfterLast('.', "")
+                    ?.takeIf { it.length in 1..10 }
+                    ?.let { ".${it.lowercase()}" }
+                    ?: ".audio"
+                val directory = File(filesDir, "playable-audio").apply { mkdirs() }
+                val target = File(
+                    directory,
+                    "music-${uriText.hashCode().toUInt().toString(16)}$extension",
+                )
+                if (!target.exists() || target.length() == 0L) {
+                    val temporary = File(directory, "${target.name}.partial")
+                    contentResolver.openInputStream(uri).use { stream ->
+                        val input = stream ?: throw IllegalStateException("Unable to open audio.")
+                        FileOutputStream(temporary).use { output -> input.copyTo(output) }
+                    }
+                    if (!temporary.renameTo(target)) {
+                        temporary.copyTo(target, overwrite = true)
+                        temporary.delete()
+                    }
+                }
+                postMethodResult { result.success(target.absolutePath) }
+            } catch (error: Throwable) {
+                postMethodResult { result.error("audio_materialize_failed", error.message, null) }
             }
         }.start()
     }
