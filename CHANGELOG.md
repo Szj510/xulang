@@ -7,7 +7,7 @@ All notable changes to this project will be documented in this file. The format 
 ### Changed
 
 - Replaced bundled sample media with documented synthetic assets that can be safely redistributed with the project.
-- Expanded the bundled first-run exhibition with fictional portrait and everyday-story imagery.
+- Added one fictional portrait to the bundled first-run exhibition.
 
 ## [1.1.0] - 2026-07-19
 
