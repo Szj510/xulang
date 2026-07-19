@@ -17,6 +17,13 @@ enum GalleryFrame {
   vintage,
   film,
   orb,
+  tapedPaper,
+  crayon,
+  watercolor,
+  doodleTape,
+  scallop,
+  cornerSketch,
+  wavy,
 }
 
 enum GallerySize { small, medium, large }
@@ -59,6 +66,7 @@ class AppSettings {
     this.themeMode = AppThemeMode.system,
     this.authorizedFolderPaths = const [],
     this.musicDisplayNames = const {},
+    this.homeHeroImagePath,
   });
 
   final bool recordingShowChapterTitle;
@@ -78,6 +86,7 @@ class AppSettings {
   final AppThemeMode themeMode;
   final List<String> authorizedFolderPaths;
   final Map<String, String> musicDisplayNames;
+  final String? homeHeroImagePath;
 
   AppSettings copyWith({
     bool? recordingShowChapterTitle,
@@ -91,6 +100,8 @@ class AppSettings {
     AppThemeMode? themeMode,
     List<String>? authorizedFolderPaths,
     Map<String, String>? musicDisplayNames,
+    String? homeHeroImagePath,
+    bool resetHomeHeroImage = false,
   }) {
     return AppSettings(
       recordingShowChapterTitle:
@@ -109,6 +120,9 @@ class AppSettings {
       authorizedFolderPaths:
           authorizedFolderPaths ?? this.authorizedFolderPaths,
       musicDisplayNames: musicDisplayNames ?? this.musicDisplayNames,
+      homeHeroImagePath: resetHomeHeroImage
+          ? null
+          : homeHeroImagePath ?? this.homeHeroImagePath,
     );
   }
 }

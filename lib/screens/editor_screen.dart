@@ -15,6 +15,7 @@ import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/editor/editor_session.dart';
 import 'package:xulang/l10n/app_strings.dart';
+import 'package:xulang/layout/canvas_transform.dart';
 import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/providers/app_providers.dart';
@@ -463,14 +464,15 @@ class _EditorBodyState extends State<_EditorBody> {
                         landscape: true,
                       ),
                     // Floating ball
-                    _FloatingBall(
-                      offset: _floatingBallOffset,
-                      isActive: _showPanel,
-                      onTap: _togglePanel,
-                      onOffsetChanged: (offset) {
-                        setState(() => _floatingBallOffset = offset);
-                      },
-                    ),
+                    if (!_showPanel)
+                      _FloatingBall(
+                        offset: _floatingBallOffset,
+                        isActive: false,
+                        onTap: _togglePanel,
+                        onOffsetChanged: (offset) {
+                          setState(() => _floatingBallOffset = offset);
+                        },
+                      ),
                   ],
                 );
               }
@@ -517,14 +519,15 @@ class _EditorBodyState extends State<_EditorBody> {
                       landscape: false,
                     ),
                   // Floating ball
-                  _FloatingBall(
-                    offset: _floatingBallOffset,
-                    isActive: _showPanel,
-                    onTap: _togglePanel,
-                    onOffsetChanged: (offset) {
-                      setState(() => _floatingBallOffset = offset);
-                    },
-                  ),
+                  if (!_showPanel)
+                    _FloatingBall(
+                      offset: _floatingBallOffset,
+                      isActive: false,
+                      onTap: _togglePanel,
+                      onOffsetChanged: (offset) {
+                        setState(() => _floatingBallOffset = offset);
+                      },
+                    ),
                 ],
               );
             },
@@ -796,7 +799,7 @@ class _FloatingBall extends StatelessWidget {
     final size = MediaQuery.sizeOf(context);
     final padding = MediaQuery.paddingOf(context);
     final minX = 8.0;
-    final maxX = math.max(minX, size.width - 56);
+    final maxX = math.max(minX, size.width - 88);
     final minY = padding.top + 8;
     final maxY = math.max(minY, size.height - padding.bottom - 56);
     final absX = offset.dx.clamp(minX, maxX);
@@ -815,10 +818,10 @@ class _FloatingBall extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
-          width: 48,
+          width: 80,
           height: 48,
           decoration: BoxDecoration(
-            shape: BoxShape.circle,
+            borderRadius: BorderRadius.circular(24),
             gradient: LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
@@ -850,11 +853,27 @@ class _FloatingBall extends StatelessWidget {
             color: Colors.transparent,
             child: InkWell(
               onTap: onTap,
-              customBorder: const CircleBorder(),
-              child: Icon(
-                isActive ? Icons.close : Icons.tune_rounded,
-                size: 22,
-                color: XulangColors.paper,
+              borderRadius: BorderRadius.circular(24),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    isActive ? Icons.close : Icons.tune_rounded,
+                    size: 20,
+                    color: XulangColors.paper,
+                  ),
+                  const SizedBox(width: 6),
+                  Text(
+                    isActive
+                        ? AppStrings.of(context).close
+                        : AppStrings.of(context).edit,
+                    style: const TextStyle(
+                      color: XulangColors.paper,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
           ),
@@ -994,6 +1013,7 @@ class _FloatingPanelState extends State<_FloatingPanel>
 
                         onFocusSticker: widget.onFocusSticker,
                         onSelectStickerKind: widget.onSelectStickerKind,
+                        onDismiss: widget.onDismiss,
                       ),
                     ),
                   ),
@@ -1202,12 +1222,11 @@ class _PreviewState extends State<_Preview> {
   }
 
   void _setPreviewScale(double targetScale, Size viewport) {
-    final scale = targetScale.clamp(1.0, 3.0);
-    final center = Offset(viewport.width / 2, viewport.height / 2);
-    _zoomController.value = Matrix4.identity()
-      ..setEntry(0, 0, scale)
-      ..setEntry(1, 1, scale)
-      ..setTranslationRaw(center.dx * (1 - scale), center.dy * (1 - scale), 0);
+    _zoomController.value = scaleCanvasAroundViewportCenter(
+      current: _zoomController.value,
+      targetScale: targetScale,
+      viewport: viewport,
+    );
     setState(() {});
   }
 
@@ -1333,9 +1352,10 @@ class _PreviewState extends State<_Preview> {
     return LayoutBuilder(
       builder: (context, constraints) {
         final viewport = Size(constraints.maxWidth, constraints.maxHeight);
-        final landscape =
+        final viewportLandscape =
             NarrativeAxis.fromViewport(viewport) == NarrativeAxis.horizontal;
         final chapter = _chapterWithDrafts(session.selectedChapter!);
+        final cameraAxis = editorCameraAxisForLayout(chapter.layout);
         final requestedPlacementId = widget.selectedPlacementId;
         if (requestedPlacementId != null &&
             requestedPlacementId != _lastFocusedPlacementId) {
@@ -1369,10 +1389,17 @@ class _PreviewState extends State<_Preview> {
                 maxScale: 3.0,
                 boundaryMargin: EdgeInsets.zero,
                 constrained: true,
-                alignment: Alignment.center,
+                alignment: Alignment.topLeft,
+                panAxis: PanAxis.free,
                 panEnabled: canvasNavigationEnabled,
                 scaleEnabled: canvasNavigationEnabled,
-                onInteractionEnd: (_) => setState(() {}),
+                onInteractionEnd: (_) {
+                  _zoomController.value = clampCanvasTransform(
+                    _zoomController.value,
+                    viewport,
+                  );
+                  setState(() {});
+                },
                 child: SizedBox(
                   key: const Key('editor-infinite-world'),
                   width: worldSize.width,
@@ -1404,7 +1431,7 @@ class _PreviewState extends State<_Preview> {
                         viewport: viewport,
                         itemCount: chapter.placements.length,
                         scale: 1,
-                        axis: NarrativeAxis.fromViewport(viewport),
+                        axis: cameraAxis,
                       );
                       setState(() {
                         _cameraProgressByChapter[_chapterId] =
@@ -1475,56 +1502,8 @@ class _PreviewState extends State<_Preview> {
                 ),
               ),
             ),
-            if (chapter.placements.length > 1 && landscape)
-              if (landscape)
-                Positioned(
-                  key: const Key('editor-horizontal-progress'),
-                  left: 12,
-                  right: 12,
-                  bottom: 10,
-                  child: SafeArea(
-                    top: false,
-                    child: _ProgressControl(
-                      progress: progress,
-                      onChanged: _setProgress,
-                    ),
-                  ),
-                )
-              else
-                Positioned(
-                  key: const Key('editor-vertical-progress'),
-                  right: 8,
-                  top: 76,
-                  bottom: 12,
-                  child: SafeArea(
-                    left: false,
-                    child: SizedBox(
-                      width: 44,
-                      child: _GlassPill(
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.only(top: 8),
-                              child: _ProgressText(progress: progress),
-                            ),
-                            Expanded(
-                              child: RotatedBox(
-                                quarterTurns: 3,
-                                child: Slider(
-                                  key: const Key('editor-camera-slider'),
-                                  value: progress,
-                                  onChanged: _setProgress,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
             Positioned(
-              right: landscape ? 14 : 58,
+              right: viewportLandscape ? 14 : 58,
               top: 14,
               child: _GlassImportButton(
                 importing: session.importing,
@@ -1659,37 +1638,6 @@ class _GlassImportButton extends StatelessWidget {
   }
 }
 
-class _ProgressControl extends StatelessWidget {
-  const _ProgressControl({required this.progress, required this.onChanged});
-
-  final double progress;
-  final ValueChanged<double> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return _GlassPill(
-      child: Row(
-        children: [
-          const SizedBox(width: 12),
-          const Icon(
-            Icons.view_in_ar_outlined,
-            size: 16,
-            color: XulangColors.paper,
-          ),
-          Expanded(
-            child: Slider(
-              key: const Key('editor-camera-slider'),
-              value: progress,
-              onChanged: onChanged,
-            ),
-          ),
-          SizedBox(width: 42, child: _ProgressText(progress: progress)),
-        ],
-      ),
-    );
-  }
-}
-
 class _GlassPill extends StatelessWidget {
   const _GlassPill({required this.child});
 
@@ -1717,27 +1665,6 @@ class _GlassPill extends StatelessWidget {
   }
 }
 
-class _ProgressText extends StatelessWidget {
-  const _ProgressText({required this.progress});
-
-  final double progress;
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      key: const Key('editor-camera-progress'),
-      '${(progress * 100).round()}%',
-      textAlign: TextAlign.center,
-      style: const TextStyle(
-        color: XulangColors.paper,
-        fontSize: 11,
-        letterSpacing: 0.3,
-        fontWeight: FontWeight.w500,
-      ),
-    );
-  }
-}
-
 class _Inspector extends StatefulWidget {
   const _Inspector({
     required this.session,
@@ -1752,6 +1679,7 @@ class _Inspector extends StatefulWidget {
     required this.onDeletePlacement,
     required this.onFocusSticker,
     required this.onSelectStickerKind,
+    required this.onDismiss,
   });
 
   final EditorSession session;
@@ -1766,6 +1694,7 @@ class _Inspector extends StatefulWidget {
   final ValueChanged<String> onDeletePlacement;
   final VoidCallback onFocusSticker;
   final ValueChanged<GalleryStickerKind> onSelectStickerKind;
+  final VoidCallback onDismiss;
 
   @override
   State<_Inspector> createState() => _InspectorState();
@@ -1773,6 +1702,15 @@ class _Inspector extends StatefulWidget {
 
 class _InspectorState extends State<_Inspector> {
   EditorSession get session => widget.session;
+  FrameFamily? _frameFamilyOverride;
+
+  @override
+  void didUpdateWidget(covariant _Inspector oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedPlacementId != widget.selectedPlacementId) {
+      _frameFamilyOverride = null;
+    }
+  }
 
   Widget _buildCanvasPanel(BuildContext context, GalleryChapter chapter) {
     final l10n = AppStrings.of(context);
@@ -1787,57 +1725,28 @@ class _InspectorState extends State<_Inspector> {
             children: [
               Row(
                 children: [
-                  PopupMenuButton<GalleryTheme>(
-                    tooltip: l10n.canvasTheme,
-                    initialValue: session.bundle!.document.theme,
-                    onSelected: session.updateTheme,
-                    icon: const Icon(
-                      Icons.palette_outlined,
-                      size: 18,
-                      color: XulangColors.muted,
+                  Expanded(
+                    child: PopupMenuButton<GalleryTheme>(
+                      key: const Key('editor-canvas-theme-button'),
+                      tooltip: l10n.canvasTheme,
+                      initialValue: session.bundle!.document.theme,
+                      onSelected: session.updateTheme,
+                      itemBuilder: (context) => [
+                        for (final theme in GalleryTheme.values)
+                          PopupMenuItem(
+                            value: theme,
+                            child: Text(_galleryThemeLabel(l10n, theme)),
+                          ),
+                      ],
+                      child: _InspectorMenuButton(
+                        icon: Icons.palette_outlined,
+                        label: l10n.canvasTheme,
+                        value: _galleryThemeLabel(
+                          l10n,
+                          session.bundle!.document.theme,
+                        ),
+                      ),
                     ),
-                    itemBuilder: (context) => [
-                      PopupMenuItem(
-                        value: GalleryTheme.ink,
-                        child: Text(l10n.inkCanvas),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.paper,
-                        child: Text(l10n.paperCanvas),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.graphite,
-                        child: Text(l10n.graphiteCanvas),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.mist,
-                        child: Text(l10n.mistCanvas),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.warm,
-                        child: Text(l10n.warmSandCanvas),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.moonlight,
-                        child: Text(l10n.moonlightRoom),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.botanical,
-                        child: Text(l10n.botanicalSpecimen),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.cyanotype,
-                        child: Text(l10n.cyanotype),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.terracotta,
-                        child: Text(l10n.terracottaGallery),
-                      ),
-                      PopupMenuItem(
-                        value: GalleryTheme.starfield,
-                        child: Text(l10n.starfieldCanvas),
-                      ),
-                    ],
                   ),
                   const SizedBox(width: 8),
                   TextButton.icon(
@@ -1912,11 +1821,6 @@ class _InspectorState extends State<_Inspector> {
                 title: Text(AppStrings.of(context).showChapterTitleRecording),
                 value: session.bundle!.document.showChapterTitleInPlayback,
                 onChanged: session.updateShowChapterTitleInPlayback,
-              ),
-              const SizedBox(height: 4),
-              _PlaybackDelayControl(
-                seconds: session.bundle!.document.playbackDelaySeconds,
-                onChanged: session.updatePlaybackDelaySeconds,
               ),
               const SizedBox(height: 4),
               ListTile(
@@ -2067,18 +1971,58 @@ class _InspectorState extends State<_Inspector> {
         const SizedBox(height: 12),
         _InspectorSection(
           title: l10n.frameStyle,
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final frame in GalleryFrame.values)
-                ChoiceChip(
-                  selected: placement.frame == frame,
-                  onSelected: (_) =>
-                      session.updatePlacement(placement.id, frame: frame),
-                  label: Text(_frameLabel(l10n, frame)),
-                ),
-            ],
+          child: Builder(
+            builder: (context) {
+              final family =
+                  _frameFamilyOverride ?? frameFamilyFor(placement.frame);
+              final frames = switch (family) {
+                FrameFamily.classic => classicGalleryFrames,
+                FrameFamily.handDrawn => handDrawnGalleryFrames,
+              };
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    width: double.infinity,
+                    child: SegmentedButton<FrameFamily>(
+                      key: const Key('frame-family-switcher'),
+                      showSelectedIcon: false,
+                      expandedInsets: EdgeInsets.zero,
+                      segments: [
+                        ButtonSegment(
+                          value: FrameFamily.classic,
+                          label: Text(l10n.classicFrames),
+                        ),
+                        ButtonSegment(
+                          value: FrameFamily.handDrawn,
+                          label: Text(l10n.handDrawnFrames),
+                        ),
+                      ],
+                      selected: {family},
+                      onSelectionChanged: (selection) => setState(() {
+                        _frameFamilyOverride = selection.single;
+                      }),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final frame in frames)
+                        ChoiceChip(
+                          selected: placement.frame == frame,
+                          onSelected: (_) => session.updatePlacement(
+                            placement.id,
+                            frame: frame,
+                          ),
+                          label: Text(_frameLabel(l10n, frame)),
+                        ),
+                    ],
+                  ),
+                ],
+              );
+            },
           ),
         ),
         const SizedBox(height: 12),
@@ -2267,41 +2211,61 @@ class _InspectorState extends State<_Inspector> {
                             AppStrings.of(context).operationPanel,
                             style: const TextStyle(
                               color: XulangColors.paper,
-                              fontSize: 13,
+                              fontSize: 14,
                               fontWeight: FontWeight.w600,
                               letterSpacing: 0.5,
                             ),
                           ),
                         ),
-                        _PanelToggleChip(
-                          selected:
-                              widget.interactionMode ==
-                              _EditorInteractionMode.canvas,
-                          onSelected: (_) => widget.onFocusCanvas(),
-                          label: AppStrings.of(context).canvas,
+                        TextButton.icon(
+                          key: const Key('editor-close-panel-button'),
+                          onPressed: widget.onDismiss,
+                          icon: const Icon(Icons.close, size: 16),
+                          label: Text(AppStrings.of(context).close),
                         ),
-                        const SizedBox(width: 6),
-                        _PanelToggleChip(
-                          selected:
-                              widget.interactionMode ==
-                                  _EditorInteractionMode.image &&
-                              activePlacement != null,
-                          onSelected: (_) {
-                            final target = activePlacement;
-                            if (target != null) {
-                              widget.onFocusPlacement(target.id);
-                            }
-                          },
-                          label: AppStrings.of(context).image,
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _PanelToggleChip(
+                            selected:
+                                widget.interactionMode ==
+                                _EditorInteractionMode.canvas,
+                            onSelected: (_) => widget.onFocusCanvas(),
+                            label: AppStrings.of(context).canvas,
+                            icon: Icons.palette_outlined,
+                          ),
                         ),
-                        const SizedBox(width: 6),
-                        _PanelToggleChip(
-                          key: const Key('editor-mode-sticker'),
-                          selected:
-                              widget.interactionMode ==
-                              _EditorInteractionMode.sticker,
-                          onSelected: (_) => widget.onFocusSticker(),
-                          label: AppStrings.of(context).sticker,
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _PanelToggleChip(
+                            selected:
+                                widget.interactionMode ==
+                                    _EditorInteractionMode.image &&
+                                activePlacement != null,
+                            onSelected: (_) {
+                              final target = activePlacement;
+                              if (target != null) {
+                                widget.onFocusPlacement(target.id);
+                              }
+                            },
+                            label: AppStrings.of(context).image,
+                            icon: Icons.photo_outlined,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: _PanelToggleChip(
+                            key: const Key('editor-mode-sticker'),
+                            selected:
+                                widget.interactionMode ==
+                                _EditorInteractionMode.sticker,
+                            onSelected: (_) => widget.onFocusSticker(),
+                            label: AppStrings.of(context).sticker,
+                            icon: Icons.auto_awesome_outlined,
+                          ),
                         ),
                       ],
                     ),
@@ -2510,68 +2474,59 @@ class _CanvasBackgroundControl extends StatelessWidget {
   }
 }
 
-class _PlaybackDelayControl extends StatelessWidget {
-  const _PlaybackDelayControl({required this.seconds, required this.onChanged});
+class _InspectorMenuButton extends StatelessWidget {
+  const _InspectorMenuButton({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
 
-  final int seconds;
-  final ValueChanged<int> onChanged;
+  final IconData icon;
+  final String label;
+  final String value;
 
   @override
   Widget build(BuildContext context) {
-    final l10n = AppStrings.of(context);
-    final value = seconds.clamp(0, 30);
     return Container(
-      key: const Key('editor-playback-delay-control'),
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      constraints: const BoxConstraints(minHeight: 48),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .18),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white.withValues(alpha: .10)),
+        color: Colors.black.withValues(alpha: .22),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.white.withValues(alpha: .12)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.timer_outlined,
-                size: 18,
-                color: XulangColors.muted,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  l10n.recordingDelayPlayback,
+          Icon(icon, size: 19, color: XulangColors.accent),
+          const SizedBox(width: 9),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 13,
                     color: XulangColors.paper,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
-              ),
-              Text(
-                l10n.secondsValue(value),
-                key: const Key('editor-playback-delay-value'),
-                style: const TextStyle(
-                  fontSize: 12,
-                  color: XulangColors.accent,
-                  fontWeight: FontWeight.w600,
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: XulangColors.muted,
+                    fontSize: 10.5,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
-          Slider(
-            key: const Key('editor-playback-delay-slider'),
-            value: value.toDouble(),
-            min: 0,
-            max: 30,
-            divisions: 30,
-            label: l10n.secondsValue(value),
-            onChanged: (next) => onChanged(next.round()),
-          ),
-          Text(
-            l10n.recordingDelayHelp,
-            style: const TextStyle(fontSize: 11, color: XulangColors.muted),
-          ),
+          const Icon(Icons.expand_more, size: 18, color: XulangColors.muted),
         ],
       ),
     );
@@ -2584,23 +2539,45 @@ class _PanelToggleChip extends StatelessWidget {
     required this.selected,
     required this.onSelected,
     required this.label,
+    required this.icon,
   });
 
   final bool selected;
   final ValueChanged<bool> onSelected;
   final String label;
+  final IconData icon;
 
   @override
   Widget build(BuildContext context) {
-    return ChoiceChip(
-      selected: selected,
-      onSelected: onSelected,
-      label: Text(
-        label,
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: selected ? FontWeight.w500 : FontWeight.w400,
-          color: selected ? XulangColors.accent : XulangColors.paper,
+    return SizedBox(
+      width: double.infinity,
+      child: ChoiceChip(
+        selected: selected,
+        onSelected: onSelected,
+        labelPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 3),
+        label: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 16,
+              color: selected ? XulangColors.accent : XulangColors.muted,
+            ),
+            const SizedBox(width: 6),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                  color: selected ? XulangColors.accent : XulangColors.paper,
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -2810,6 +2787,20 @@ class _CropSliderState extends State<_CropSlider> {
   }
 }
 
+String _galleryThemeLabel(AppStrings l10n, GalleryTheme theme) =>
+    switch (theme) {
+      GalleryTheme.ink => l10n.inkCanvas,
+      GalleryTheme.paper => l10n.paperCanvas,
+      GalleryTheme.graphite => l10n.graphiteCanvas,
+      GalleryTheme.mist => l10n.mistCanvas,
+      GalleryTheme.warm => l10n.warmSandCanvas,
+      GalleryTheme.moonlight => l10n.moonlightRoom,
+      GalleryTheme.botanical => l10n.botanicalSpecimen,
+      GalleryTheme.cyanotype => l10n.cyanotype,
+      GalleryTheme.terracotta => l10n.terracottaGallery,
+      GalleryTheme.starfield => l10n.starfieldCanvas,
+    };
+
 String _layoutLabel(AppStrings l10n, GalleryLayout layout) => switch (layout) {
   GalleryLayout.hero => l10n.heroLayout,
   GalleryLayout.filmstrip => l10n.filmstripLayout,
@@ -2847,4 +2838,41 @@ String _frameLabel(AppStrings l10n, GalleryFrame frame) => switch (frame) {
   GalleryFrame.vintage => l10n.vintageFrame,
   GalleryFrame.film => l10n.filmFrame,
   GalleryFrame.orb => l10n.orbFrame,
+  GalleryFrame.tapedPaper => l10n.tapedPaperFrame,
+  GalleryFrame.crayon => l10n.crayonFrame,
+  GalleryFrame.watercolor => l10n.watercolorFrame,
+  GalleryFrame.doodleTape => l10n.doodleTapeFrame,
+  GalleryFrame.scallop => l10n.scallopFrame,
+  GalleryFrame.cornerSketch => l10n.cornerSketchFrame,
+  GalleryFrame.wavy => l10n.wavyFrame,
 };
+
+const classicGalleryFrames = <GalleryFrame>[
+  GalleryFrame.none,
+  GalleryFrame.hairline,
+  GalleryFrame.mat,
+  GalleryFrame.stamp,
+  GalleryFrame.wood,
+  GalleryFrame.darkWood,
+  GalleryFrame.metal,
+  GalleryFrame.vintage,
+  GalleryFrame.film,
+  GalleryFrame.orb,
+  GalleryFrame.tapedPaper,
+];
+
+const handDrawnGalleryFrames = <GalleryFrame>[
+  GalleryFrame.crayon,
+  GalleryFrame.watercolor,
+  GalleryFrame.doodleTape,
+  GalleryFrame.scallop,
+  GalleryFrame.cornerSketch,
+  GalleryFrame.wavy,
+];
+
+enum FrameFamily { classic, handDrawn }
+
+FrameFamily frameFamilyFor(GalleryFrame frame) =>
+    handDrawnGalleryFrames.contains(frame)
+    ? FrameFamily.handDrawn
+    : FrameFamily.classic;

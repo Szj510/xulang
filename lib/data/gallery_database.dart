@@ -134,7 +134,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 11;
+  int get schemaVersion => 12;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -172,6 +172,9 @@ class GalleryDatabase extends _$GalleryDatabase {
         await _ensureAppSettingsColumns();
       }
       if (from < 11) {
+        await _ensureAppSettingsColumns();
+      }
+      if (from < 12) {
         await _ensureAppSettingsColumns();
       }
     },
@@ -232,7 +235,8 @@ class GalleryDatabase extends _$GalleryDatabase {
       "app_language TEXT NOT NULL DEFAULT 'system', "
       "theme_mode TEXT NOT NULL DEFAULT 'system', "
       "authorized_directories_json TEXT NOT NULL DEFAULT '[]', "
-      "music_display_names_json TEXT NOT NULL DEFAULT '{}')",
+      "music_display_names_json TEXT NOT NULL DEFAULT '{}', "
+      'home_hero_image_path TEXT)',
     );
     try {
       await customStatement(
@@ -261,6 +265,7 @@ class GalleryDatabase extends _$GalleryDatabase {
       "ALTER TABLE app_settings_rows ADD COLUMN theme_mode TEXT NOT NULL DEFAULT 'system'",
       "ALTER TABLE app_settings_rows ADD COLUMN authorized_directories_json TEXT NOT NULL DEFAULT '[]'",
       "ALTER TABLE app_settings_rows ADD COLUMN music_display_names_json TEXT NOT NULL DEFAULT '{}'",
+      'ALTER TABLE app_settings_rows ADD COLUMN home_hero_image_path TEXT',
     ];
     for (final statement in statements) {
       try {
@@ -457,7 +462,11 @@ class GalleryDatabase extends _$GalleryDatabase {
                 mediaId: item.mediaId,
                 order: item.sortOrder,
                 size: GallerySize.values.byName(item.size),
-                frame: GalleryFrame.values.byName(item.frame),
+                frame: _enumByName(
+                  GalleryFrame.values,
+                  item.frame,
+                  GalleryFrame.hairline,
+                ),
                 focalX: item.focalX,
                 focalY: item.focalY,
                 zoom: item.zoom,
@@ -578,7 +587,7 @@ class GalleryDatabase extends _$GalleryDatabase {
             'SELECT recording_show_chapter_title, media_import_mode, recording_speed, '
             'recording_use_music, recording_chapter_mode, recording_quality, '
             'app_language, theme_mode, authorized_directories_json, '
-            'music_display_names_json '
+            'music_display_names_json, home_hero_image_path '
             'FROM app_settings_rows WHERE id = ? LIMIT 1',
             variables: [Variable.withString(_appSettingsId)],
             readsFrom: {appSettingsRows},
@@ -626,6 +635,7 @@ class GalleryDatabase extends _$GalleryDatabase {
             musicDisplayNames: _decodeStringMap(
               row.read<String>('music_display_names_json'),
             ),
+            homeHeroImagePath: row.readNullable<String>('home_hero_image_path'),
           );
         });
   }
@@ -648,13 +658,15 @@ class GalleryDatabase extends _$GalleryDatabase {
     );
     await customUpdate(
       'UPDATE app_settings_rows SET app_language = ?, theme_mode = ?, '
-      'authorized_directories_json = ?, music_display_names_json = ? '
+      'authorized_directories_json = ?, music_display_names_json = ?, '
+      'home_hero_image_path = ? '
       'WHERE id = ?',
       variables: [
         Variable.withString(settings.language.name),
         Variable.withString(settings.themeMode.name),
         Variable.withString(jsonEncode(settings.authorizedFolderPaths)),
         Variable.withString(jsonEncode(settings.musicDisplayNames)),
+        Variable<String>(settings.homeHeroImagePath),
         Variable.withString(_appSettingsId),
       ],
       updates: {appSettingsRows},

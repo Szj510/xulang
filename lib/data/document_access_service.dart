@@ -173,6 +173,21 @@ class DocumentAccessService {
     return File(candidate.path).readAsString();
   }
 
+  /// Resolves a Storage Access Framework URI to an app-private file that the
+  /// Android media player can open. `audioplayers` passes URL sources to
+  /// `MediaPlayer.setDataSource(String)`, which does not reliably support a
+  /// `content://` URI on Android.
+  Future<String> materializeAudioForPlayback(String path) async {
+    if (!_isContentUri(path)) return path;
+    final localPath = await _channel.invokeMethod<String>('materializeAudio', {
+      'uri': path,
+    });
+    if (localPath == null || localPath.isEmpty) {
+      throw const FileSystemException('Unable to prepare background music');
+    }
+    return localPath;
+  }
+
   Future<List<TemplateFileCandidate>> readCachedTemplates() async {
     try {
       final file = await _cacheFile('templates.json');

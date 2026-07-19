@@ -78,6 +78,30 @@ class AppStrings {
   String get settingsAndGuide => isEnglish ? 'Settings & Guide' : '设置与使用说明';
   String get importTemplate => isEnglish ? 'Import template' : '导入模板';
   String get newCategory => isEnglish ? 'New category' : '新建分类';
+  String get quickAccess => isEnglish ? 'Shortcuts' : '快捷';
+  String get libraryInfo => isEnglish ? 'Info' : '信息';
+  String get librarySettings => isEnglish ? 'Settings' : '设置';
+  String get libraryRecordings => isEnglish ? 'Recordings' : '录制';
+  String get libraryMusic => isEnglish ? 'Music' : '音乐';
+  String get libraryImport => isEnglish ? 'Import' : '导入';
+  String get libraryCategories => isEnglish ? 'Categories' : '分类';
+  String get changeHomeHero => isEnglish ? 'Change cover' : '更换头图';
+  String get homeAppearance => isEnglish ? 'Home appearance' : '首页外观';
+  String get homeCover => isEnglish ? 'Home cover' : '首页头图';
+  String get homeCoverSettingHint => isEnglish
+      ? 'Choose a custom image or restore the Mountains and Sea sample.'
+      : '选择自定义图片，或恢复“山海之间”示例图片。';
+  String get chooseHomeHeroImage =>
+      isEnglish ? 'Choose a custom cover' : '选择自定义头图';
+  String get chooseHomeHeroImageHint => isEnglish
+      ? 'The image is copied into Xulang private storage.'
+      : '图片会复制到叙廊的私有存储中。';
+  String get restoreDefaultHomeHero =>
+      isEnglish ? 'Use the default cover' : '使用默认头图';
+  String get defaultHomeHeroHint => isEnglish
+      ? 'Restore the Mountains and Sea sample image.'
+      : '恢复“山海之间”示例图片。';
+  String get homeHeroUpdated => isEnglish ? 'Home cover updated' : '首页头图已更新';
   String get recordingPlayback => isEnglish ? 'Recording playback' : '录屏播放';
   String get languageSetting => isEnglish ? 'Language' : '语言';
   String get themeSetting => isEnglish ? 'Theme' : '主题';
@@ -192,6 +216,7 @@ class AppStrings {
   String get clear => isEnglish ? 'Clear' : '清除';
   String get choose => isEnglish ? 'Choose' : '选择';
   String get ok => isEnglish ? 'OK' : '知道了';
+  String get close => isEnglish ? 'Close' : '关闭';
   String get previousChapter => isEnglish ? 'Previous chapter' : '上一章';
   String get nextChapter => isEnglish ? 'Next chapter' : '下一章';
   String get exitViewer => isEnglish ? 'Exit viewer' : '退出观看';
@@ -199,6 +224,8 @@ class AppStrings {
   String get recordingSpeed => playbackSpeedTitle;
   String get pauseMusic => isEnglish ? 'Pause music' : '暂停音乐';
   String get playMusic => isEnglish ? 'Play music' : '播放音乐';
+  String get musicPlaybackFailed =>
+      isEnglish ? 'Unable to play the background music' : '背景音乐播放失败，请重新选择音乐';
   String get fast3s => isEnglish ? 'Fast (1s/photo)' : '快（1秒/张）';
   String get medium6s => isEnglish ? 'Medium (3s/photo)' : '中（3秒/张）';
   String get slow10s => isEnglish ? 'Slow (6s/photo)' : '慢（6秒/张）';
@@ -286,6 +313,8 @@ class AppStrings {
   String get layerOrder => isEnglish ? 'Layer order' : '图层顺序';
   String get imageSize => isEnglish ? 'Image size' : '画幅';
   String get frameStyle => isEnglish ? 'Frame' : '画框';
+  String get classicFrames => isEnglish ? 'Classic' : '经典';
+  String get handDrawnFrames => isEnglish ? 'Hand-drawn' : '手绘';
   String get cropAndComposition => isEnglish ? 'Crop & composition' : '裁切与构图';
   String get horizontalFocus => isEnglish ? 'Horizontal focus' : '水平焦点';
   String get verticalFocus => isEnglish ? 'Vertical focus' : '垂直焦点';
@@ -311,11 +340,6 @@ class AppStrings {
   String get canvasImageHelp => isEnglish
       ? 'Uploaded images are layered above the built-in canvas, useful for texture, paper, or atmosphere backgrounds.'
       : '上传的图片会叠在当前内置画布上，适合做纹理、纸张或氛围底图。';
-  String get recordingDelayPlayback => isEnglish ? 'Recording delay' : '录屏延迟播放';
-  String secondsValue(int value) => isEnglish ? '${value}s' : '$value 秒';
-  String get recordingDelayHelp => isEnglish
-      ? 'After recording starts, wait this long before automatic playback.'
-      : '开始录屏后先等待这段时间，再自动播放。';
   String get heroLayout => isEnglish ? 'Hero' : '主视觉';
   String get filmstripLayout => isEnglish ? 'Filmstrip' : '横向胶片';
   String get diptychLayout => isEnglish ? 'Diptych' : '双联画';
@@ -339,6 +363,13 @@ class AppStrings {
   String get vintageFrame => isEnglish ? 'Vintage' : '复古';
   String get filmFrame => isEnglish ? 'Film case' : '胶片匣';
   String get orbFrame => isEnglish ? 'Circle' : '圆形框';
+  String get tapedPaperFrame => isEnglish ? 'Taped paper' : '胶带纸框';
+  String get crayonFrame => isEnglish ? 'Oil pastel' : '油画棒';
+  String get watercolorFrame => isEnglish ? 'Watercolor bloom' : '水彩花边';
+  String get doodleTapeFrame => isEnglish ? 'Playful doodle' : '童趣涂鸦';
+  String get scallopFrame => isEnglish ? 'Looped lace' : '环形花边';
+  String get cornerSketchFrame => isEnglish ? 'Corner sketch' : '手绘角标';
+  String get wavyFrame => isEnglish ? 'Wavy outline' : '波浪线框';
   String get starSticker => isEnglish ? 'Star mark' : '星芒标记';
   String get sparkleSticker => isEnglish ? 'Sparkle' : '碎光';
   String get heartSticker => isEnglish ? 'Warm heart' : '暖心印';
