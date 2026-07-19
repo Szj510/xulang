@@ -40,6 +40,13 @@ android/build/
 /emulator-*.png
 /qa/
 /.worktrees/
+/design-qa.md
+/test/goldens/failures/
+
+# Local AI assistant configuration and working documents
+/.claude/
+/.codex/
+/docs/superpowers/
 
 # Symbolication related
 app.*.symbols
