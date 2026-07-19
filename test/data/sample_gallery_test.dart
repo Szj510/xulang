@@ -27,6 +27,17 @@ void main() {
         contains('sample-portrait'),
       );
       expect(
+        sample.document.chapters.last.placements.map((item) => item.caption),
+        containsAll(['驶向湖畔', '山径', '海岸', '窗外日落', '草间微光']),
+      );
+      final mediaIds = sample.media.map((item) => item.id).toSet();
+      expect(
+        sample.document.chapters
+            .expand((chapter) => chapter.placements)
+            .every((placement) => mediaIds.contains(placement.mediaId)),
+        isTrue,
+      );
+      expect(
         sample.media.every(
           (media) => media.originalPath.startsWith('asset://'),
         ),
@@ -34,4 +45,24 @@ void main() {
       );
     },
   );
+
+  test('recognizes the obsolete sample revision for a safe refresh', () {
+    final sample = buildSampleGallery(DateTime.utc(2026, 7, 20));
+    final staleSample = sample.copyWith(
+      media: [
+        ...sample.media,
+        const GalleryMedia(
+          id: 'sample-friends',
+          originalPath: 'asset://assets/sample/friends-lakeside.png',
+          thumbnailPath: 'asset://assets/sample/friends-lakeside.png',
+          width: 1536,
+          height: 1024,
+          contentHash: 'sample-friends',
+        ),
+      ],
+    );
+
+    expect(shouldRefreshBundledSample(sample), isFalse);
+    expect(shouldRefreshBundledSample(staleSample), isTrue);
+  });
 }

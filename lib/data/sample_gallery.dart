@@ -1,6 +1,21 @@
 import 'package:xulang/data/gallery_repository.dart';
 import 'package:xulang/domain/gallery_document.dart';
 
+const _obsoleteSampleMediaIds = {
+  'sample-friends',
+  'sample-notes',
+  'sample-rain',
+};
+
+/// Detects the short-lived nine-image sample revision that referenced assets
+/// no longer bundled with the app. Only that known broken revision is reset.
+bool shouldRefreshBundledSample(GalleryBundle? bundle) {
+  return bundle?.media.any(
+        (item) => _obsoleteSampleMediaIds.contains(item.id),
+      ) ??
+      false;
+}
+
 GalleryBundle buildSampleGallery(DateTime now) {
   const media = [
     GalleryMedia(
@@ -96,7 +111,7 @@ GalleryBundle buildSampleGallery(DateTime now) {
               mediaId: 'sample-train',
               order: 0,
               frame: GalleryFrame.none,
-              caption: '启程',
+              caption: '驶向湖畔',
             ),
             GalleryPlacement(
               id: 'sample-placement-4',
@@ -104,7 +119,7 @@ GalleryBundle buildSampleGallery(DateTime now) {
               order: 1,
               size: GallerySize.large,
               frame: GalleryFrame.stamp,
-              caption: '巷遇',
+              caption: '山径',
             ),
             GalleryPlacement(
               id: 'sample-placement-5',
@@ -112,7 +127,7 @@ GalleryBundle buildSampleGallery(DateTime now) {
               order: 2,
               size: GallerySize.large,
               frame: GalleryFrame.mat,
-              caption: '海风',
+              caption: '海岸',
             ),
             GalleryPlacement(
               id: 'sample-placement-6',
@@ -120,7 +135,7 @@ GalleryBundle buildSampleGallery(DateTime now) {
               order: 3,
               size: GallerySize.small,
               frame: GalleryFrame.none,
-              caption: '归途',
+              caption: '窗外日落',
             ),
             GalleryPlacement(
               id: 'sample-placement-7',
@@ -128,7 +143,7 @@ GalleryBundle buildSampleGallery(DateTime now) {
               order: 4,
               size: GallerySize.large,
               frame: GalleryFrame.mat,
-              caption: '微光',
+              caption: '草间微光',
             ),
           ],
         ),

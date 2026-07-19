@@ -37,7 +37,13 @@ Future<void> _seedSampleGalleryOnce(
   GalleryRepository repository,
 ) async {
   final marker = File(p.join(support.path, '.sample_gallery_seeded'));
-  if (await marker.exists()) return;
+  if (await marker.exists()) {
+    final existingSample = await repository.load('sample-exhibition');
+    if (shouldRefreshBundledSample(existingSample)) {
+      await repository.save(buildSampleGallery(DateTime.now()));
+    }
+    return;
+  }
 
   final summaries = await repository.watchExhibitions().first;
   final existing = summaries.any((item) => item.id == 'sample-exhibition');
