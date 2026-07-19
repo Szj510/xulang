@@ -26,7 +26,7 @@
 
 以下演示使用可公开再分发的样例素材，固定展示“图库 → 编辑 → 沉浸播放”核心链路：
 
-1. 图库：管理分类、展览和本地文件。
+1. 图库：按分类整理展览，并快速新建、搜索、排序与移动作品。
 2. 编辑：导入图片并调整画布、布局、画框、贴画与音乐。
 3. 沉浸播放：按章节浏览、自动播放，并在 Android 上录制视频。
 
@@ -70,15 +70,15 @@ Release 构建需要维护者自己的 Android 签名配置；不要将 `key.pro
 
 ### 贡献
 
-欢迎 Bug 报告、功能建议和 Pull Request。提交代码前请阅读[贡献指南](CONTRIBUTING.md)与[行为准则](CODE_OF_CONDUCT.md)。当前正式支持 Android；实验性 iOS 贡献需要通过 macOS 无签名构建检查，但项目暂不发布 IPA。
+欢迎 Bug 报告、功能建议和 Pull Request。提交代码前请阅读[贡献指南](CONTRIBUTING.md)与[行为准则](CODE_OF_CONDUCT.md)。当前正式支持 Android 10+。
 
 安全问题不要创建公开 Issue，请按照[安全政策](SECURITY.md)使用 GitHub 私密漏洞报告。
 
 ### 路线图
 
-- 完善公开演示素材和无障碍体验。
+- 持续改善公开演示和无障碍体验。
 - 持续扩展布局、画框与模板能力。
-- 评估由社区贡献的实验性 iOS 支持。
+- 欢迎社区参与 [iOS 版本的设计与实现](https://github.com/Szj510/xulang/issues/3)。
 - 保持本地优先，不引入账号、云同步或远程素材市场。
 
 ## English
@@ -89,7 +89,7 @@ Xulang turns a set of photos into chapters and narrative paths. Each chapter can
 
 The showcase uses redistribution-safe sample media and covers the fixed Library → Editor → Immersive viewer flow:
 
-1. Library: organize categories, exhibitions, and local files.
+1. Library: organize exhibitions by category, then create, search, sort, and move them.
 2. Editor: import photos and customize canvas, layout, frames, stickers, and music.
 3. Immersive viewer: navigate chapters, autoplay the story, and record it on Android.
 
@@ -131,15 +131,15 @@ Xulang does not request network access and does not upload photos, music, templa
 
 ### Contributing
 
-Bug reports, feature proposals, and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) first. Android is the only supported release platform today. Experimental iOS contributions must pass a no-codesign macOS build, but the project does not publish IPA files.
+Bug reports, feature proposals, and pull requests are welcome. Read [CONTRIBUTING.md](CONTRIBUTING.md) and the [Code of Conduct](CODE_OF_CONDUCT.md) first. Android 10+ is the currently supported release platform.
 
 Do not open public issues for vulnerabilities. Follow [SECURITY.md](SECURITY.md) and use GitHub private vulnerability reporting.
 
 ### Roadmap
 
-- Complete the redistribution-safe public showcase and continue accessibility improvements.
+- Continue improving the public showcase and accessibility.
 - Expand layouts, frames, and reusable template capabilities.
-- Evaluate experimental iOS support contributed by the community.
+- Community contributors are welcome to help [design and implement the iOS version](https://github.com/Szj510/xulang/issues/3).
 - Preserve the local-first model without accounts, cloud sync, or a hosted asset marketplace.
 
 ## License
