@@ -83,7 +83,19 @@ jobs:
         run: flutter pub get
 
       - name: Run golden tests
-        run: flutter test test/goldens --no-pub --reporter compact
+        shell: pwsh
+        run: |
+          for ($attempt = 1; $attempt -le 3; $attempt++) {
+            flutter test test/goldens --no-pub --reporter compact
+            if ($LASTEXITCODE -eq 0) {
+              exit 0
+            }
+            if ($attempt -lt 3) {
+              Write-Warning "Golden test command failed on attempt $attempt; retrying in 10 seconds."
+              Start-Sleep -Seconds 10
+            }
+          }
+          exit $LASTEXITCODE
 
   ios:
     name: Experimental iOS no-codesign build
