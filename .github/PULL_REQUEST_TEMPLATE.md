@@ -8,7 +8,7 @@
 
 - [ ] `dart format --output=none --set-exit-if-changed lib test`
 - [ ] `flutter analyze --no-pub`
-- [ ] `flutter test --no-pub --no-test-assets --reporter compact`
+- [ ] `flutter test --no-pub --reporter compact`
 - [ ] `flutter build apk --debug`
 
 ## Checklist / 清单
