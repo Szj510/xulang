@@ -426,10 +426,7 @@ class AppStrings {
       'sample-placement-4' => 'Alley encounter',
       'sample-placement-5' => 'Sea breeze',
       'sample-placement-6' => 'Way home',
-      'sample-placement-7' => 'Meeting',
-      'sample-placement-8' => 'Written down',
-      'sample-placement-9' => 'After the rain',
-      'sample-placement-10' => 'Echo',
+      'sample-placement-7' => 'Glimmer',
       _ => fallback,
     };
   }
