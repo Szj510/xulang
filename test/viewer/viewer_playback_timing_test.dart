@@ -65,4 +65,34 @@ void main() {
       const Duration(milliseconds: 500),
     );
   });
+
+  test('viewer playback music is independent from the recording option', () {
+    expect(
+      shouldPlayViewerBackgroundMusic(
+        musicPath: '/music/theme.mp3',
+        isRecording: false,
+        recordingUseMusic: false,
+      ),
+      isTrue,
+    );
+  });
+
+  test('recording music still respects the recording option', () {
+    expect(
+      shouldPlayViewerBackgroundMusic(
+        musicPath: '/music/theme.mp3',
+        isRecording: true,
+        recordingUseMusic: false,
+      ),
+      isFalse,
+    );
+    expect(
+      shouldPlayViewerBackgroundMusic(
+        musicPath: null,
+        isRecording: false,
+        recordingUseMusic: true,
+      ),
+      isFalse,
+    );
+  });
 }

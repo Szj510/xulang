@@ -155,19 +155,6 @@ class EditorSession extends ChangeNotifier {
     );
   }
 
-  Future<void> updatePlaybackDelaySeconds(int seconds) async {
-    final current = bundle;
-    if (current == null) return;
-    await _commit(
-      current.copyWith(
-        document: current.document.copyWith(
-          playbackDelaySeconds: seconds.clamp(0, 30),
-          updatedAt: DateTime.now(),
-        ),
-      ),
-    );
-  }
-
   Future<void> importBackgroundMusic(String sourcePath) async {
     final current = bundle;
     if (current == null) return;

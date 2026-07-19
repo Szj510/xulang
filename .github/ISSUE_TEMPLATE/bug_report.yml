@@ -1,0 +1,59 @@
+name: Bug report / Bug 报告
+description: Report a reproducible problem / 报告可复现的问题
+title: "[Bug]: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve Xulang. Remove personal information from screenshots and logs.
+        感谢你帮助改进叙廊。请先从截图和日志中移除个人信息。
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting / 提交前确认
+      options:
+        - label: I searched existing issues and releases. / 我已搜索已有 Issue 与 Release。
+          required: true
+        - label: This is not a security vulnerability. / 这不是安全漏洞。
+          required: true
+        - label: Shared media and logs contain no personal data. / 所附素材与日志不含个人数据。
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Xulang version / 叙廊版本
+      placeholder: 1.1.0
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Device and Android version / 设备与 Android 版本
+      placeholder: Pixel 8, Android 15
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Problem / 问题描述
+      description: What happened, and what did you expect? / 实际发生了什么，预期是什么？
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps / 复现步骤
+      placeholder: |
+        1. Open ...
+        2. Tap ...
+        3. See ...
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots / 日志或截图
+      description: Optional; remove private photos, file paths, and account data. / 可选；请移除私人照片、文件路径与账号信息。
+      render: shell

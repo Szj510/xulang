@@ -1,9 +1,12 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math' as math;
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path/path.dart' as p;
 import 'package:xulang/data/document_access_service.dart';
 import 'package:xulang/data/gallery_database.dart';
 import 'package:xulang/data/gallery_repository.dart';
@@ -18,6 +21,8 @@ import 'package:xulang/share/exhibition_exporter.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/gallery_image.dart';
 
+enum _HomeHeroAction { chooseImage, restoreDefault }
+
 class LibraryScreen extends ConsumerStatefulWidget {
   const LibraryScreen({super.key});
 
@@ -29,6 +34,118 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
   String? _selectedCategoryId;
   String _searchQuery = '';
   ExhibitionSortMode _sortMode = ExhibitionSortMode.updatedDesc;
+  bool _homeHeaderCollapsed = false;
+
+  Future<void> _showHomeHeroOptions(BuildContext context) async {
+    final l10n = AppStrings.of(context);
+    final action = await showModalBottomSheet<_HomeHeroAction>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.add_photo_alternate_outlined),
+              title: Text(l10n.chooseHomeHeroImage),
+              subtitle: Text(l10n.chooseHomeHeroImageHint),
+              onTap: () => Navigator.pop(context, _HomeHeroAction.chooseImage),
+            ),
+            ListTile(
+              leading: const Icon(Icons.landscape_outlined),
+              title: Text(l10n.restoreDefaultHomeHero),
+              subtitle: Text(l10n.defaultHomeHeroHint),
+              onTap: () =>
+                  Navigator.pop(context, _HomeHeroAction.restoreDefault),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (!mounted) return;
+    if (action == _HomeHeroAction.chooseImage) {
+      await _chooseHomeHeroImage();
+    } else if (action == _HomeHeroAction.restoreDefault) {
+      await _restoreDefaultHomeHero();
+    }
+  }
+
+  Future<void> _chooseHomeHeroImage() async {
+    final paths = await ref.read(imageSelectionServiceProvider).selectImages();
+    if (paths.isEmpty || !mounted) return;
+    final source = File(paths.first);
+    if (!await source.exists()) return;
+    final repository = ref.read(galleryRepositoryProvider);
+    final settings = ref
+        .read(appSettingsProvider)
+        .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
+    final directory = Directory(
+      p.join(repository.mediaRoot.path, 'home-header'),
+    );
+    await directory.create(recursive: true);
+    const supportedExtensions = {'.jpg', '.jpeg', '.png', '.webp', '.heic'};
+    final sourceExtension = p.extension(source.path).toLowerCase();
+    final extension = supportedExtensions.contains(sourceExtension)
+        ? sourceExtension
+        : '.jpg';
+    final destination = File(
+      p.join(
+        directory.path,
+        'hero-${DateTime.now().microsecondsSinceEpoch}$extension',
+      ),
+    );
+    await source.copy(destination.path);
+    await repository.saveAppSettings(
+      settings.copyWith(homeHeroImagePath: destination.path),
+    );
+    await _deletePreviousHomeHero(settings.homeHeroImagePath, directory);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(AppStrings.of(context).homeHeroUpdated)),
+    );
+  }
+
+  Future<void> _restoreDefaultHomeHero() async {
+    final repository = ref.read(galleryRepositoryProvider);
+    final settings = ref
+        .read(appSettingsProvider)
+        .maybeWhen(data: (value) => value, orElse: () => const AppSettings());
+    await repository.saveAppSettings(
+      settings.copyWith(resetHomeHeroImage: true),
+    );
+    await _deletePreviousHomeHero(
+      settings.homeHeroImagePath,
+      Directory(p.join(repository.mediaRoot.path, 'home-header')),
+    );
+  }
+
+  Future<void> _deletePreviousHomeHero(
+    String? path,
+    Directory privateDirectory,
+  ) async {
+    if (path == null || !p.isWithin(privateDirectory.path, path)) return;
+    final file = File(path);
+    if (await file.exists()) await file.delete();
+  }
+
+  bool _handleHomeScroll(ScrollNotification notification) {
+    if (_selectedCategoryId != null) return false;
+    double? delta;
+    if (notification is ScrollUpdateNotification) {
+      delta = notification.scrollDelta;
+    } else if (notification is OverscrollNotification) {
+      delta = notification.overscroll;
+    }
+    if (delta == null || delta.abs() < 3) return false;
+    if (delta > 0 && !_homeHeaderCollapsed) {
+      setState(() => _homeHeaderCollapsed = true);
+    } else if (delta < 0 &&
+        _homeHeaderCollapsed &&
+        notification.metrics.pixels <= 0) {
+      setState(() => _homeHeaderCollapsed = false);
+    }
+    return false;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -42,97 +159,137 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                 .firstOrNull,
             orElse: () => null,
           );
-    return PopScope(
-      canPop: _selectedCategoryId == null,
-      onPopInvokedWithResult: (didPop, _) {
-        if (didPop || _selectedCategoryId == null) return;
-        setState(() {
-          _selectedCategoryId = null;
-          _searchQuery = '';
-        });
-      },
-      child: Scaffold(
-        body: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 20, 22, 0),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light.copyWith(
+        statusBarColor: Colors.transparent,
+        systemNavigationBarColor: XulangColors.ink,
+        systemNavigationBarIconBrightness: Brightness.light,
+      ),
+      child: PopScope(
+        canPop: _selectedCategoryId == null,
+        onPopInvokedWithResult: (didPop, _) {
+          if (didPop || _selectedCategoryId == null) return;
+          setState(() {
+            _selectedCategoryId = null;
+            _searchQuery = '';
+          });
+        },
+        child: Scaffold(
+          backgroundColor: XulangColors.ink,
+          body: SafeArea(
+            top: _selectedCategoryId != null,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (_selectedCategoryId == null) ...[
-                  _LibraryHeader(
-                    onCreate: () => _createExhibition(context),
-                    onCreateCategory: () => _createCategory(context),
-                    onImportTemplate: () => _importTemplateV2(context),
-                    onInfo: () => _showLocalInfo(context),
-                    onSettings: () => _showAppSettings(
-                      context,
-                      settings: ref
-                          .read(appSettingsProvider)
-                          .maybeWhen(
-                            data: (value) => value,
-                            orElse: () => const AppSettings(),
-                          ),
-                      onSaveSettings: (settings) => ref
-                          .read(galleryRepositoryProvider)
-                          .saveAppSettings(settings),
-                      onImportTemplate: () => _importTemplateV2(context),
-                      onManageRecordings: () => _openRecordingLibrary(context),
-                      onManageMusic: () => _openMusicLibrary(context),
-                      onCleanupUnusedMedia: () => _cleanupUnusedMedia(context),
-                    ),
-                    onManageRecordings: () => _openRecordingLibrary(context),
-                    onManageMusic: () => _openMusicLibrary(context),
-                  ),
-                  const SizedBox(height: 22),
-                ],
-                Expanded(
-                  child: exhibitions.when(
-                    data: (items) => categories.when(
-                      data: (categoryItems) => _selectedCategoryId == null
-                          ? _CategoryHome(
-                              categories: _buildBuckets(categoryItems, items),
-                              onOpenCategory: (id) =>
-                                  setState(() => _selectedCategoryId = id),
-                              onRenameCategory: (category) =>
-                                  _renameCategory(context, category),
-                              onDeleteCategory: (category) =>
-                                  _deleteCategory(context, category),
-                              onCreate: () => _createExhibition(context),
-                              onCreateCategory: () => _createCategory(context),
+                if (_selectedCategoryId == null)
+                  AnimatedSize(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeOutCubic,
+                    alignment: Alignment.topCenter,
+                    child: _homeHeaderCollapsed
+                        ? const SizedBox.shrink()
+                        : _LibraryHeader(
+                            onCreate: () => _createExhibition(context),
+                            onImportTemplate: () => _importTemplateV2(context),
+                            onInfo: () => _showLocalInfo(context),
+                            onSettings: () => _showAppSettings(
+                              context,
+                              settings: ref
+                                  .read(appSettingsProvider)
+                                  .maybeWhen(
+                                    data: (value) => value,
+                                    orElse: () => const AppSettings(),
+                                  ),
+                              onSaveSettings: (settings) => ref
+                                  .read(galleryRepositoryProvider)
+                                  .saveAppSettings(settings),
                               onImportTemplate: () =>
                                   _importTemplateV2(context),
-                            )
-                          : _CategoryDetail(
-                              title:
-                                  selectedCategory?.title ??
-                                  AppStrings.of(context).uncategorized,
-                              searchQuery: _searchQuery,
-                              sortMode: _sortMode,
-                              items: _filterAndSort(
-                                _itemsForCategory(items, selectedCategory?.id),
-                              ),
-                              categories: categoryItems,
-                              onBack: () => setState(() {
-                                _selectedCategoryId = null;
-                                _searchQuery = '';
-                              }),
-                              onSearchChanged: (value) =>
-                                  setState(() => _searchQuery = value),
-                              onSortChanged: (value) =>
-                                  setState(() => _sortMode = value),
-                              onCreate: () => _createExhibition(
-                                context,
-                                categoryId: selectedCategory?.id,
-                              ),
-                              onMoveCategory: _moveExhibition,
+                              onManageRecordings: () =>
+                                  _openRecordingLibrary(context),
+                              onManageMusic: () => _openMusicLibrary(context),
+                              onCleanupUnusedMedia: () =>
+                                  _cleanupUnusedMedia(context),
+                              onCustomizeHomeHero: () =>
+                                  _showHomeHeroOptions(context),
                             ),
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (error, stackTrace) => _LibraryError(error: error),
+                            onManageRecordings: () =>
+                                _openRecordingLibrary(context),
+                            onManageMusic: () => _openMusicLibrary(context),
+                          ),
+                  ),
+                Expanded(
+                  child: NotificationListener<ScrollNotification>(
+                    onNotification: _handleHomeScroll,
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        22,
+                        _selectedCategoryId == null
+                            ? (_homeHeaderCollapsed
+                                  ? MediaQuery.paddingOf(context).top + 12
+                                  : 0)
+                            : 20,
+                        22,
+                        0,
+                      ),
+                      child: exhibitions.when(
+                        data: (items) => categories.when(
+                          data: (categoryItems) => _selectedCategoryId == null
+                              ? _CategoryHome(
+                                  categories: _buildBuckets(
+                                    categoryItems,
+                                    items,
+                                  ),
+                                  onOpenCategory: (id) =>
+                                      setState(() => _selectedCategoryId = id),
+                                  onRenameCategory: (category) =>
+                                      _renameCategory(context, category),
+                                  onDeleteCategory: (category) =>
+                                      _deleteCategory(context, category),
+                                  onCreate: () => _createExhibition(context),
+                                  onCreateCategory: () =>
+                                      _createCategory(context),
+                                  onImportTemplate: () =>
+                                      _importTemplateV2(context),
+                                )
+                              : _CategoryDetail(
+                                  title:
+                                      selectedCategory?.title ??
+                                      AppStrings.of(context).uncategorized,
+                                  searchQuery: _searchQuery,
+                                  sortMode: _sortMode,
+                                  items: _filterAndSort(
+                                    _itemsForCategory(
+                                      items,
+                                      selectedCategory?.id,
+                                    ),
+                                  ),
+                                  categories: categoryItems,
+                                  onBack: () => setState(() {
+                                    _selectedCategoryId = null;
+                                    _searchQuery = '';
+                                  }),
+                                  onSearchChanged: (value) =>
+                                      setState(() => _searchQuery = value),
+                                  onSortChanged: (value) =>
+                                      setState(() => _sortMode = value),
+                                  onCreate: () => _createExhibition(
+                                    context,
+                                    categoryId: selectedCategory?.id,
+                                  ),
+                                  onMoveCategory: _moveExhibition,
+                                ),
+                          loading: () =>
+                              const Center(child: CircularProgressIndicator()),
+                          error: (error, stackTrace) =>
+                              _LibraryError(error: error),
+                        ),
+                        loading: () =>
+                            const Center(child: CircularProgressIndicator()),
+                        error: (error, stackTrace) =>
+                            _LibraryError(error: error),
+                      ),
                     ),
-                    loading: () =>
-                        const Center(child: CircularProgressIndicator()),
-                    error: (error, stackTrace) => _LibraryError(error: error),
                   ),
                 ),
               ],
@@ -962,10 +1119,9 @@ class _InlineLoadingMessage extends StatelessWidget {
   }
 }
 
-class _LibraryHeader extends StatelessWidget {
+class _LibraryHeader extends ConsumerWidget {
   const _LibraryHeader({
     required this.onCreate,
-    required this.onCreateCategory,
     required this.onImportTemplate,
     required this.onInfo,
     required this.onSettings,
@@ -974,7 +1130,6 @@ class _LibraryHeader extends StatelessWidget {
   });
 
   final VoidCallback onCreate;
-  final VoidCallback onCreateCategory;
   final VoidCallback onImportTemplate;
   final VoidCallback onInfo;
   final VoidCallback onSettings;
@@ -982,128 +1137,207 @@ class _LibraryHeader extends StatelessWidget {
   final VoidCallback onManageMusic;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final l10n = AppStrings.of(context);
-    final title = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          l10n.appTitle,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: XulangColors.paper,
-            fontFamily: 'Noto Serif SC',
-            fontFamilyFallback: [
-              'Noto Sans SC',
-              'PingFang SC',
-              'Microsoft YaHei',
-            ],
-            fontSize: 34,
-            fontWeight: FontWeight.w400,
-            letterSpacing: 1.8,
-            height: 1.1,
-          ),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          l10n.localGallery,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: const TextStyle(
-            color: XulangColors.muted,
-            fontSize: 12,
-            letterSpacing: 0.8,
-            height: 1.4,
-          ),
-        ),
-      ],
-    );
-
-    final actionButtons = <Widget>[
-      _HeaderIconButton(
-        tooltip: l10n.localStorageInfo,
-        onPressed: onInfo,
-        icon: const Icon(Icons.info_outline, size: 20),
+    final compact = MediaQuery.sizeOf(context).height < 700;
+    final customHeroPath = ref
+        .watch(appSettingsProvider)
+        .maybeWhen(
+          data: (settings) => settings.homeHeroImagePath,
+          orElse: () => null,
+        );
+    final actions = [
+      (l10n.libraryInfo, Icons.info_outline, onInfo),
+      (l10n.librarySettings, Icons.settings_outlined, onSettings),
+      (
+        l10n.libraryRecordings,
+        Icons.video_library_outlined,
+        onManageRecordings,
       ),
-      _HeaderIconButton(
-        tooltip: l10n.settingsAndGuide,
-        onPressed: onSettings,
-        icon: const Icon(Icons.settings_outlined, size: 20),
-      ),
-      _HeaderIconButton(
-        tooltip: l10n.manageVideos,
-        onPressed: onManageRecordings,
-        icon: const Icon(Icons.video_library_outlined, size: 20),
-      ),
-      _HeaderIconButton(
-        tooltip: l10n.manageMusic,
-        onPressed: onManageMusic,
-        icon: const Icon(Icons.music_note_outlined, size: 20),
-      ),
-      _HeaderIconButton(
-        tooltip: l10n.importTemplate,
-        onPressed: onImportTemplate,
-        icon: const Icon(Icons.file_open_outlined, size: 20),
-      ),
-      _HeaderIconButton(
-        tooltip: l10n.newCategory,
-        onPressed: onCreateCategory,
-        icon: const Icon(Icons.create_new_folder_outlined, size: 20),
-      ),
+      (l10n.libraryMusic, Icons.music_note_outlined, onManageMusic),
+      (l10n.libraryImport, Icons.file_open_outlined, onImportTemplate),
     ];
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Expanded(child: title),
-            const SizedBox(width: 16),
-            FilledButton.icon(
-              onPressed: onCreate,
-              icon: const Icon(Icons.add, size: 18),
-              label: Text(l10n.newExhibition),
+    return SizedBox(
+      height: compact ? 282 : 480,
+      child: Stack(
+        fit: StackFit.expand,
+        children: [
+          Positioned(
+            left: 0,
+            top: 0,
+            right: 0,
+            height: compact ? 206 : 340,
+            child: _LibraryHeroImage(customPath: customHeroPath),
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: const [0, .42, .72, 1],
+                  colors: [
+                    Colors.black.withValues(alpha: .05),
+                    Colors.transparent,
+                    XulangColors.ink.withValues(alpha: .92),
+                    XulangColors.ink,
+                  ],
+                ),
+              ),
             ),
-          ],
-        ),
-        const SizedBox(height: 18),
-        Wrap(spacing: 12, runSpacing: 8, children: actionButtons),
-      ],
+          ),
+          Positioned(
+            left: 24,
+            top: MediaQuery.paddingOf(context).top + (compact ? 10 : 22),
+            child: Text(
+              l10n.appTitle,
+              style: TextStyle(
+                color: Color(0xFFF3E8D5),
+                fontFamily: 'Noto Serif SC',
+                fontFamilyFallback: const [
+                  'Noto Sans SC',
+                  'PingFang SC',
+                  'Microsoft YaHei',
+                ],
+                fontSize: compact ? 34 : 44,
+                fontWeight: FontWeight.w500,
+                letterSpacing: 2.4,
+                height: 1.1,
+                shadows: const [
+                  Shadow(
+                    color: Color(0x73000000),
+                    blurRadius: 18,
+                    offset: Offset(0, 4),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          Positioned(
+            left: 0,
+            right: 0,
+            top: compact ? 132 : 246,
+            child: Center(
+              child: FilledButton.icon(
+                onPressed: onCreate,
+                style: FilledButton.styleFrom(
+                  backgroundColor: const Color(0xFFF1E5D0),
+                  foregroundColor: const Color(0xFF111419),
+                  minimumSize: Size(compact ? 184 : 214, compact ? 48 : 58),
+                  padding: EdgeInsets.symmetric(horizontal: compact ? 20 : 28),
+                  shape: const StadiumBorder(),
+                  textStyle: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: .4,
+                  ),
+                ),
+                icon: const Icon(Icons.add, size: 24),
+                label: Text(l10n.newExhibitionTitle),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 22,
+            right: 22,
+            bottom: compact ? 4 : 18,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (!compact) ...[
+                  Text(
+                    l10n.quickAccess,
+                    style: const TextStyle(
+                      color: Color(0xFFF3E8D5),
+                      fontFamily: 'Noto Serif SC',
+                      fontSize: 17,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: .8,
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                ],
+                Row(
+                  children: [
+                    for (var index = 0; index < actions.length; index++) ...[
+                      if (index > 0) const SizedBox(width: 4),
+                      Expanded(
+                        child: _QuickActionButton(
+                          label: actions[index].$1,
+                          icon: actions[index].$2,
+                          onPressed: actions[index].$3,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
 
-class _HeaderIconButton extends StatelessWidget {
-  const _HeaderIconButton({
-    required this.tooltip,
-    required this.onPressed,
-    required this.icon,
-  });
+class _LibraryHeroImage extends StatelessWidget {
+  const _LibraryHeroImage({this.customPath});
 
-  final String tooltip;
-  final VoidCallback onPressed;
-  final Widget icon;
+  static const defaultPath = 'asset://assets/sample/coast-sunset.png';
+  final String? customPath;
 
   @override
   Widget build(BuildContext context) {
-    return Tooltip(
-      message: tooltip,
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onPressed,
-          borderRadius: BorderRadius.circular(10),
-          child: Container(
-            width: 40,
-            height: 40,
-            alignment: Alignment.center,
-            child: IconTheme(
-              data: const IconThemeData(color: XulangColors.muted, size: 20),
-              child: icon,
-            ),
+    final selectedPath = customPath != null && File(customPath!).existsSync()
+        ? customPath!
+        : defaultPath;
+    return GalleryImage(
+      path: selectedPath,
+      cacheWidth: 1080,
+      alignment: const Alignment(0, -.12),
+      scale: 1.04,
+    );
+  }
+}
+
+class _QuickActionButton extends StatelessWidget {
+  const _QuickActionButton({
+    required this.label,
+    required this.icon,
+    required this.onPressed,
+  });
+
+  final String label;
+  final IconData icon;
+  final VoidCallback onPressed;
+
+  @override
+  Widget build(BuildContext context) {
+    return Semantics(
+      button: true,
+      label: label,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(12),
+        child: SizedBox(
+          height: 68,
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: const Color(0xFFC8A77A), size: 23),
+              const SizedBox(height: 7),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Color(0xFFB6AA99),
+                  fontSize: 10.5,
+                  height: 1.2,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -1120,121 +1354,45 @@ class _EmptyLibrary extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Center(
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 420),
-        child: Padding(
-          padding: const EdgeInsets.only(bottom: 48),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _EmptyGalleryFrame(
-                child: const Icon(
-                  Icons.auto_stories_outlined,
-                  size: 36,
-                  color: XulangColors.paper,
-                ),
-              ),
-              const SizedBox(height: 32),
-              const Text(
-                '让照片沿着故事展开',
-                style: TextStyle(
-                  fontFamily: 'Noto Serif SC',
-                  fontFamilyFallback: [
-                    'Noto Sans SC',
-                    'PingFang SC',
-                    'Microsoft YaHei',
-                  ],
-                  color: XulangColors.paper,
-                  fontSize: 24,
-                  fontWeight: FontWeight.w400,
-                  letterSpacing: 2,
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: 14),
-              const Text(
-                '用章节、方向和远近组织记忆。\n所有图片只保存在这台设备。',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: XulangColors.muted,
-                  fontSize: 13,
-                  height: 1.75,
-                  letterSpacing: 0.3,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                alignment: WrapAlignment.center,
-                children: [
-                  FilledButton(
-                    onPressed: onCreate,
-                    child: Text(AppStrings.of(context).createFirstExhibition),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: onImportTemplate,
-                    icon: const Icon(Icons.file_open_outlined, size: 18),
-                    label: Text(AppStrings.of(context).importTemplate),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                '卸载应用会删除全部展览，请谨慎操作。',
-                style: TextStyle(
-                  color: XulangColors.muted,
-                  fontSize: 11,
-                  letterSpacing: 0.2,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _EmptyGalleryFrame extends StatelessWidget {
-  const _EmptyGalleryFrame({required this.child});
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 120,
-      height: 140,
-      decoration: BoxDecoration(
-        color: XulangColors.surface,
-        border: Border.all(
-          color: XulangColors.paper.withValues(alpha: .20),
-          width: 0.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: .35),
-            blurRadius: 24,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: XulangColors.paper.withValues(alpha: .08),
-                  width: 0.5,
-                ),
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.auto_stories_outlined,
+              size: 34,
+              color: Color(0xFFC8A77A),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              AppStrings.of(context).emptyCategory,
+              style: const TextStyle(
+                color: Color(0xFFF3E8D5),
+                fontFamily: 'Noto Serif SC',
+                fontSize: 18,
+                letterSpacing: 1,
               ),
             ),
-          ),
-          child,
-        ],
+            const SizedBox(height: 14),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              alignment: WrapAlignment.center,
+              children: [
+                FilledButton(
+                  onPressed: onCreate,
+                  child: Text(AppStrings.of(context).newExhibitionTitle),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onImportTemplate,
+                  icon: const Icon(Icons.file_open_outlined, size: 18),
+                  label: Text(AppStrings.of(context).importTemplate),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1295,26 +1453,54 @@ class _CategoryHome extends StatelessWidget {
             : constraints.maxWidth > 560
             ? 2
             : 1;
-        return GridView.builder(
-          padding: const EdgeInsets.only(bottom: 28),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            mainAxisSpacing: 18,
-            crossAxisSpacing: 18,
-            childAspectRatio: columns == 1 ? 1.85 : 1.22,
-          ),
-          itemCount: categories.length + 1,
-          itemBuilder: (context, index) {
-            if (index == categories.length) {
-              return _NewCategoryCard(onTap: onCreateCategory);
-            }
-            return _CategoryBoxCard(
-              bucket: categories[index],
-              onTap: () => onOpenCategory(categories[index].id),
-              onRename: onRenameCategory,
-              onDelete: onDeleteCategory,
-            );
-          },
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    AppStrings.of(context).libraryCategories,
+                    style: const TextStyle(
+                      color: Color(0xFFF3E8D5),
+                      fontFamily: 'Noto Serif SC',
+                      fontSize: 20,
+                      fontWeight: FontWeight.w500,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                TextButton.icon(
+                  onPressed: onCreateCategory,
+                  style: TextButton.styleFrom(
+                    foregroundColor: const Color(0xFFC8A77A),
+                  ),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(AppStrings.of(context).newCategory),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            Expanded(
+              child: GridView.builder(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 28),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: columns,
+                  mainAxisSpacing: 18,
+                  crossAxisSpacing: 18,
+                  childAspectRatio: columns == 1 ? 1.62 : 1.22,
+                ),
+                itemCount: categories.length,
+                itemBuilder: (context, index) => _CategoryBoxCard(
+                  bucket: categories[index],
+                  onTap: () => onOpenCategory(categories[index].id),
+                  onRename: onRenameCategory,
+                  onDelete: onDeleteCategory,
+                ),
+              ),
+            ),
+          ],
         );
       },
     );
@@ -1336,36 +1522,32 @@ class _CategoryBoxCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final previews = bucket.exhibitions.take(4).toList(growable: false);
+    final sorted = [...bucket.exhibitions]
+      ..sort((a, b) => b.updatedAt.compareTo(a.updatedAt));
+    final coverSummary = sorted.firstOrNull;
     return Material(
       color: XulangColors.surface,
-      borderRadius: BorderRadius.circular(22),
+      borderRadius: BorderRadius.circular(18),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
         child: Stack(
+          fit: StackFit.expand,
           children: [
-            Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  gradient: RadialGradient(
-                    center: const Alignment(-.45, -.55),
-                    radius: 1.4,
-                    colors: [
-                      XulangColors.paper.withValues(alpha: .10),
-                      XulangColors.elevated,
-                      XulangColors.ink,
-                    ],
-                  ),
+            _CategoryCoverImage(summary: coverSummary),
+            const DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  stops: [0, .48, 1],
+                  colors: [
+                    Color(0x14000000),
+                    Color(0x3D000000),
+                    Color(0xE60A1019),
+                  ],
                 ),
               ),
-            ),
-            Positioned(
-              left: 22,
-              right: 22,
-              top: 20,
-              bottom: 64,
-              child: _StackedEnvelopePreview(previews: previews),
             ),
             if (!bucket.isUncategorized && bucket.category != null)
               Positioned(
@@ -1375,7 +1557,7 @@ class _CategoryBoxCard extends StatelessWidget {
                   tooltip: AppStrings.of(context).moreActions,
                   icon: const Icon(
                     Icons.more_horiz,
-                    color: XulangColors.paper,
+                    color: Color(0xFFF3E8D5),
                     size: 20,
                   ),
                   onSelected: (action) {
@@ -1400,10 +1582,11 @@ class _CategoryBoxCard extends StatelessWidget {
                 ),
               ),
             Positioned(
-              left: 18,
-              right: 18,
-              bottom: 16,
+              left: 20,
+              right: 14,
+              bottom: 18,
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Expanded(
                     child: Column(
@@ -1414,26 +1597,40 @@ class _CategoryBoxCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: const TextStyle(
-                            color: XulangColors.paper,
+                            color: Color(0xFFF3E8D5),
                             fontFamily: 'Noto Serif SC',
-                            fontSize: 18,
-                            letterSpacing: 1,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 1.1,
                           ),
                         ),
-                        const SizedBox(height: 3),
+                        const SizedBox(height: 5),
                         Text(
                           AppStrings.of(
                             context,
                           ).exhibitionCount(bucket.exhibitions.length),
                           style: const TextStyle(
-                            color: XulangColors.muted,
-                            fontSize: 12,
+                            color: Color(0xFFB8AC9B),
+                            fontSize: 13,
                           ),
                         ),
                       ],
                     ),
                   ),
-                  const Icon(Icons.chevron_right, color: XulangColors.muted),
+                  Container(
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: XulangColors.elevated.withValues(alpha: .86),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: const Color(0x33F3E8D5)),
+                    ),
+                    child: const Icon(
+                      Icons.arrow_forward,
+                      color: Color(0xFFF3E8D5),
+                      size: 21,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1444,132 +1641,51 @@ class _CategoryBoxCard extends StatelessWidget {
   }
 }
 
-class _StackedEnvelopePreview extends StatelessWidget {
-  const _StackedEnvelopePreview({required this.previews});
+class _CategoryCoverImage extends ConsumerWidget {
+  const _CategoryCoverImage({required this.summary});
 
-  final List<ExhibitionSummary> previews;
-
-  @override
-  Widget build(BuildContext context) {
-    if (previews.isEmpty) {
-      return const _EmptyCategoryBox();
-    }
-    final rotations = [-.12, .08, -.04, .13];
-    final offsets = [
-      const Offset(-26, 14),
-      const Offset(18, 4),
-      const Offset(-4, -4),
-      const Offset(34, 18),
-    ];
-    return Stack(
-      alignment: Alignment.center,
-      children: [
-        for (var index = previews.length - 1; index >= 0; index--)
-          Transform.translate(
-            offset: offsets[index % offsets.length],
-            child: Transform.rotate(
-              angle: rotations[index % rotations.length],
-              child: _EnvelopeThumbnail(summary: previews[index]),
-            ),
-          ),
-      ],
-    );
-  }
-}
-
-class _EnvelopeThumbnail extends ConsumerWidget {
-  const _EnvelopeThumbnail({required this.summary});
-
-  final ExhibitionSummary summary;
+  final ExhibitionSummary? summary;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final selected = summary;
+    if (selected == null || selected.coverMediaId == null) {
+      return const _EmptyCategoryCover();
+    }
     final repository = ref.read(galleryRepositoryProvider);
     return FutureBuilder<GalleryBundle?>(
-      future: repository.load(summary.id),
+      future: repository.load(selected.id),
       builder: (context, snapshot) {
         final bundle = snapshot.data;
-        final cover = bundle == null || summary.coverMediaId == null
-            ? null
-            : bundle.media
-                  .where((item) => item.id == summary.coverMediaId)
-                  .firstOrNull;
-        return Container(
-          width: 112,
-          height: 144,
-          padding: const EdgeInsets.all(7),
-          decoration: BoxDecoration(
-            color: const Color(0xFFE8DFCE),
-            borderRadius: BorderRadius.circular(5),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: .38),
-                blurRadius: 18,
-                offset: const Offset(0, 9),
-              ),
-            ],
-          ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(3),
-            child: cover == null
-                ? const ColoredBox(
-                    color: XulangColors.elevated,
-                    child: Icon(
-                      Icons.photo_outlined,
-                      color: XulangColors.muted,
-                    ),
-                  )
-                : GalleryImage(path: cover.thumbnailPath, cacheWidth: 400),
-          ),
-        );
+        final cover = bundle?.media
+            .where((item) => item.id == selected.coverMediaId)
+            .firstOrNull;
+        if (cover == null) return const _EmptyCategoryCover();
+        return GalleryImage(path: cover.thumbnailPath, cacheWidth: 900);
       },
     );
   }
 }
 
-class _EmptyCategoryBox extends StatelessWidget {
-  const _EmptyCategoryBox();
+class _EmptyCategoryCover extends StatelessWidget {
+  const _EmptyCategoryCover();
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
+    return const DecoratedBox(
       decoration: BoxDecoration(
-        color: Colors.black.withValues(alpha: .20),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: XulangColors.paper.withValues(alpha: .10)),
-      ),
-      child: const Center(
-        child: Icon(
-          Icons.inventory_2_outlined,
-          color: XulangColors.muted,
-          size: 36,
+        gradient: RadialGradient(
+          center: Alignment(-.35, -.45),
+          radius: 1.25,
+          colors: [
+            XulangColors.elevated,
+            XulangColors.surface,
+            XulangColors.ink,
+          ],
         ),
       ),
-    );
-  }
-}
-
-class _NewCategoryCard extends StatelessWidget {
-  const _NewCategoryCard({required this.onTap});
-
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return OutlinedButton(
-      onPressed: onTap,
-      style: OutlinedButton.styleFrom(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
-        side: BorderSide(color: XulangColors.paper.withValues(alpha: .16)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.create_new_folder_outlined, size: 30),
-          const SizedBox(height: 10),
-          Text(AppStrings.of(context).newCategory),
-        ],
+      child: Center(
+        child: Icon(Icons.photo_outlined, color: Color(0x99C8A77A), size: 42),
       ),
     );
   }
@@ -2287,6 +2403,7 @@ void _showAppSettings(
   required VoidCallback onManageRecordings,
   required VoidCallback onManageMusic,
   required VoidCallback onCleanupUnusedMedia,
+  required VoidCallback onCustomizeHomeHero,
 }) {
   var draft = settings;
   var l10n = AppStrings.from(draft, Localizations.maybeLocaleOf(context));
@@ -2337,6 +2454,19 @@ void _showAppSettings(
                           label: Text(_appLanguageLabel(l10n, language)),
                         ),
                     ],
+                  ),
+                  const SizedBox(height: 16),
+                  _SettingsSectionTitle(l10n.homeAppearance),
+                  _SettingsTile(
+                    icon: Icons.photo_camera_back_outlined,
+                    title: l10n.homeCover,
+                    subtitle: l10n.homeCoverSettingHint,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        onCustomizeHomeHero();
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
                   _SettingsSectionTitle(l10n.recordingPlayback),

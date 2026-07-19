@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import 'package:xulang/domain/gallery_document.dart';
 
 enum NarrativeAxis {
   vertical,
@@ -32,3 +33,8 @@ enum NarrativeAxis {
     horizontal => rect.shift(Offset(distance, 0)),
   };
 }
+
+NarrativeAxis editorCameraAxisForLayout(GalleryLayout layout) =>
+    layout == GalleryLayout.storyPath
+    ? NarrativeAxis.vertical
+    : NarrativeAxis.horizontal;

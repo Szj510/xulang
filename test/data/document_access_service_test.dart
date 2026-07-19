@@ -45,6 +45,15 @@ void main() {
     expect(items.single.source, DocumentCandidateSource.authorizedFolder);
   });
 
+  test('local audio paths do not need Android URI materialization', () async {
+    final service = DocumentAccessService(mediaRoot: Directory.systemTemp);
+
+    expect(
+      await service.materializeAudioForPlayback('/music/summer-track.mp3'),
+      '/music/summer-track.mp3',
+    );
+  });
+
   test(
     'music scan cache can be shown before a new folder scan finishes',
     () async {

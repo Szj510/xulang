@@ -64,6 +64,18 @@ void main() {
           1,
         );
       }
+      final handDrawnPainterKeys = <GalleryFrame, Key>{
+        GalleryFrame.tapedPaper: const Key('taped-paper-frame-painter'),
+        GalleryFrame.crayon: const Key('crayon-frame-painter'),
+        GalleryFrame.watercolor: const Key('watercolor-frame-painter'),
+        GalleryFrame.doodleTape: const Key('doodle-tape-frame-painter'),
+        GalleryFrame.scallop: const Key('scallop-frame-painter'),
+        GalleryFrame.cornerSketch: const Key('corner-sketch-frame-painter'),
+        GalleryFrame.wavy: const Key('wavy-frame-painter'),
+      };
+      if (handDrawnPainterKeys[frame] case final painterKey?) {
+        expect(find.byKey(painterKey), findsOneWidget);
+      }
     });
   }
 }

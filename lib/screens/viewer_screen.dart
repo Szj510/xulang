@@ -53,6 +53,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   bool _changingChapter = false;
   bool _playbackFinished = false;
   bool _autoRecordingQueued = false;
+  bool _initialMusicQueued = false;
   bool _recordingShareBusy = false;
   String? _activeRecordingPath;
   String? _recordingShareTitle;
@@ -60,13 +61,14 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   RecordingChapterMode _activePlaybackChapterMode =
       RecordingChapterMode.current;
   final AudioPlayer _audioPlayer = AudioPlayer();
+  late final Future<void> _audioPlayerReady;
   String? _playingMusicPath;
 
   @override
   void initState() {
     super.initState();
     _bundle = ref.read(galleryRepositoryProvider).load(widget.exhibitionId);
-    unawaited(_audioPlayer.setReleaseMode(ReleaseMode.loop));
+    _audioPlayerReady = _audioPlayer.setReleaseMode(ReleaseMode.loop);
     WakelockPlus.enable();
   }
 
@@ -108,6 +110,18 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               onBack: () => Navigator.pop(context),
               text: '先导入图片，再开始观看',
             );
+          }
+          if (!_initialMusicQueued &&
+              !widget.autoStartRecording &&
+              shouldPlayViewerBackgroundMusic(
+                musicPath: bundle.document.musicPath,
+                isRecording: false,
+                recordingUseMusic: appSettings.recordingUseMusic,
+              )) {
+            _initialMusicQueued = true;
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) unawaited(_playMusic(bundle.document));
+            });
           }
           if (widget.autoStartRecording && !_autoRecordingQueued) {
             _autoRecordingQueued = true;
@@ -380,7 +394,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
           _autoPlaybackActive = true;
         });
       }
-      if (options.useMusic && document.musicPath != null) {
+      if (shouldPlayViewerBackgroundMusic(
+        musicPath: document.musicPath,
+        isRecording: true,
+        recordingUseMusic: options.useMusic,
+      )) {
         await _playMusic(document);
       }
       return;
@@ -425,7 +443,11 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       _chapterIndex = startIndex;
     });
     await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
-    if (settings.recordingUseMusic && document.musicPath != null) {
+    if (shouldPlayViewerBackgroundMusic(
+      musicPath: document.musicPath,
+      isRecording: false,
+      recordingUseMusic: settings.recordingUseMusic,
+    )) {
       await _playMusic(document);
     }
   }
@@ -879,17 +901,39 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   Future<void> _playMusic(GalleryDocument document) async {
     final path = document.musicPath;
     if (path == null) return;
-    if (_playingMusicPath != path) {
-      _playingMusicPath = path;
-      final source = path.startsWith('content://')
-          ? UrlSource(path)
-          : DeviceFileSource(path);
-      await _audioPlayer.play(source);
-    } else {
-      await _audioPlayer.resume();
+    try {
+      await _audioPlayerReady;
+      if (_playingMusicPath != path) {
+        final playablePath = await ref
+            .read(documentAccessServiceProvider)
+            .materializeAudioForPlayback(path);
+        final source = DeviceFileSource(playablePath);
+        await _audioPlayer.play(source);
+        _playingMusicPath = path;
+      } else {
+        await _audioPlayer.resume();
+      }
+      if (mounted) setState(() => _musicPlaying = true);
+    } catch (error, stackTrace) {
+      debugPrint('Background music playback failed for "$path": $error');
+      debugPrintStack(stackTrace: stackTrace);
+      _playingMusicPath = null;
+      if (!mounted) return;
+      setState(() => _musicPlaying = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(AppStrings.of(context).musicPlaybackFailed)),
+      );
     }
-    if (mounted) setState(() => _musicPlaying = true);
   }
+}
+
+@visibleForTesting
+bool shouldPlayViewerBackgroundMusic({
+  required String? musicPath,
+  required bool isRecording,
+  required bool recordingUseMusic,
+}) {
+  return musicPath != null && (!isRecording || recordingUseMusic);
 }
 
 class _RecordingOptions {
