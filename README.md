@@ -60,7 +60,7 @@
 ```bash
 flutter pub get
 flutter analyze --no-pub
-flutter test --no-pub --no-test-assets --reporter compact
+flutter test --no-pub --reporter compact
 flutter build apk --debug
 ```
 
@@ -115,7 +115,7 @@ Install Flutter 3.41.7, Dart 3.11.5, JDK 17, and the Android SDK, then run:
 ```bash
 flutter pub get
 flutter analyze --no-pub
-flutter test --no-pub --no-test-assets --reporter compact
+flutter test --no-pub --reporter compact
 flutter build apk --debug
 ```
 

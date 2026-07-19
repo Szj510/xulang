@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:path/path.dart' as p;
 import 'package:xulang/recording/recorded_video_library.dart';
 
 void main() {
@@ -12,17 +13,18 @@ void main() {
   });
 
   test('managed path check rejects traversal outside recordings directory', () {
+    final recordingsDirectoryPath = p.join('app', 'docs', 'xulang-recordings');
     expect(
       RecordedVideoLibrary.isManagedRecordingPath(
-        path: r'C:\app\docs\xulang-recordings\video.mp4',
-        recordingsDirectoryPath: r'C:\app\docs\xulang-recordings',
+        path: p.join(recordingsDirectoryPath, 'video.mp4'),
+        recordingsDirectoryPath: recordingsDirectoryPath,
       ),
       isTrue,
     );
     expect(
       RecordedVideoLibrary.isManagedRecordingPath(
-        path: r'C:\app\docs\xulang-recordings\..\secrets.sqlite',
-        recordingsDirectoryPath: r'C:\app\docs\xulang-recordings',
+        path: p.join(recordingsDirectoryPath, '..', 'secrets.sqlite'),
+        recordingsDirectoryPath: recordingsDirectoryPath,
       ),
       isFalse,
     );
