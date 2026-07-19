@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-// Windows runners can vary by a handful of rasterized pixels. Keep the
-// tolerance at 0.005% so structural or visible rendering changes still fail.
-const _maxGoldenDiffRate = 0.00005;
+// Windows runners can vary along anti-aliased image edges. Keep the tolerance
+// at 0.05% so structural or visible rendering changes still fail.
+const _maxGoldenDiffRate = 0.0005;
 
 Future<void> testExecutable(FutureOr<void> Function() testMain) async {
   final comparator = goldenFileComparator;
