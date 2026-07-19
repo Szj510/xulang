@@ -1,0 +1,39 @@
+name: Feature request / 功能建议
+description: Propose an improvement that fits Xulang's local-first direction / 提出符合本地优先方向的改进
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Xulang intentionally avoids accounts, cloud sync, and a hosted asset marketplace.
+        叙廊坚持本地优先，不计划引入账号、云同步或托管素材市场。
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting / 提交前确认
+      options:
+        - label: I searched existing issues and the roadmap. / 我已搜索已有 Issue 与路线图。
+          required: true
+        - label: The proposal preserves local-first privacy. / 该建议不破坏本地优先与隐私定位。
+          required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem to solve / 要解决的问题
+      description: Describe the user need rather than only the desired UI. / 请描述用户需求，而不只是期望的界面。
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed experience / 建议方案
+      description: Explain the workflow, expected result, and relevant platform. / 说明流程、预期结果和相关平台。
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives / 替代方案
+      description: Optional approaches or workarounds you considered. / 可选：已经考虑过的替代方式。

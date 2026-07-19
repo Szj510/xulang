@@ -162,22 +162,84 @@ ThemeData buildXulangTheme({Brightness brightness = Brightness.dark}) {
     fontFamily: sansFamily,
     fontFamilyFallback: const [...fallbackFamilies, 'sans-serif'],
     dividerColor: palette.line,
-    dividerTheme: DividerThemeData(color: palette.line, thickness: 0.5, space: 1),
+    dividerTheme: DividerThemeData(
+      color: palette.line,
+      thickness: 0.5,
+      space: 1,
+    ),
     textTheme: TextTheme(
-      displayLarge: textStyle(34, fontFamily: serifFamily, letterSpacing: 3, height: 1.2),
-      displayMedium: textStyle(28, fontFamily: serifFamily, letterSpacing: 2, height: 1.25),
-      displaySmall: textStyle(22, fontFamily: serifFamily, letterSpacing: 1.5, height: 1.3),
-      headlineMedium: textStyle(18, fontFamily: serifFamily, letterSpacing: 1.2, height: 1.35),
-      headlineSmall: textStyle(16, fontFamily: serifFamily, letterSpacing: 0.8, height: 1.4),
-      titleLarge: textStyle(16, weight: FontWeight.w500, letterSpacing: 0.3, height: 1.4),
+      displayLarge: textStyle(
+        34,
+        fontFamily: serifFamily,
+        letterSpacing: 3,
+        height: 1.2,
+      ),
+      displayMedium: textStyle(
+        28,
+        fontFamily: serifFamily,
+        letterSpacing: 2,
+        height: 1.25,
+      ),
+      displaySmall: textStyle(
+        22,
+        fontFamily: serifFamily,
+        letterSpacing: 1.5,
+        height: 1.3,
+      ),
+      headlineMedium: textStyle(
+        18,
+        fontFamily: serifFamily,
+        letterSpacing: 1.2,
+        height: 1.35,
+      ),
+      headlineSmall: textStyle(
+        16,
+        fontFamily: serifFamily,
+        letterSpacing: 0.8,
+        height: 1.4,
+      ),
+      titleLarge: textStyle(
+        16,
+        weight: FontWeight.w500,
+        letterSpacing: 0.3,
+        height: 1.4,
+      ),
       titleMedium: textStyle(14, weight: FontWeight.w500, letterSpacing: 0.2),
-      titleSmall: textStyle(12, weight: FontWeight.w500, letterSpacing: 0.15, color: palette.muted, height: 1.5),
+      titleSmall: textStyle(
+        12,
+        weight: FontWeight.w500,
+        letterSpacing: 0.15,
+        color: palette.muted,
+        height: 1.5,
+      ),
       bodyLarge: textStyle(15, letterSpacing: 0.2, height: 1.6),
       bodyMedium: textStyle(14, letterSpacing: 0.1, height: 1.6),
-      bodySmall: textStyle(12, letterSpacing: 0.05, color: palette.muted, height: 1.55),
-      labelLarge: textStyle(13, weight: FontWeight.w500, letterSpacing: 0.4, height: 1.4),
-      labelMedium: textStyle(11, weight: FontWeight.w500, letterSpacing: 0.3, color: palette.muted, height: 1.4),
-      labelSmall: textStyle(10, weight: FontWeight.w500, letterSpacing: 0.5, color: palette.muted, height: 1.4),
+      bodySmall: textStyle(
+        12,
+        letterSpacing: 0.05,
+        color: palette.muted,
+        height: 1.55,
+      ),
+      labelLarge: textStyle(
+        13,
+        weight: FontWeight.w500,
+        letterSpacing: 0.4,
+        height: 1.4,
+      ),
+      labelMedium: textStyle(
+        11,
+        weight: FontWeight.w500,
+        letterSpacing: 0.3,
+        color: palette.muted,
+        height: 1.4,
+      ),
+      labelSmall: textStyle(
+        10,
+        weight: FontWeight.w500,
+        letterSpacing: 0.5,
+        color: palette.muted,
+        height: 1.4,
+      ),
     ),
     appBarTheme: AppBarTheme(
       backgroundColor: Colors.transparent,
@@ -185,7 +247,11 @@ ThemeData buildXulangTheme({Brightness brightness = Brightness.dark}) {
       elevation: 0,
       scrolledUnderElevation: 0,
       centerTitle: false,
-      titleTextStyle: textStyle(18, fontFamily: serifFamily, letterSpacing: 1.5),
+      titleTextStyle: textStyle(
+        18,
+        fontFamily: serifFamily,
+        letterSpacing: 1.5,
+      ),
     ),
     cardTheme: CardThemeData(
       color: palette.surface,
@@ -202,7 +268,12 @@ ThemeData buildXulangTheme({Brightness brightness = Brightness.dark}) {
       selectedColor: palette.accent.withValues(alpha: .18),
       disabledColor: palette.elevated.withValues(alpha: .5),
       labelStyle: textStyle(12, letterSpacing: 0.2),
-      secondaryLabelStyle: textStyle(12, weight: FontWeight.w500, letterSpacing: 0.2, color: palette.accent),
+      secondaryLabelStyle: textStyle(
+        12,
+        weight: FontWeight.w500,
+        letterSpacing: 0.2,
+        color: palette.accent,
+      ),
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(6),
@@ -228,7 +299,12 @@ ThemeData buildXulangTheme({Brightness brightness = Brightness.dark}) {
         minimumSize: const Size(48, 48),
         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        textStyle: textStyle(14, weight: FontWeight.w500, letterSpacing: 0.3, color: palette.ink),
+        textStyle: textStyle(
+          14,
+          weight: FontWeight.w500,
+          letterSpacing: 0.3,
+          color: palette.ink,
+        ),
       ),
     ),
     outlinedButtonTheme: OutlinedButtonThemeData(
@@ -246,15 +322,27 @@ ThemeData buildXulangTheme({Brightness brightness = Brightness.dark}) {
         foregroundColor: palette.accent,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        textStyle: textStyle(13, weight: FontWeight.w500, letterSpacing: 0.2, color: palette.accent),
+        textStyle: textStyle(
+          13,
+          weight: FontWeight.w500,
+          letterSpacing: 0.2,
+          color: palette.accent,
+        ),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: palette.surface,
       contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      hintStyle: TextStyle(color: palette.muted, fontSize: 14, letterSpacing: 0.2),
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(14), borderSide: BorderSide.none),
+      hintStyle: TextStyle(
+        color: palette.muted,
+        fontSize: 14,
+        letterSpacing: 0.2,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(14),
         borderSide: BorderSide(color: palette.line, width: 0.5),
@@ -275,13 +363,19 @@ ThemeData buildXulangTheme({Brightness brightness = Brightness.dark}) {
         borderRadius: BorderRadius.circular(20),
         side: BorderSide(color: palette.line, width: 0.5),
       ),
-      titleTextStyle: textStyle(20, fontFamily: serifFamily, letterSpacing: 1.2),
+      titleTextStyle: textStyle(
+        20,
+        fontFamily: serifFamily,
+        letterSpacing: 1.2,
+      ),
       contentTextStyle: textStyle(14, height: 1.6),
     ),
     bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: palette.elevated,
       surfaceTintColor: Colors.transparent,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       dragHandleColor: palette.muted,
       dragHandleSize: const Size(40, 4),
     ),
@@ -301,7 +395,10 @@ ThemeData buildXulangTheme({Brightness brightness = Brightness.dark}) {
       thumbColor: palette.paper,
       overlayColor: palette.accent.withValues(alpha: .12),
       trackHeight: 3,
-      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 6, elevation: 2),
+      thumbShape: const RoundSliderThumbShape(
+        enabledThumbRadius: 6,
+        elevation: 2,
+      ),
       overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
     ),
     switchTheme: SwitchThemeData(
@@ -310,7 +407,9 @@ ThemeData buildXulangTheme({Brightness brightness = Brightness.dark}) {
         return palette.muted;
       }),
       trackColor: WidgetStateProperty.resolveWith((states) {
-        if (states.contains(WidgetState.selected)) return palette.accent.withValues(alpha: .35);
+        if (states.contains(WidgetState.selected)) {
+          return palette.accent.withValues(alpha: .35);
+        }
         return palette.line;
       }),
       trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
