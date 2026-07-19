@@ -422,11 +422,11 @@ class AppStrings {
   String placementCaption(String id, String fallback) {
     if (!isEnglish) return fallback;
     return switch (id) {
-      'sample-placement-3' => 'Departure',
-      'sample-placement-4' => 'Alley encounter',
-      'sample-placement-5' => 'Sea breeze',
-      'sample-placement-6' => 'Way home',
-      'sample-placement-7' => 'Glimmer',
+      'sample-placement-3' => 'Lakeside train',
+      'sample-placement-4' => 'Hillside path',
+      'sample-placement-5' => 'Coastline',
+      'sample-placement-6' => 'Sunset window',
+      'sample-placement-7' => 'Glimmer in grass',
       _ => fallback,
     };
   }
