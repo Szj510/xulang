@@ -11,13 +11,26 @@ void main() {
       expect(sample.document.title, '山海之间（官方示例）');
       expect(sample.document.chapters, hasLength(2));
       expect(sample.document.chapters.first.layout, GalleryLayout.hero);
+      expect(
+        sample.document.chapters.first.placements[1].mediaId,
+        'sample-portrait',
+      );
       expect(sample.document.chapters.last.layout, GalleryLayout.storyPath);
-      expect(sample.document.chapters.last.placements, hasLength(4));
+      expect(sample.document.chapters.last.placements, hasLength(8));
       expect(
         sample.document.chapters.last.placements[1].frame,
         GalleryFrame.stamp,
       );
-      expect(sample.media, hasLength(5));
+      expect(sample.media, hasLength(9));
+      expect(
+        sample.document.chapters.last.placements.map((item) => item.mediaId),
+        containsAll([
+          'sample-friends',
+          'sample-notes',
+          'sample-rain',
+          'sample-alley',
+        ]),
+      );
       expect(
         sample.media.every(
           (media) => media.originalPath.startsWith('asset://'),
