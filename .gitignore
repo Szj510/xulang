@@ -51,3 +51,14 @@ app.*.map.json
 /android/app/debug
 /android/app/profile
 /android/app/release
+
+# Android release signing (never commit credentials or keystores)
+/android/key.properties
+/key.properties
+*.jks
+*.keystore
+
+# Local environment and secret files
+.env
+.env.*
+!.env.example
