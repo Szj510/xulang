@@ -24,19 +24,17 @@
 
 ### 界面展示
 
-正式演示素材将使用确认可公开的样例重新录制，避免把个人照片或授权不明的图片提交到仓库。录制要求和目标文件名见 [`docs/media/README.md`](docs/media/README.md)。素材就绪后，本节固定展示以下链路：
+以下演示使用可公开再分发的样例素材，固定展示“图库 → 编辑 → 沉浸播放”核心链路：
 
 1. 图库：管理分类、展览和本地文件。
 2. 编辑：导入图片并调整画布、布局、画框、贴画与音乐。
 3. 沉浸播放：按章节浏览、自动播放，并在 Android 上录制视频。
 
-<!-- 展示素材就绪后取消注释：
 <p align="center">
   <img src="docs/media/library.png" width="260" alt="叙廊图库">
   <img src="docs/media/editor.gif" width="260" alt="叙廊编辑器">
   <img src="docs/media/viewer.gif" width="260" alt="叙廊沉浸播放">
 </p>
--->
 
 ### 特性
 
@@ -89,11 +87,17 @@ Xulang turns a set of photos into chapters and narrative paths. Each chapter can
 
 ### Showcase
 
-The public demo will be re-recorded with redistribution-safe sample media. This avoids committing personal photos or images with unclear licensing. See [`docs/media/README.md`](docs/media/README.md) for the capture specification and target filenames. The showcase will cover this fixed flow:
+The showcase uses redistribution-safe sample media and covers the fixed Library → Editor → Immersive viewer flow:
 
 1. Library: organize categories, exhibitions, and local files.
 2. Editor: import photos and customize canvas, layout, frames, stickers, and music.
 3. Immersive viewer: navigate chapters, autoplay the story, and record it on Android.
+
+<p align="center">
+  <img src="docs/media/library.png" width="260" alt="Xulang library">
+  <img src="docs/media/editor.gif" width="260" alt="Xulang editor">
+  <img src="docs/media/viewer.gif" width="260" alt="Xulang immersive viewer">
+</p>
 
 ### Highlights
 

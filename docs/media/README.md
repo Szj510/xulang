@@ -7,9 +7,9 @@ This directory is reserved for redistribution-safe README media. Do not use pers
 | File | Content | Recommended capture |
 | --- | --- | --- |
 | `library.png` | Library screen with the official sample exhibition | Portrait PNG, 1080×1920 or equivalent |
-| `editor.gif` | Open an exhibition and change its layout or frame | 5–8 seconds, 12 fps, 540 px wide |
-| `viewer.gif` | Enter immersive playback and move between chapters | 5–8 seconds, 12 fps, 540 px wide |
+| `editor.gif` | Open an exhibition and change its layout or frame | Full 28.6-second demo, 12 fps, 540 px wide |
+| `viewer.gif` | Enter immersive playback and move between chapters | Full 13.3-second demo, 12 fps, 540 px wide |
 
-Record the emulator or device as MP4 first, then use [ScreenToGif](https://www.screentogif.com/) on Windows to trim, crop, resize, and optimize the GIF. Keep each GIF below 10 MB where practical. Preserve the source MP4 outside the Git repository so the GIF can be regenerated later.
+The committed GIFs preserve the full supplied recordings. They were resized and optimized without committing the source MP4 or its audio. Preserve the source MP4 outside the Git repository so the GIFs can be regenerated later.
 
-After all three files are added, remove the surrounding HTML comment from the showcase block in the root README.
+All three public showcase files are embedded in the root README.
