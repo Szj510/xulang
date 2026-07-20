@@ -28,6 +28,7 @@ void main() {
                 mediaId: 'media',
                 order: 0,
                 frame: frame,
+                frameCaption: frame == GalleryFrame.captionMat ? '风从湖面吹来' : '',
               ),
               media: media,
               depth: 1,
@@ -63,6 +64,13 @@ void main() {
           tester.widget<AspectRatio>(find.byType(AspectRatio)).aspectRatio,
           1,
         );
+      }
+      if (frame == GalleryFrame.captionMat) {
+        expect(
+          find.byKey(const Key('caption-mat-frame-painter')),
+          findsOneWidget,
+        );
+        expect(find.text('风从湖面吹来'), findsOneWidget);
       }
       final handDrawnPainterKeys = <GalleryFrame, Key>{
         GalleryFrame.tapedPaper: const Key('taped-paper-frame-painter'),

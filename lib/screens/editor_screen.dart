@@ -26,6 +26,7 @@ import 'package:xulang/share/export_file_service.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/atmospheric_sticker.dart';
 import 'package:xulang/widgets/gallery_image.dart';
+import 'package:xulang/widgets/gallery_text_sticker.dart';
 import 'package:xulang/widgets/scene_canvas.dart';
 import 'package:xulang/widgets/sticker_control_tile.dart';
 
@@ -104,6 +105,7 @@ class _EditorBodyState extends State<_EditorBody> {
   void _focusSticker({String? stickerId}) {
     setState(() {
       _interactionMode = _EditorInteractionMode.sticker;
+      _selectedStickerKind = null;
       _selectedStickerId = stickerId;
       _showPanel = true;
     });
@@ -278,6 +280,7 @@ class _EditorBodyState extends State<_EditorBody> {
                         interactionMode: _interactionMode,
                         selectedPlacementId: _selectedPlacementId,
                         selectedStickerKind: _selectedStickerKind,
+                        selectedStickerId: _selectedStickerId,
                         onStickerTap: (id) => _focusSticker(stickerId: id),
                         onStickerPlaced: _placeSticker,
                         onCanvasTap: () {
@@ -458,7 +461,7 @@ class _EditorBodyState extends State<_EditorBody> {
                         onFocusPlacement: _focusPlacement,
                         onDeletePlacement: _deletePlacement,
 
-                        onFocusSticker: () => _focusSticker(),
+                        onFocusSticker: (id) => _focusSticker(stickerId: id),
                         onSelectStickerKind: _selectStickerKind,
                         onDismiss: _dismissPanel,
                         landscape: true,
@@ -491,6 +494,7 @@ class _EditorBodyState extends State<_EditorBody> {
                           interactionMode: _interactionMode,
                           selectedPlacementId: _selectedPlacementId,
                           selectedStickerKind: _selectedStickerKind,
+                          selectedStickerId: _selectedStickerId,
                           onStickerTap: (id) => _focusSticker(stickerId: id),
                           onStickerPlaced: _placeSticker,
                           onCanvasTap: _dismissPanel,
@@ -513,7 +517,7 @@ class _EditorBodyState extends State<_EditorBody> {
                       onFocusPlacement: _focusPlacement,
                       onDeletePlacement: _deletePlacement,
 
-                      onFocusSticker: () => _focusSticker(),
+                      onFocusSticker: (id) => _focusSticker(stickerId: id),
                       onSelectStickerKind: _selectStickerKind,
                       onDismiss: _dismissPanel,
                       landscape: false,
@@ -911,7 +915,7 @@ class _FloatingPanel extends StatefulWidget {
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
   final ValueChanged<String> onDeletePlacement;
-  final VoidCallback onFocusSticker;
+  final ValueChanged<String?> onFocusSticker;
   final ValueChanged<GalleryStickerKind> onSelectStickerKind;
   final VoidCallback onDismiss;
   final bool landscape;
@@ -1181,6 +1185,7 @@ class _Preview extends StatefulWidget {
     required this.interactionMode,
     this.selectedPlacementId,
     this.selectedStickerKind,
+    this.selectedStickerId,
     this.onStickerTap,
     this.onStickerPlaced,
     this.onCanvasTap,
@@ -1191,6 +1196,7 @@ class _Preview extends StatefulWidget {
   final _EditorInteractionMode interactionMode;
   final String? selectedPlacementId;
   final GalleryStickerKind? selectedStickerKind;
+  final String? selectedStickerId;
   final ValueChanged<String>? onStickerTap;
   final Future<void> Function(CustomPathPoint point)? onStickerPlaced;
   final VoidCallback? onCanvasTap;
@@ -1211,6 +1217,7 @@ class _PreviewState extends State<_Preview> {
   int _previewPointerCount = 0;
   bool _cameraDragActive = false;
   bool _previewPointerMoved = false;
+  bool _previewTapHandled = false;
 
   double get _currentScale => _zoomController.value.getMaxScaleOnAxis();
 
@@ -1332,6 +1339,7 @@ class _PreviewState extends State<_Preview> {
     if (widget.selectedStickerKind == null || widget.onStickerPlaced == null) {
       return;
     }
+    _previewTapHandled = true;
     final point = CustomPathPoint(
       x: localPosition.dx / viewport.width,
       y: localPosition.dy / viewport.height,
@@ -1372,10 +1380,21 @@ class _PreviewState extends State<_Preview> {
         final placementEditingEnabled = _isImageMode;
         final canvasNavigationEnabled =
             _isCanvasMode || _isStickerMode || _isImageMode;
-        final canvasTap = _isCanvasMode ? widget.onCanvasTap : null;
+        final canvasTap = widget.onCanvasTap;
         void placementTap(String placementId) {
+          _previewTapHandled = true;
           _focusCameraOnPlacement(placementId, chapter);
           widget.onPlacementTap?.call(placementId);
+        }
+
+        void stickerTap(String stickerId) {
+          _previewTapHandled = true;
+          widget.onStickerTap?.call(stickerId);
+        }
+
+        void stickerDeleted(String stickerId) {
+          _previewTapHandled = true;
+          unawaited(session.removeSticker(stickerId));
         }
 
         final worldSize = viewport;
@@ -1409,6 +1428,7 @@ class _PreviewState extends State<_Preview> {
                       _previewPointerCount += 1;
                       if (_previewPointerCount == 1) {
                         _previewPointerMoved = false;
+                        _previewTapHandled = false;
                       }
                       if (_previewPointerCount > 1) {
                         _endCameraDragIfNeeded();
@@ -1449,7 +1469,10 @@ class _PreviewState extends State<_Preview> {
                         _endCameraDragIfNeeded();
                       }
                       if (wasSingleTap) {
-                        canvasTap?.call();
+                        WidgetsBinding.instance.addPostFrameCallback((_) {
+                          if (!mounted || _previewTapHandled) return;
+                          canvasTap?.call();
+                        });
                       }
                     },
                     onPointerCancel: (_) {
@@ -1464,7 +1487,6 @@ class _PreviewState extends State<_Preview> {
                     child: GestureDetector(
                       key: const Key('editor-preview-gesture-surface'),
                       behavior: HitTestBehavior.opaque,
-                      onTap: canvasTap,
                       child: SceneCanvas(
                         chapter: chapter,
                         media: session.bundle!.media,
@@ -1477,10 +1499,11 @@ class _PreviewState extends State<_Preview> {
                         placementEditingEnabled: placementEditingEnabled,
                         stickerEditingEnabled: _isStickerMode,
                         selectedStickerKind: widget.selectedStickerKind,
+                        selectedStickerId: widget.selectedStickerId,
                         onStickerPlaced: _placeStickerAt,
                         onStickerChanged: session.updateSticker,
-                        onStickerDeleted: session.removeSticker,
-                        onStickerTap: widget.onStickerTap,
+                        onStickerDeleted: stickerDeleted,
+                        onStickerTap: stickerTap,
 
                         onPlacementTap: placementTap,
                         onPlacementTransformStart: _startPlacementTransform,
@@ -1692,7 +1715,7 @@ class _Inspector extends StatefulWidget {
   final VoidCallback onFocusCanvas;
   final ValueChanged<String> onFocusPlacement;
   final ValueChanged<String> onDeletePlacement;
-  final VoidCallback onFocusSticker;
+  final ValueChanged<String?> onFocusSticker;
   final ValueChanged<GalleryStickerKind> onSelectStickerKind;
   final VoidCallback onDismiss;
 
@@ -1703,6 +1726,30 @@ class _Inspector extends StatefulWidget {
 class _InspectorState extends State<_Inspector> {
   EditorSession get session => widget.session;
   FrameFamily? _frameFamilyOverride;
+  _DecorationPanelType _decorationPanelType = _DecorationPanelType.stickers;
+  final TextEditingController _textStickerController = TextEditingController();
+  final GlobalKey _selectedTextEditorKey = GlobalKey();
+  GalleryTextFont _newTextFont = GalleryTextFont.handwriting;
+  late int _newTextColor;
+
+  @override
+  void initState() {
+    super.initState();
+    _newTextColor = switch (session.bundle!.document.theme) {
+      GalleryTheme.paper ||
+      GalleryTheme.warm ||
+      GalleryTheme.botanical ||
+      GalleryTheme.terracotta => galleryTextStickerColors.first,
+      _ => galleryTextStickerColors[3],
+    };
+    _syncDecorationPanelWithSelection(reveal: true);
+  }
+
+  @override
+  void dispose() {
+    _textStickerController.dispose();
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(covariant _Inspector oldWidget) {
@@ -1710,6 +1757,38 @@ class _InspectorState extends State<_Inspector> {
     if (oldWidget.selectedPlacementId != widget.selectedPlacementId) {
       _frameFamilyOverride = null;
     }
+    if (oldWidget.selectedStickerId != widget.selectedStickerId &&
+        widget.selectedStickerId != null) {
+      _syncDecorationPanelWithSelection(reveal: true);
+    }
+  }
+
+  void _syncDecorationPanelWithSelection({required bool reveal}) {
+    final selected = session.selectedChapter?.stickers
+        .where((item) => item.id == widget.selectedStickerId)
+        .firstOrNull;
+    if (selected?.isText ?? false) {
+      _decorationPanelType = _DecorationPanelType.text;
+      if (reveal) _revealSelectedTextEditor();
+    } else if (selected != null) {
+      _decorationPanelType = _DecorationPanelType.stickers;
+    }
+  }
+
+  void _revealSelectedTextEditor() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        final context = _selectedTextEditorKey.currentContext;
+        if (context == null) return;
+        Scrollable.ensureVisible(
+          context,
+          duration: const Duration(milliseconds: 260),
+          curve: Curves.easeOutCubic,
+          alignment: .85,
+        );
+      });
+    });
   }
 
   Widget _buildCanvasPanel(BuildContext context, GalleryChapter chapter) {
@@ -2066,29 +2145,59 @@ class _InspectorState extends State<_Inspector> {
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        _InspectorSection(
-          title: l10n.note,
-          child: TextFormField(
-            key: ValueKey('placement-caption-${placement.id}'),
-            initialValue: placement.caption,
-            maxLength: 60,
-            style: const TextStyle(fontSize: 13, color: XulangColors.paper),
-            decoration: InputDecoration(
-              labelText: l10n.singlePhotoCaption,
-              labelStyle: const TextStyle(
-                fontSize: 12,
-                color: XulangColors.muted,
+        if (placement.frame == GalleryFrame.captionMat) ...[
+          const SizedBox(height: 12),
+          _InspectorSection(
+            title: l10n.frameCaption,
+            child: TextFormField(
+              key: ValueKey('placement-frame-caption-${placement.id}'),
+              initialValue: placement.frameCaption,
+              maxLength: 48,
+              maxLines: 2,
+              style: const TextStyle(fontSize: 13, color: XulangColors.paper),
+              decoration: InputDecoration(
+                labelText: l10n.captionText,
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  color: XulangColors.muted,
+                ),
+                counterStyle: const TextStyle(
+                  fontSize: 10,
+                  color: XulangColors.muted,
+                ),
               ),
-              counterStyle: const TextStyle(
-                fontSize: 10,
-                color: XulangColors.muted,
-              ),
+              onChanged: (value) =>
+                  session.updatePlacement(placement.id, frameCaption: value),
             ),
-            onChanged: (value) =>
-                session.updatePlacement(placement.id, caption: value),
           ),
-        ),
+        ],
+        if (showsSinglePhotoCaption(chapter.layout)) ...[
+          const SizedBox(height: 12),
+          _InspectorSection(
+            title: l10n.note,
+            child: TextFormField(
+              key: ValueKey('placement-caption-${placement.id}'),
+              initialValue: placement.caption,
+              maxLength: 60,
+              maxLines: 1,
+              style: const TextStyle(fontSize: 13, color: XulangColors.paper),
+              decoration: InputDecoration(
+                labelText: l10n.singlePhotoCaption,
+                helperText: l10n.singlePhotoCaptionHint,
+                labelStyle: const TextStyle(
+                  fontSize: 12,
+                  color: XulangColors.muted,
+                ),
+                counterStyle: const TextStyle(
+                  fontSize: 10,
+                  color: XulangColors.muted,
+                ),
+              ),
+              onChanged: (value) =>
+                  session.updatePlacement(placement.id, caption: value),
+            ),
+          ),
+        ],
         const SizedBox(height: 12),
         SizedBox(
           width: double.infinity,
@@ -2262,8 +2371,8 @@ class _InspectorState extends State<_Inspector> {
                             selected:
                                 widget.interactionMode ==
                                 _EditorInteractionMode.sticker,
-                            onSelected: (_) => widget.onFocusSticker(),
-                            label: AppStrings.of(context).sticker,
+                            onSelected: (_) => widget.onFocusSticker(null),
+                            label: AppStrings.of(context).decoration,
                             icon: Icons.auto_awesome_outlined,
                           ),
                         ),
@@ -2299,27 +2408,75 @@ class _InspectorState extends State<_Inspector> {
   Widget _buildStickerPanel(BuildContext context, GalleryChapter chapter) {
     final l10n = AppStrings.of(context);
     final selectedStickerId = widget.selectedStickerId;
-    final controlledStickers = selectedStickerId == null
-        ? chapter.stickers
-        : chapter.stickers
-              .where((sticker) => sticker.id == selectedStickerId)
-              .toList(growable: false);
     return _InspectorSection(
-      title: l10n.stickers,
+      title: l10n.decorations,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(
-            l10n.stickerPanelHint,
-            style: const TextStyle(fontSize: 11, color: XulangColors.muted),
+          SizedBox(
+            width: double.infinity,
+            child: SegmentedButton<_DecorationPanelType>(
+              key: const Key('decoration-type-switcher'),
+              showSelectedIcon: false,
+              expandedInsets: EdgeInsets.zero,
+              segments: [
+                ButtonSegment(
+                  value: _DecorationPanelType.stickers,
+                  icon: const Icon(Icons.auto_awesome_outlined, size: 17),
+                  label: Text(l10n.sticker),
+                ),
+                ButtonSegment(
+                  value: _DecorationPanelType.text,
+                  icon: const Icon(Icons.text_fields, size: 17),
+                  label: Text(l10n.textDecoration),
+                ),
+              ],
+              selected: {_decorationPanelType},
+              onSelectionChanged: (selection) => setState(() {
+                _decorationPanelType = selection.single;
+              }),
+            ),
           ),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: [
-              for (final kind in GalleryStickerKind.values)
+          const SizedBox(height: 12),
+          if (_decorationPanelType == _DecorationPanelType.stickers)
+            _buildStickerCatalog(context, chapter, selectedStickerId)
+          else
+            _buildTextCatalog(context, chapter, selectedStickerId),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStickerCatalog(
+    BuildContext context,
+    GalleryChapter chapter,
+    String? selectedStickerId,
+  ) {
+    final l10n = AppStrings.of(context);
+    final controlledStickers =
+        (selectedStickerId == null
+                ? chapter.stickers.where((sticker) => !sticker.isText)
+                : chapter.stickers.where(
+                    (sticker) =>
+                        sticker.id == selectedStickerId && !sticker.isText,
+                  ))
+            .toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          l10n.stickerPanelHint,
+          style: const TextStyle(fontSize: 11, color: XulangColors.muted),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            for (final kind in GalleryStickerKind.values)
+              if (kind != GalleryStickerKind.text)
                 ChoiceChip(
                   key: Key('editor-sticker-kind-${kind.name}'),
                   selected: widget.selectedStickerKind == kind,
@@ -2333,24 +2490,149 @@ class _InspectorState extends State<_Inspector> {
                     ],
                   ),
                 ),
-            ],
+          ],
+        ),
+        if (controlledStickers.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          _SectionLabel(l10n.addedStickers),
+          const SizedBox(height: 6),
+          for (final sticker in controlledStickers)
+            StickerControlTile(
+              key: Key('editor-sticker-item-${sticker.id}'),
+              sticker: sticker,
+              label: _stickerKindLabel(l10n, sticker.kind),
+              onRotationChanged: (degrees) => session.updateSticker(
+                sticker.copyWith(rotation: degrees * math.pi / 180),
+              ),
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildTextCatalog(
+    BuildContext context,
+    GalleryChapter chapter,
+    String? selectedStickerId,
+  ) {
+    final l10n = AppStrings.of(context);
+    final textStickers = chapter.stickers
+        .where((sticker) => sticker.isText)
+        .toList(growable: false);
+    final selected = textStickers
+        .where((sticker) => sticker.id == selectedStickerId)
+        .firstOrNull;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          l10n.textDecorationHint,
+          style: const TextStyle(fontSize: 11, color: XulangColors.muted),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          key: const Key('new-text-sticker-field'),
+          controller: _textStickerController,
+          maxLength: 48,
+          maxLines: 2,
+          style: TextStyle(
+            color: XulangColors.paper,
+            fontFamily: galleryTextFontFamily(_newTextFont),
+            fontSize: 15,
           ),
-          if (controlledStickers.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            _SectionLabel(l10n.addedStickers),
-            const SizedBox(height: 6),
-            for (final sticker in controlledStickers)
-              StickerControlTile(
-                key: Key('editor-sticker-item-${sticker.id}'),
-                sticker: sticker,
-                label: _stickerKindLabel(l10n, sticker.kind),
-                onRotationChanged: (degrees) => session.updateSticker(
-                  sticker.copyWith(rotation: degrees * math.pi / 180),
+          decoration: InputDecoration(
+            labelText: l10n.enterText,
+            hintText: l10n.textStickerExample,
+          ),
+        ),
+        const SizedBox(height: 6),
+        _SectionLabel(l10n.fontStyle),
+        const SizedBox(height: 6),
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
+          children: [
+            for (final font in GalleryTextFont.values)
+              ChoiceChip(
+                key: Key('new-text-font-${font.name}'),
+                selected: _newTextFont == font,
+                onSelected: (_) => setState(() => _newTextFont = font),
+                label: Text(
+                  _textFontLabel(l10n, font),
+                  style: TextStyle(fontFamily: galleryTextFontFamily(font)),
                 ),
               ),
           ],
+        ),
+        const SizedBox(height: 10),
+        _SectionLabel(l10n.inkColor),
+        const SizedBox(height: 7),
+        _TextColorPicker(
+          selected: _newTextColor,
+          onSelected: (color) => setState(() => _newTextColor = color),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          width: double.infinity,
+          child: FilledButton.icon(
+            key: const Key('add-text-sticker-button'),
+            onPressed: () async {
+              final id = await session.addTextSticker(
+                text: _textStickerController.text,
+                font: _newTextFont,
+                color: _newTextColor,
+              );
+              if (id == null || !mounted) return;
+              _textStickerController.clear();
+              widget.onFocusSticker(id);
+            },
+            icon: const Icon(Icons.add, size: 18),
+            label: Text(l10n.addTextToCanvas),
+          ),
+        ),
+        if (textStickers.isNotEmpty) ...[
+          const SizedBox(height: 14),
+          _SectionLabel(l10n.addedText),
+          const SizedBox(height: 7),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              for (final sticker in textStickers)
+                ActionChip(
+                  key: Key('text-sticker-chip-${sticker.id}'),
+                  avatar: Icon(
+                    Icons.text_fields,
+                    size: 16,
+                    color: Color(sticker.textColor),
+                  ),
+                  label: Text(
+                    sticker.text,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: galleryTextFontFamily(sticker.textFont),
+                    ),
+                  ),
+                  onPressed: () => widget.onFocusSticker(sticker.id),
+                ),
+            ],
+          ),
         ],
-      ),
+        if (selected != null) ...[
+          const SizedBox(height: 14),
+          _TextStickerEditor(
+            key: _selectedTextEditorKey,
+            sticker: selected,
+            onChanged: session.updateSticker,
+            onDelete: () async {
+              await session.removeSticker(selected.id);
+              if (mounted) widget.onFocusSticker(null);
+            },
+          ),
+        ],
+      ],
     );
   }
 
@@ -2619,7 +2901,155 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
+class _TextColorPicker extends StatelessWidget {
+  const _TextColorPicker({required this.selected, required this.onSelected});
+
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Wrap(
+      spacing: 9,
+      runSpacing: 9,
+      children: [
+        for (final value in galleryTextStickerColors)
+          InkWell(
+            key: Key('text-color-${value.toRadixString(16)}'),
+            onTap: () => onSelected(value),
+            customBorder: const CircleBorder(),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 150),
+              width: 31,
+              height: 31,
+              padding: const EdgeInsets.all(3),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selected == value
+                      ? XulangColors.accent
+                      : XulangColors.line,
+                  width: selected == value ? 2 : .8,
+                ),
+              ),
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: Color(value),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: .18),
+                    width: .5,
+                  ),
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+}
+
+class _TextStickerEditor extends StatelessWidget {
+  const _TextStickerEditor({
+    super.key,
+    required this.sticker,
+    required this.onChanged,
+    required this.onDelete,
+  });
+
+  final GallerySticker sticker;
+  final ValueChanged<GallerySticker> onChanged;
+  final VoidCallback onDelete;
+
+  @override
+  Widget build(BuildContext context) {
+    final l10n = AppStrings.of(context);
+    return _InspectorSection(
+      title: l10n.textSettings,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextFormField(
+            key: ValueKey('text-sticker-content-${sticker.id}'),
+            initialValue: sticker.text,
+            maxLength: 48,
+            maxLines: 2,
+            style: TextStyle(
+              color: XulangColors.paper,
+              fontFamily: galleryTextFontFamily(sticker.textFont),
+              fontSize: 15,
+            ),
+            decoration: InputDecoration(labelText: l10n.enterText),
+            onChanged: (value) => onChanged(sticker.copyWith(text: value)),
+          ),
+          const SizedBox(height: 5),
+          _SectionLabel(l10n.fontStyle),
+          const SizedBox(height: 6),
+          Wrap(
+            spacing: 7,
+            runSpacing: 7,
+            children: [
+              for (final font in GalleryTextFont.values)
+                ChoiceChip(
+                  selected: sticker.textFont == font,
+                  onSelected: (_) =>
+                      onChanged(sticker.copyWith(textFont: font)),
+                  label: Text(
+                    _textFontLabel(l10n, font),
+                    style: TextStyle(fontFamily: galleryTextFontFamily(font)),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          _SectionLabel(l10n.inkColor),
+          const SizedBox(height: 7),
+          _TextColorPicker(
+            selected: sticker.textColor,
+            onSelected: (color) =>
+                onChanged(sticker.copyWith(textColor: color)),
+          ),
+          const SizedBox(height: 8),
+          _CropSlider(
+            label: l10n.textSize,
+            value: sticker.scale,
+            min: .6,
+            max: 2.4,
+            onChanged: (value) => onChanged(sticker.copyWith(scale: value)),
+          ),
+          _CropSlider(
+            label: l10n.stickerRotation,
+            value: sticker.rotation * 180 / math.pi,
+            min: -180,
+            max: 180,
+            onChanged: (degrees) =>
+                onChanged(sticker.copyWith(rotation: degrees * math.pi / 180)),
+          ),
+          const SizedBox(height: 7),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onDelete,
+              icon: const Icon(Icons.delete_outline, size: 18),
+              label: Text(l10n.deleteText),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.redAccent.shade100,
+                side: BorderSide(
+                  color: Colors.redAccent.withValues(alpha: .45),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 enum _EditorInteractionMode { canvas, image, sticker }
+
+enum _DecorationPanelType { stickers, text }
 
 String _stickerKindLabel(AppStrings l10n, GalleryStickerKind kind) =>
     switch (kind) {
@@ -2635,7 +3065,15 @@ String _stickerKindLabel(AppStrings l10n, GalleryStickerKind kind) =>
       GalleryStickerKind.paperTape => l10n.paperTapeSticker,
       GalleryStickerKind.fogRibbon => l10n.fogRibbonSticker,
       GalleryStickerKind.waxSeal => l10n.waxSealSticker,
+      GalleryStickerKind.text => l10n.textDecoration,
     };
+
+String _textFontLabel(AppStrings l10n, GalleryTextFont font) => switch (font) {
+  GalleryTextFont.system => l10n.systemFont,
+  GalleryTextFont.editorial => l10n.editorialFont,
+  GalleryTextFont.handwriting => l10n.handwritingFont,
+  GalleryTextFont.brush => l10n.brushFont,
+};
 
 class _CropSlider extends StatefulWidget {
   const _CropSlider({
@@ -2813,6 +3251,9 @@ String _layoutLabel(AppStrings l10n, GalleryLayout layout) => switch (layout) {
 bool showsStoryPathControls(GalleryLayout layout) =>
     layout == GalleryLayout.storyPath;
 
+bool showsSinglePhotoCaption(GalleryLayout layout) =>
+    layout == GalleryLayout.storyPath;
+
 String _sizeLabel(AppStrings l10n, GallerySize size) => switch (size) {
   GallerySize.small => l10n.small,
   GallerySize.medium => l10n.medium,
@@ -2838,6 +3279,7 @@ String _frameLabel(AppStrings l10n, GalleryFrame frame) => switch (frame) {
   GalleryFrame.vintage => l10n.vintageFrame,
   GalleryFrame.film => l10n.filmFrame,
   GalleryFrame.orb => l10n.orbFrame,
+  GalleryFrame.captionMat => l10n.captionMatFrame,
   GalleryFrame.tapedPaper => l10n.tapedPaperFrame,
   GalleryFrame.crayon => l10n.crayonFrame,
   GalleryFrame.watercolor => l10n.watercolorFrame,
@@ -2862,6 +3304,7 @@ const classicGalleryFrames = <GalleryFrame>[
 ];
 
 const handDrawnGalleryFrames = <GalleryFrame>[
+  GalleryFrame.captionMat,
   GalleryFrame.crayon,
   GalleryFrame.watercolor,
   GalleryFrame.doodleTape,

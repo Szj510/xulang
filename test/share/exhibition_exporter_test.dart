@@ -33,6 +33,7 @@ void main() {
               scale: 1.2,
               offsetX: .1,
               caption: '第一张',
+              frameCaption: '留白题字',
             ),
             GalleryPlacement(
               id: 'p2',
@@ -80,6 +81,8 @@ void main() {
     expect(placements.first.focalX, .25);
     expect(placements.first.scale, 1.2);
     expect(placements.first.offsetX, .1);
+    expect(placements.first.caption, '第一张');
+    expect(placements.first.frameCaption, '留白题字');
   });
 
   test('template summary includes per chapter slot counts', () {

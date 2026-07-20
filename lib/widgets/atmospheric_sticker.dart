@@ -65,6 +65,8 @@ class AtmosphericStickerPainter extends CustomPainter {
         _paintFogRibbon(canvas, size, alpha);
       case GalleryStickerKind.waxSeal:
         _paintWaxSeal(canvas, size, alpha);
+      case GalleryStickerKind.text:
+        break;
     }
     canvas.restore();
   }

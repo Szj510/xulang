@@ -291,6 +291,9 @@ class AppStrings {
   String get image => isEnglish ? 'Image' : '图片';
   String get sticker => isEnglish ? 'Sticker' : '贴画';
   String get stickers => isEnglish ? 'Stickers' : '贴画';
+  String get decoration => isEnglish ? 'Decorate' : '装饰';
+  String get decorations => isEnglish ? 'Decorations' : '装饰';
+  String get textDecoration => isEnglish ? 'Text' : '文字';
   String get addedStickers => isEnglish ? 'Added stickers' : '已添加贴画';
   String get canvasTheme => isEnglish ? 'Canvas theme' : '画布主题';
   String get inkCanvas => isEnglish ? 'Ink canvas' : '墨色画布';
@@ -315,6 +318,7 @@ class AppStrings {
   String get frameStyle => isEnglish ? 'Frame' : '画框';
   String get classicFrames => isEnglish ? 'Classic' : '经典';
   String get handDrawnFrames => isEnglish ? 'Hand-drawn' : '手绘';
+  String get captionFrames => isEnglish ? 'Caption' : '题字';
   String get cropAndComposition => isEnglish ? 'Crop & composition' : '裁切与构图';
   String get horizontalFocus => isEnglish ? 'Horizontal focus' : '水平焦点';
   String get verticalFocus => isEnglish ? 'Vertical focus' : '垂直焦点';
@@ -322,6 +326,11 @@ class AppStrings {
   String get rotationAngle => isEnglish ? 'Rotation' : '旋转角度';
   String get note => isEnglish ? 'Note' : '说明';
   String get singlePhotoCaption => isEnglish ? 'Photo note' : '单图短注释';
+  String get singlePhotoCaptionHint => isEnglish
+      ? 'Shown beside this photo only in the Story Path layout.'
+      : '仅在故事路径布局中显示在这张图片的路径节点旁。';
+  String get frameCaption => isEnglish ? 'Frame caption' : '相框题字';
+  String get captionText => isEnglish ? 'Caption text' : '题字内容';
   String get canvasImage => isEnglish ? 'Canvas image' : '画布图片';
   String get customCanvasSet => isEnglish ? 'Custom canvas set' : '已设置自定义画布';
   String get audio => isEnglish ? 'Audio' : '音频';
@@ -330,6 +339,23 @@ class AppStrings {
   String get stickerPanelHint => isEnglish
       ? 'Choose a small object, then tap the canvas to place it. Placed stickers can be dragged and rotated; tap the corner cross to delete.'
       : '选择一个小物品后，点击画布放置；已放置的贴画可以拖动、旋转，点右上角叉删除。';
+  String get textDecorationHint => isEnglish
+      ? 'Enter text and add it to the canvas. Select it to drag, resize or rotate.'
+      : '输入文字后添加到画布；选中后可以拖动、缩放或旋转。';
+  String get enterText => isEnglish ? 'Your text' : '输入文字';
+  String get textStickerExample =>
+      isEnglish ? 'A quiet afternoon' : '把日子过成想要的样子';
+  String get fontStyle => isEnglish ? 'Typeface' : '字体风格';
+  String get inkColor => isEnglish ? 'Ink color' : '墨色';
+  String get addTextToCanvas => isEnglish ? 'Add text to canvas' : '添加文字到画布';
+  String get addedText => isEnglish ? 'Added text' : '已添加文字';
+  String get textSettings => isEnglish ? 'Text settings' : '文字设置';
+  String get textSize => isEnglish ? 'Size' : '字号';
+  String get deleteText => isEnglish ? 'Delete text' : '删除文字';
+  String get systemFont => isEnglish ? 'System' : '系统';
+  String get editorialFont => isEnglish ? 'Editorial' : '叙事宋体';
+  String get handwritingFont => isEnglish ? 'Diary' : '日记手写';
+  String get brushFont => isEnglish ? 'Brush' : '艺术笔触';
   String get chapterText => isEnglish ? 'Chapter text' : '章节文字';
   String get chapterTitleField => isEnglish ? 'Chapter title' : '章节标题';
   String get shortNote => isEnglish ? 'Short note' : '短注释';
@@ -363,6 +389,7 @@ class AppStrings {
   String get vintageFrame => isEnglish ? 'Vintage' : '复古';
   String get filmFrame => isEnglish ? 'Film case' : '胶片匣';
   String get orbFrame => isEnglish ? 'Circle' : '圆形框';
+  String get captionMatFrame => isEnglish ? 'Caption mat' : '留白题字';
   String get tapedPaperFrame => isEnglish ? 'Taped paper' : '胶带纸框';
   String get crayonFrame => isEnglish ? 'Oil pastel' : '油画棒';
   String get watercolorFrame => isEnglish ? 'Watercolor bloom' : '水彩花边';

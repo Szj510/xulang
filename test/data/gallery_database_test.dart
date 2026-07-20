@@ -256,4 +256,62 @@ void main() {
       GalleryFrame.watercolor,
     );
   });
+
+  test('persists caption frames and text decorations', () async {
+    final base = GalleryDocument.create(
+      id: 'caption-and-text',
+      title: 'Caption',
+      createdAt: DateTime.utc(2026, 7, 20),
+    );
+    final document = base.copyWith(
+      chapters: [
+        base.chapters.single.copyWith(
+          placements: const [
+            GalleryPlacement(
+              id: 'caption-placement',
+              mediaId: 'media',
+              order: 0,
+              frame: GalleryFrame.captionMat,
+              caption: '01 湖畔',
+              frameCaption: '风从湖面吹来',
+            ),
+          ],
+          stickers: const [
+            GallerySticker(
+              id: 'text-1',
+              kind: GalleryStickerKind.text,
+              x: .4,
+              y: .7,
+              text: '夏日散步',
+              textFont: GalleryTextFont.editorial,
+              textColor: 0xFF6F442A,
+            ),
+          ],
+        ),
+      ],
+    );
+    const media = GalleryMedia(
+      id: 'media',
+      originalPath: '/media/original.jpg',
+      thumbnailPath: '/media/thumb.webp',
+      width: 100,
+      height: 100,
+      contentHash: 'caption-and-text',
+    );
+
+    await database.saveDocument(document, const [media]);
+    final restored = await database.loadDocument(document.id);
+
+    expect(
+      restored!.chapters.single.placements.single.frame,
+      GalleryFrame.captionMat,
+    );
+    expect(restored.chapters.single.placements.single.caption, '01 湖畔');
+    expect(restored.chapters.single.placements.single.frameCaption, '风从湖面吹来');
+    expect(restored.chapters.single.stickers.single.text, '夏日散步');
+    expect(
+      restored.chapters.single.stickers.single.textFont,
+      GalleryTextFont.editorial,
+    );
+  });
 }

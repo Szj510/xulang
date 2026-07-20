@@ -30,6 +30,12 @@ void main() {
     expect(strings.orbFrame, 'Circle');
     expect(strings.classicFrames, 'Classic');
     expect(strings.handDrawnFrames, 'Hand-drawn');
+    expect(strings.singlePhotoCaptionHint, contains('Story Path'));
+    expect(strings.captionMatFrame, 'Caption mat');
+    expect(strings.decoration, 'Decorate');
+    expect(strings.textDecoration, 'Text');
+    expect(strings.addTextToCanvas, 'Add text to canvas');
+    expect(strings.handwritingFont, 'Diary');
     expect(strings.tapedPaperFrame, 'Taped paper');
     expect(strings.crayonFrame, 'Oil pastel');
     expect(strings.watercolorFrame, 'Watercolor bloom');

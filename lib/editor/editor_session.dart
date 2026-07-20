@@ -471,6 +471,34 @@ class EditorSession extends ChangeNotifier {
     );
   }
 
+  Future<String?> addTextSticker({
+    required String text,
+    required GalleryTextFont font,
+    required int color,
+    double x = 0.5,
+    double y = 0.58,
+  }) async {
+    final chapter = selectedChapter;
+    final value = text.trim();
+    if (chapter == null || value.isEmpty) return null;
+    final id = repository.createId();
+    await updateChapter(
+      stickers: [
+        ...chapter.stickers,
+        GallerySticker(
+          id: id,
+          kind: GalleryStickerKind.text,
+          x: x,
+          y: y,
+          text: value,
+          textFont: font,
+          textColor: color,
+        ),
+      ],
+    );
+    return id;
+  }
+
   Future<void> updateSticker(GallerySticker sticker) async {
     final chapter = selectedChapter;
     if (chapter == null) return;
@@ -505,6 +533,7 @@ class EditorSession extends ChangeNotifier {
     double? offsetY,
     double? rotation,
     String? caption,
+    String? frameCaption,
   }) async {
     final current = bundle;
     if (current == null) return;
@@ -525,6 +554,7 @@ class EditorSession extends ChangeNotifier {
               offsetY: offsetY?.clamp(-.45, .45),
               rotation: rotation,
               caption: caption,
+              frameCaption: frameCaption,
             )
           else
             placement,

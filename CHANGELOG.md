@@ -4,6 +4,22 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+### Added
+
+- Added a caption-mat photo frame whose photo, paper, inscription, and rotation behave as one object.
+- Added free-text canvas decorations with four font choices, adaptive ink colors, sizing, movement, rotation, editing, and deletion.
+- Bundled three OFL-licensed Chinese display fonts and documented their third-party notices.
+
+### Changed
+
+- Moved the caption-mat frame into the hand-drawn frame family.
+- Limited single-photo notes to Story Path and gave caption-mat inscriptions their own independent persisted field.
+
+### Fixed
+
+- Tapping empty canvas space now closes the active editing panel, while image and decoration taps still open their matching controls.
+- Selecting an existing text decoration now opens and scrolls to its text controls instead of the sticker catalog.
+
 ## [1.1.1] - 2026-07-20
 
 ### Added

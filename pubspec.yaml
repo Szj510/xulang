@@ -82,6 +82,17 @@ flutter:
     - assets/sample/
     - assets/branding/
 
+  fonts:
+    - family: Xulang Editorial
+      fonts:
+        - asset: assets/fonts/ZCOOLXiaoWei-Regular.ttf
+    - family: Xulang Handwriting
+      fonts:
+        - asset: assets/fonts/MaShanZheng-Regular.ttf
+    - family: Xulang Brush
+      fonts:
+        - asset: assets/fonts/LongCang-Regular.ttf
+
 flutter_launcher_icons:
   android: true
   image_path: "assets/branding/app-icon.png"

@@ -175,6 +175,7 @@ class GalleryRepository {
                   offsetY: placement.offsetY,
                   rotation: placement.rotation,
                   caption: placement.caption,
+                  frameCaption: placement.frameCaption,
                 ),
             ],
           ),

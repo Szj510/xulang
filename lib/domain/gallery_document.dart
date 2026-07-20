@@ -17,6 +17,7 @@ enum GalleryFrame {
   vintage,
   film,
   orb,
+  captionMat,
   tapedPaper,
   crayon,
   watercolor,
@@ -260,7 +261,10 @@ enum GalleryStickerKind {
   paperTape,
   fogRibbon,
   waxSeal,
+  text,
 }
+
+enum GalleryTextFont { system, editorial, handwriting, brush }
 
 class GallerySticker {
   const GallerySticker({
@@ -270,6 +274,9 @@ class GallerySticker {
     required this.y,
     this.scale = 1,
     this.rotation = 0,
+    this.text = '',
+    this.textFont = GalleryTextFont.handwriting,
+    this.textColor = 0xFF2C241B,
   });
 
   final String id;
@@ -278,6 +285,11 @@ class GallerySticker {
   final double y;
   final double scale;
   final double rotation;
+  final String text;
+  final GalleryTextFont textFont;
+  final int textColor;
+
+  bool get isText => kind == GalleryStickerKind.text;
 
   GallerySticker copyWith({
     GalleryStickerKind? kind,
@@ -285,6 +297,9 @@ class GallerySticker {
     double? y,
     double? scale,
     double? rotation,
+    String? text,
+    GalleryTextFont? textFont,
+    int? textColor,
   }) {
     return GallerySticker(
       id: id,
@@ -293,6 +308,9 @@ class GallerySticker {
       y: y ?? this.y,
       scale: scale ?? this.scale,
       rotation: rotation ?? this.rotation,
+      text: text ?? this.text,
+      textFont: textFont ?? this.textFont,
+      textColor: textColor ?? this.textColor,
     );
   }
 
@@ -303,6 +321,9 @@ class GallerySticker {
     'y': y,
     'scale': scale,
     'rotation': rotation,
+    if (isText) 'text': text,
+    if (isText) 'textFont': textFont.name,
+    if (isText) 'textColor': textColor,
   };
 
   factory GallerySticker.fromJson(Map<String, dynamic> json) {
@@ -317,6 +338,13 @@ class GallerySticker {
       y: ((json['y'] as num?) ?? 0.5).toDouble(),
       scale: ((json['scale'] as num?) ?? 1).toDouble(),
       rotation: ((json['rotation'] as num?) ?? 0).toDouble(),
+      text: json['text'] as String? ?? '',
+      textFont: _enumByName(
+        GalleryTextFont.values,
+        json['textFont'] as String? ?? GalleryTextFont.handwriting.name,
+        GalleryTextFont.handwriting,
+      ),
+      textColor: (json['textColor'] as num?)?.toInt() ?? 0xFF2C241B,
     );
   }
 
@@ -328,10 +356,14 @@ class GallerySticker {
       x == other.x &&
       y == other.y &&
       scale == other.scale &&
-      rotation == other.rotation;
+      rotation == other.rotation &&
+      text == other.text &&
+      textFont == other.textFont &&
+      textColor == other.textColor;
 
   @override
-  int get hashCode => Object.hash(id, kind, x, y, scale, rotation);
+  int get hashCode =>
+      Object.hash(id, kind, x, y, scale, rotation, text, textFont, textColor);
 }
 
 T _enumByName<T extends Enum>(List<T> values, String name, T fallback) {
@@ -627,6 +659,7 @@ class GalleryPlacement {
     this.offsetY = 0,
     this.rotation = 0.0,
     this.caption = '',
+    this.frameCaption = '',
   });
 
   final String id;
@@ -642,6 +675,7 @@ class GalleryPlacement {
   final double offsetY;
   final double rotation;
   final String caption;
+  final String frameCaption;
 
   GalleryPlacement copyWith({
     int? order,
@@ -655,6 +689,7 @@ class GalleryPlacement {
     double? offsetY,
     double? rotation,
     String? caption,
+    String? frameCaption,
   }) {
     return GalleryPlacement(
       id: id,
@@ -670,6 +705,7 @@ class GalleryPlacement {
       offsetY: offsetY ?? this.offsetY,
       rotation: rotation ?? this.rotation,
       caption: caption ?? this.caption,
+      frameCaption: frameCaption ?? this.frameCaption,
     );
   }
 }

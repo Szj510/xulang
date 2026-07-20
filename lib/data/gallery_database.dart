@@ -113,6 +113,7 @@ class Placements extends Table {
   RealColumn get offsetY => real().withDefault(const Constant(0.0))();
   RealColumn get rotation => real().withDefault(const Constant(0.0))();
   TextColumn get caption => text()();
+  TextColumn get frameCaption => text().withDefault(const Constant(''))();
 
   @override
   Set<Column<Object>> get primaryKey => {id};
@@ -134,7 +135,7 @@ class GalleryDatabase extends _$GalleryDatabase {
   GalleryDatabase.forTesting(super.executor);
 
   @override
-  int get schemaVersion => 12;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -177,12 +178,16 @@ class GalleryDatabase extends _$GalleryDatabase {
       if (from < 12) {
         await _ensureAppSettingsColumns();
       }
+      if (from < 13) {
+        await _ensureFrameCaptionColumn();
+      }
     },
     beforeOpen: (_) async {
       await _ensurePlaybackDelayColumn();
       await _ensureCanvasBackgroundColumns();
       await _ensureCategoryAndSettingsSchema();
       await _ensureAppSettingsColumns();
+      await _ensureFrameCaptionColumn();
     },
   );
 
@@ -252,6 +257,17 @@ class GalleryDatabase extends _$GalleryDatabase {
     await _ensureCanvasBackgroundColumns();
     await _ensureCategoryAndSettingsSchema();
     await _ensureAppSettingsColumns();
+    await _ensureFrameCaptionColumn();
+  }
+
+  Future<void> _ensureFrameCaptionColumn() async {
+    try {
+      await customStatement(
+        "ALTER TABLE placements ADD COLUMN frame_caption TEXT NOT NULL DEFAULT ''",
+      );
+    } catch (_) {
+      // Column already exists on current installs.
+    }
   }
 
   Future<void> _ensureAppSettingsColumns() async {
@@ -393,6 +409,7 @@ class GalleryDatabase extends _$GalleryDatabase {
                 offsetY: Value(item.offsetY),
                 rotation: Value(item.rotation),
                 caption: item.caption,
+                frameCaption: Value(item.frameCaption),
               ),
         ]);
       });
@@ -474,6 +491,7 @@ class GalleryDatabase extends _$GalleryDatabase {
                 offsetX: item.offsetX,
                 offsetY: item.offsetY,
                 caption: item.caption,
+                frameCaption: item.frameCaption,
                 rotation: item.rotation,
               ),
           ],

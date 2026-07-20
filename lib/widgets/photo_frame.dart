@@ -123,6 +123,11 @@ class PhotoFrame extends StatelessWidget {
             ),
           ),
         ),
+        GalleryFrame.captionMat => _CaptionMatFrame(
+          key: const Key('frame-captionMat'),
+          caption: placement.frameCaption,
+          child: _image(context),
+        ),
         GalleryFrame.tapedPaper => _TexturedFrame(
           key: const Key('frame-tapedPaper'),
           painterKey: const Key('taped-paper-frame-painter'),
@@ -216,6 +221,111 @@ class PhotoFrame extends StatelessWidget {
             ),
     );
   }
+}
+
+class _CaptionMatFrame extends StatelessWidget {
+  const _CaptionMatFrame({
+    super.key,
+    required this.caption,
+    required this.child,
+  });
+
+  final String caption;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomPaint(
+      key: const Key('caption-mat-frame-painter'),
+      painter: const _CaptionMatFramePainter(),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final captionHeight = (constraints.maxHeight * .22).clamp(25.0, 58.0);
+          final fontSize = (captionHeight * .42).clamp(11.0, 21.0);
+          return Padding(
+            padding: const EdgeInsets.fromLTRB(10, 11, 10, 9),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: DecoratedBox(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: const Color(0xFF615746).withValues(alpha: .22),
+                        width: .8,
+                      ),
+                    ),
+                    child: child,
+                  ),
+                ),
+                SizedBox(
+                  height: captionHeight,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      child: Text(
+                        caption.trim(),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: const Color(0xFF4B3928),
+                          fontFamily: 'Xulang Handwriting',
+                          fontFamilyFallback: const [
+                            'Noto Serif SC',
+                            'STKaiti',
+                            'serif',
+                          ],
+                          fontSize: fontSize,
+                          height: 1.12,
+                          letterSpacing: .7,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _CaptionMatFramePainter extends CustomPainter {
+  const _CaptionMatFramePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final rect = Offset.zero & size;
+    final paper = RRect.fromRectAndRadius(rect, const Radius.circular(2.5));
+    canvas.drawRRect(paper, Paint()..color = const Color(0xFFF3EBDD));
+    canvas.drawRRect(
+      paper.deflate(.8),
+      Paint()
+        ..color = const Color(0xFF776B5A).withValues(alpha: .30)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = .8,
+    );
+    final fiber = Paint()
+      ..color = const Color(0xFF9C8464).withValues(alpha: .10)
+      ..strokeWidth = .45;
+    for (var y = 7.0; y < size.height; y += 11) {
+      canvas.drawLine(Offset(4, y), Offset(size.width - 4, y + .7), fiber);
+    }
+    _drawTape(
+      canvas,
+      Offset(math.min(size.width * .18, 31), 5),
+      math.min(48, size.width * .34),
+      13,
+      -.16,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _CaptionMatFramePainter oldDelegate) => false;
 }
 
 class _OrbFrame extends StatelessWidget {

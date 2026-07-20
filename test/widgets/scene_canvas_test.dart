@@ -369,6 +369,51 @@ void main() {
     expect(placedStickers, isEmpty);
   });
 
+  testWidgets('text decoration renders and rotates from its canvas handle', (
+    tester,
+  ) async {
+    const textSticker = GallerySticker(
+      id: 'text-1',
+      kind: GalleryStickerKind.text,
+      x: .5,
+      y: .7,
+      text: '山海之间',
+      textFont: GalleryTextFont.handwriting,
+    );
+    final updates = <GallerySticker>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(
+            chapter: chapter.copyWith(stickers: const [textSticker]),
+            media: const [media],
+            stickerEditingEnabled: true,
+            selectedStickerId: textSticker.id,
+            onStickerChanged: updates.add,
+          ),
+        ),
+      ),
+    );
+
+    expect(find.text('山海之间'), findsOneWidget);
+    expect(find.byKey(const Key('scene-sticker-text-1')), findsOneWidget);
+    expect(
+      find.byKey(const Key('scene-sticker-delete-text-1')),
+      findsOneWidget,
+    );
+
+    await tester.drag(
+      find.byKey(const Key('scene-sticker-rotate-text-1')),
+      const Offset(28, 0),
+    );
+    await tester.pump();
+
+    expect(updates, isNotEmpty);
+    expect(updates.last.rotation, greaterThan(0));
+  });
+
   testWidgets('story path painter receives resolved scene geometry', (
     tester,
   ) async {

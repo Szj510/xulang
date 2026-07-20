@@ -70,5 +70,46 @@ void main() {
       expect(moved.placements.map((item) => item.id), ['p2', 'p3', 'p1']);
       expect(moved.placements.map((item) => item.order), [0, 1, 2]);
     });
+
+    test('text decorations round-trip without affecting legacy stickers', () {
+      const text = GallerySticker(
+        id: 'text-1',
+        kind: GalleryStickerKind.text,
+        x: .42,
+        y: .64,
+        scale: 1.3,
+        rotation: .2,
+        text: '山海之间',
+        textFont: GalleryTextFont.brush,
+        textColor: 0xFF6F442A,
+      );
+
+      expect(GallerySticker.fromJson(text.toJson()), text);
+
+      final legacy = GallerySticker.fromJson({
+        'id': 'legacy-star',
+        'kind': 'star',
+        'x': .5,
+        'y': .5,
+      });
+      expect(legacy.kind, GalleryStickerKind.star);
+      expect(legacy.text, isEmpty);
+      expect(legacy.textFont, GalleryTextFont.handwriting);
+    });
+
+    test('story note and frame caption remain independent', () {
+      const placement = GalleryPlacement(
+        id: 'photo',
+        mediaId: 'media',
+        order: 0,
+        caption: '01 湖畔',
+        frameCaption: '风从湖面吹来',
+      );
+
+      final updated = placement.copyWith(frameCaption: '潮声仍在');
+
+      expect(updated.caption, '01 湖畔');
+      expect(updated.frameCaption, '潮声仍在');
+    });
   });
 }

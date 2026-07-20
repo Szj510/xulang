@@ -53,6 +53,7 @@ class ExhibitionTemplateCodec {
                   'offsetY': placement.offsetY,
                   'rotation': placement.rotation,
                   'caption': placement.caption,
+                  'frameCaption': placement.frameCaption,
                 },
             ],
           },
@@ -365,6 +366,7 @@ GalleryPlacement _placementFromSlot({
     offsetY: (slot['offsetY'] as num?)?.toDouble() ?? 0,
     rotation: (slot['rotation'] as num?)?.toDouble() ?? 0,
     caption: slot['caption'] as String? ?? '',
+    frameCaption: slot['frameCaption'] as String? ?? '',
   );
 }
 

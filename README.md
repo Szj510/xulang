@@ -147,3 +147,4 @@ Do not open public issues for vulnerabilities. Follow [SECURITY.md](SECURITY.md)
 Copyright (C) 2026 ius.
 
 Xulang is licensed under the [GNU General Public License v3.0](LICENSE).
+Bundled fonts and their licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

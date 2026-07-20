@@ -12,6 +12,7 @@ import 'package:xulang/layout/story_path_geometry.dart';
 import 'package:xulang/theme/xulang_theme.dart';
 import 'package:xulang/widgets/atmospheric_sticker.dart';
 import 'package:xulang/widgets/gallery_image.dart';
+import 'package:xulang/widgets/gallery_text_sticker.dart';
 import 'package:xulang/widgets/photo_frame.dart';
 
 class SceneCanvas extends StatelessWidget {
@@ -30,6 +31,7 @@ class SceneCanvas extends StatelessWidget {
     this.placementEditingEnabled = true,
     this.stickerEditingEnabled = false,
     this.selectedStickerKind,
+    this.selectedStickerId,
     this.onStickerPlaced,
     this.onStickerChanged,
     this.onStickerDeleted,
@@ -53,6 +55,7 @@ class SceneCanvas extends StatelessWidget {
   final bool placementEditingEnabled;
   final bool stickerEditingEnabled;
   final GalleryStickerKind? selectedStickerKind;
+  final String? selectedStickerId;
   final void Function(Offset localPosition, Size viewport)? onStickerPlaced;
   final ValueChanged<GallerySticker>? onStickerChanged;
   final ValueChanged<String>? onStickerDeleted;
@@ -330,6 +333,7 @@ class SceneCanvas extends StatelessWidget {
                     cameraOffset: stickerCameraOffset,
                     usesSharedCamera: track.sharedCamera,
                     editable: stickerEditingEnabled,
+                    selected: selectedStickerId == sticker.id,
                     onChanged: onStickerChanged,
                     onDeleted: onStickerDeleted,
                     onTap: onStickerTap,
@@ -409,7 +413,7 @@ bool _isStickerTapTarget({
   required bool usesSharedCamera,
 }) {
   for (final sticker in stickers) {
-    final size = 42.0 * sticker.scale.clamp(0.6, 1.8);
+    final visualSize = _stickerVisualSize(sticker);
     final worldCenter = Offset(
       sticker.x * viewport.width,
       sticker.y * viewport.height,
@@ -422,8 +426,8 @@ bool _isStickerTapTarget({
     );
     final hitRect = Rect.fromCenter(
       center: screenCenter,
-      width: size + 52,
-      height: size + 52,
+      width: visualSize.width + 52,
+      height: visualSize.height + 52,
     );
     if (hitRect.contains(screenPoint)) return true;
   }
@@ -484,6 +488,7 @@ class _StickerWidget extends StatelessWidget {
     required this.cameraOffset,
     required this.usesSharedCamera,
     required this.editable,
+    required this.selected,
     required this.onChanged,
     required this.onDeleted,
     required this.onTap,
@@ -496,14 +501,14 @@ class _StickerWidget extends StatelessWidget {
   final double cameraOffset;
   final bool usesSharedCamera;
   final bool editable;
+  final bool selected;
   final ValueChanged<GallerySticker>? onChanged;
   final ValueChanged<String>? onDeleted;
   final ValueChanged<String>? onTap;
 
   @override
   Widget build(BuildContext context) {
-    const baseSize = 42.0;
-    final size = baseSize * sticker.scale.clamp(0.6, 1.8);
+    final visualSize = _stickerVisualSize(sticker);
     final worldCenter = Offset(
       sticker.x * viewport.width,
       sticker.y * viewport.height,
@@ -514,51 +519,69 @@ class _StickerWidget extends StatelessWidget {
       cameraOffset,
       usesSharedCamera,
     );
-    const deleteHitSize = 46.0;
-    final hitSize = size + 58;
-    final left = screenCenter.dx - hitSize / 2;
-    final top = screenCenter.dy - hitSize / 2;
+    const controlHitSize = 44.0;
+    final hitWidth = visualSize.width + 58;
+    final hitHeight = visualSize.height + 66;
+    final left = screenCenter.dx - hitWidth / 2;
+    final top = screenCenter.dy - hitHeight / 2;
     return Positioned(
       left: left,
       top: top,
-      width: hitSize,
-      height: hitSize,
+      width: hitWidth,
+      height: hitHeight,
       child: Opacity(
         opacity: opacity,
         child: Stack(
           clipBehavior: Clip.none,
           children: [
             Center(
-              child: GestureDetector(
-                key: Key('scene-sticker-${sticker.id}'),
-                behavior: HitTestBehavior.translucent,
-                onTap: () => onTap?.call(sticker.id),
-                onPanUpdate: !editable || onChanged == null
-                    ? null
-                    : (details) {
-                        final nextScreenCenter = screenCenter + details.delta;
-                        final nextWorldCenter = _stickerScreenToWorld(
-                          nextScreenCenter,
-                          axis,
-                          cameraOffset,
-                          usesSharedCamera,
-                        );
-                        onChanged!(
-                          sticker.copyWith(
-                            x: nextWorldCenter.dx / viewport.width,
-                            y: nextWorldCenter.dy / viewport.height,
+              child: Transform.rotate(
+                angle: sticker.rotation,
+                child: GestureDetector(
+                  key: Key('scene-sticker-${sticker.id}'),
+                  behavior: HitTestBehavior.translucent,
+                  onTap: () => onTap?.call(sticker.id),
+                  onPanUpdate: !editable || onChanged == null
+                      ? null
+                      : (details) {
+                          final nextScreenCenter = screenCenter + details.delta;
+                          final nextWorldCenter = _stickerScreenToWorld(
+                            nextScreenCenter,
+                            axis,
+                            cameraOffset,
+                            usesSharedCamera,
+                          );
+                          onChanged!(
+                            sticker.copyWith(
+                              x: nextWorldCenter.dx / viewport.width,
+                              y: nextWorldCenter.dy / viewport.height,
+                            ),
+                          );
+                        },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    padding: EdgeInsets.all(selected ? 4 : 0),
+                    decoration: BoxDecoration(
+                      border: selected
+                          ? Border.all(
+                              color: XulangColors.accent.withValues(alpha: .86),
+                              width: 1,
+                            )
+                          : null,
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: sticker.isText
+                        ? GalleryTextStickerView(sticker: sticker)
+                        : AtmosphericSticker(
+                            kind: sticker.kind,
+                            size: visualSize.width,
+                            opacity: opacity,
                           ),
-                        );
-                      },
-                child: AtmosphericSticker(
-                  kind: sticker.kind,
-                  size: size,
-                  rotation: sticker.rotation,
-                  opacity: opacity,
+                  ),
                 ),
               ),
             ),
-            if (editable)
+            if (editable && selected)
               Positioned(
                 right: 0,
                 top: 0,
@@ -567,8 +590,8 @@ class _StickerWidget extends StatelessWidget {
                   behavior: HitTestBehavior.opaque,
                   onTap: () => onDeleted?.call(sticker.id),
                   child: SizedBox(
-                    width: deleteHitSize,
-                    height: deleteHitSize,
+                    width: controlHitSize,
+                    height: controlHitSize,
                     child: Center(
                       child: Container(
                         width: 28,
@@ -590,11 +613,54 @@ class _StickerWidget extends StatelessWidget {
                   ),
                 ),
               ),
+            if (editable && selected)
+              Positioned(
+                left: (hitWidth - controlHitSize) / 2,
+                bottom: 0,
+                child: GestureDetector(
+                  key: Key('scene-sticker-rotate-${sticker.id}'),
+                  behavior: HitTestBehavior.opaque,
+                  onPanUpdate: onChanged == null
+                      ? null
+                      : (details) => onChanged!(
+                          sticker.copyWith(
+                            rotation: sticker.rotation + details.delta.dx * .02,
+                          ),
+                        ),
+                  child: SizedBox.square(
+                    dimension: controlHitSize,
+                    child: Center(
+                      child: Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: .72),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: XulangColors.accent.withValues(alpha: .72),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.rotate_right,
+                          size: 18,
+                          color: XulangColors.paper,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
+}
+
+Size _stickerVisualSize(GallerySticker sticker) {
+  if (sticker.isText) return measureGalleryTextSticker(sticker);
+  final size = 42.0 * sticker.scale.clamp(0.6, 1.8);
+  return Size.square(size);
 }
 
 class _CustomStoryPathLabel extends StatelessWidget {

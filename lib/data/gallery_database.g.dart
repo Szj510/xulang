@@ -2990,6 +2990,18 @@ class $PlacementsTable extends Placements
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _frameCaptionMeta = const VerificationMeta(
+    'frameCaption',
+  );
+  @override
+  late final GeneratedColumn<String> frameCaption = GeneratedColumn<String>(
+    'frame_caption',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+    defaultValue: const Constant(''),
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -3006,6 +3018,7 @@ class $PlacementsTable extends Placements
     offsetY,
     rotation,
     caption,
+    frameCaption,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -3120,6 +3133,15 @@ class $PlacementsTable extends Placements
     } else if (isInserting) {
       context.missing(_captionMeta);
     }
+    if (data.containsKey('frame_caption')) {
+      context.handle(
+        _frameCaptionMeta,
+        frameCaption.isAcceptableOrUnknown(
+          data['frame_caption']!,
+          _frameCaptionMeta,
+        ),
+      );
+    }
     return context;
   }
 
@@ -3185,6 +3207,10 @@ class $PlacementsTable extends Placements
         DriftSqlType.string,
         data['${effectivePrefix}caption'],
       )!,
+      frameCaption: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}frame_caption'],
+      )!,
     );
   }
 
@@ -3209,6 +3235,7 @@ class Placement extends DataClass implements Insertable<Placement> {
   final double offsetY;
   final double rotation;
   final String caption;
+  final String frameCaption;
   const Placement({
     required this.id,
     required this.chapterId,
@@ -3224,6 +3251,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     required this.offsetY,
     required this.rotation,
     required this.caption,
+    required this.frameCaption,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -3242,6 +3270,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     map['offset_y'] = Variable<double>(offsetY);
     map['rotation'] = Variable<double>(rotation);
     map['caption'] = Variable<String>(caption);
+    map['frame_caption'] = Variable<String>(frameCaption);
     return map;
   }
 
@@ -3261,6 +3290,7 @@ class Placement extends DataClass implements Insertable<Placement> {
       offsetY: Value(offsetY),
       rotation: Value(rotation),
       caption: Value(caption),
+      frameCaption: Value(frameCaption),
     );
   }
 
@@ -3284,6 +3314,7 @@ class Placement extends DataClass implements Insertable<Placement> {
       offsetY: serializer.fromJson<double>(json['offsetY']),
       rotation: serializer.fromJson<double>(json['rotation']),
       caption: serializer.fromJson<String>(json['caption']),
+      frameCaption: serializer.fromJson<String>(json['frameCaption']),
     );
   }
   @override
@@ -3304,6 +3335,7 @@ class Placement extends DataClass implements Insertable<Placement> {
       'offsetY': serializer.toJson<double>(offsetY),
       'rotation': serializer.toJson<double>(rotation),
       'caption': serializer.toJson<String>(caption),
+      'frameCaption': serializer.toJson<String>(frameCaption),
     };
   }
 
@@ -3322,6 +3354,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     double? offsetY,
     double? rotation,
     String? caption,
+    String? frameCaption,
   }) => Placement(
     id: id ?? this.id,
     chapterId: chapterId ?? this.chapterId,
@@ -3337,6 +3370,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     offsetY: offsetY ?? this.offsetY,
     rotation: rotation ?? this.rotation,
     caption: caption ?? this.caption,
+    frameCaption: frameCaption ?? this.frameCaption,
   );
   Placement copyWithCompanion(PlacementsCompanion data) {
     return Placement(
@@ -3354,6 +3388,9 @@ class Placement extends DataClass implements Insertable<Placement> {
       offsetY: data.offsetY.present ? data.offsetY.value : this.offsetY,
       rotation: data.rotation.present ? data.rotation.value : this.rotation,
       caption: data.caption.present ? data.caption.value : this.caption,
+      frameCaption: data.frameCaption.present
+          ? data.frameCaption.value
+          : this.frameCaption,
     );
   }
 
@@ -3373,7 +3410,8 @@ class Placement extends DataClass implements Insertable<Placement> {
           ..write('offsetX: $offsetX, ')
           ..write('offsetY: $offsetY, ')
           ..write('rotation: $rotation, ')
-          ..write('caption: $caption')
+          ..write('caption: $caption, ')
+          ..write('frameCaption: $frameCaption')
           ..write(')'))
         .toString();
   }
@@ -3394,6 +3432,7 @@ class Placement extends DataClass implements Insertable<Placement> {
     offsetY,
     rotation,
     caption,
+    frameCaption,
   );
   @override
   bool operator ==(Object other) =>
@@ -3412,7 +3451,8 @@ class Placement extends DataClass implements Insertable<Placement> {
           other.offsetX == this.offsetX &&
           other.offsetY == this.offsetY &&
           other.rotation == this.rotation &&
-          other.caption == this.caption);
+          other.caption == this.caption &&
+          other.frameCaption == this.frameCaption);
 }
 
 class PlacementsCompanion extends UpdateCompanion<Placement> {
@@ -3430,6 +3470,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
   final Value<double> offsetY;
   final Value<double> rotation;
   final Value<String> caption;
+  final Value<String> frameCaption;
   final Value<int> rowid;
   const PlacementsCompanion({
     this.id = const Value.absent(),
@@ -3446,6 +3487,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     this.offsetY = const Value.absent(),
     this.rotation = const Value.absent(),
     this.caption = const Value.absent(),
+    this.frameCaption = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   PlacementsCompanion.insert({
@@ -3463,6 +3505,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     this.offsetY = const Value.absent(),
     this.rotation = const Value.absent(),
     required String caption,
+    this.frameCaption = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        chapterId = Value(chapterId),
@@ -3489,6 +3532,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     Expression<double>? offsetY,
     Expression<double>? rotation,
     Expression<String>? caption,
+    Expression<String>? frameCaption,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -3506,6 +3550,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
       if (offsetY != null) 'offset_y': offsetY,
       if (rotation != null) 'rotation': rotation,
       if (caption != null) 'caption': caption,
+      if (frameCaption != null) 'frame_caption': frameCaption,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -3525,6 +3570,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     Value<double>? offsetY,
     Value<double>? rotation,
     Value<String>? caption,
+    Value<String>? frameCaption,
     Value<int>? rowid,
   }) {
     return PlacementsCompanion(
@@ -3542,6 +3588,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
       offsetY: offsetY ?? this.offsetY,
       rotation: rotation ?? this.rotation,
       caption: caption ?? this.caption,
+      frameCaption: frameCaption ?? this.frameCaption,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -3591,6 +3638,9 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
     if (caption.present) {
       map['caption'] = Variable<String>(caption.value);
     }
+    if (frameCaption.present) {
+      map['frame_caption'] = Variable<String>(frameCaption.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -3614,6 +3664,7 @@ class PlacementsCompanion extends UpdateCompanion<Placement> {
           ..write('offsetY: $offsetY, ')
           ..write('rotation: $rotation, ')
           ..write('caption: $caption, ')
+          ..write('frameCaption: $frameCaption, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -5934,6 +5985,7 @@ typedef $$PlacementsTableCreateCompanionBuilder =
       Value<double> offsetY,
       Value<double> rotation,
       required String caption,
+      Value<String> frameCaption,
       Value<int> rowid,
     });
 typedef $$PlacementsTableUpdateCompanionBuilder =
@@ -5952,6 +6004,7 @@ typedef $$PlacementsTableUpdateCompanionBuilder =
       Value<double> offsetY,
       Value<double> rotation,
       Value<String> caption,
+      Value<String> frameCaption,
       Value<int> rowid,
     });
 
@@ -6060,6 +6113,11 @@ class $$PlacementsTableFilterComposer
 
   ColumnFilters<String> get caption => $composableBuilder(
     column: $table.caption,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get frameCaption => $composableBuilder(
+    column: $table.frameCaption,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6179,6 +6237,11 @@ class $$PlacementsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get frameCaption => $composableBuilder(
+    column: $table.frameCaption,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$ChaptersTableOrderingComposer get chapterId {
     final $$ChaptersTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -6271,6 +6334,11 @@ class $$PlacementsTableAnnotationComposer
   GeneratedColumn<String> get caption =>
       $composableBuilder(column: $table.caption, builder: (column) => column);
 
+  GeneratedColumn<String> get frameCaption => $composableBuilder(
+    column: $table.frameCaption,
+    builder: (column) => column,
+  );
+
   $$ChaptersTableAnnotationComposer get chapterId {
     final $$ChaptersTableAnnotationComposer composer = $composerBuilder(
       composer: this,
@@ -6360,6 +6428,7 @@ class $$PlacementsTableTableManager
                 Value<double> offsetY = const Value.absent(),
                 Value<double> rotation = const Value.absent(),
                 Value<String> caption = const Value.absent(),
+                Value<String> frameCaption = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlacementsCompanion(
                 id: id,
@@ -6376,6 +6445,7 @@ class $$PlacementsTableTableManager
                 offsetY: offsetY,
                 rotation: rotation,
                 caption: caption,
+                frameCaption: frameCaption,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -6394,6 +6464,7 @@ class $$PlacementsTableTableManager
                 Value<double> offsetY = const Value.absent(),
                 Value<double> rotation = const Value.absent(),
                 required String caption,
+                Value<String> frameCaption = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => PlacementsCompanion.insert(
                 id: id,
@@ -6410,6 +6481,7 @@ class $$PlacementsTableTableManager
                 offsetY: offsetY,
                 rotation: rotation,
                 caption: caption,
+                frameCaption: frameCaption,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0
