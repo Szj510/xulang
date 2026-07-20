@@ -11,7 +11,7 @@
 
 <p align="center">
   <a href="https://github.com/Szj510/xulang/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/Szj510/xulang/actions/workflows/ci.yml/badge.svg"></a>
-  <a href="https://github.com/Szj510/xulang/releases/latest"><img alt="Release v1.1.1" src="docs/media/release-badge.svg"></a>
+  <a href="https://github.com/Szj510/xulang/releases/latest"><img alt="Release v1.2.0" src="docs/media/release-badge.svg"></a>
   <a href="LICENSE"><img alt="GPL-3.0" src="https://img.shields.io/badge/license-GPL--3.0-blue.svg"></a>
   <img alt="Android 10+" src="https://img.shields.io/badge/Android-10%2B-3DDC84?logo=android&logoColor=white">
 </p>

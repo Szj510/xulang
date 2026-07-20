@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-07-20
+
 ### Added
 
 - Added a caption-mat photo frame whose photo, paper, inscription, and rotation behave as one object.
@@ -49,6 +51,7 @@ All notable changes to this project will be documented in this file. The format 
 
 - Prepared the first public open-source release under GPL-3.0.
 
-[Unreleased]: https://github.com/Szj510/xulang/compare/v1.1.1...HEAD
+[Unreleased]: https://github.com/Szj510/xulang/compare/v1.2.0...HEAD
+[1.2.0]: https://github.com/Szj510/xulang/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/Szj510/xulang/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Szj510/xulang/releases/tag/v1.1.0
