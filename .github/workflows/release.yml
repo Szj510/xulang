@@ -44,11 +44,14 @@ jobs:
           distribution: temurin
           java-version: "17"
 
-      - name: Set up Flutter
-        uses: subosito/flutter-action@1a449444c387b1966244ae4d4f8c696479add0b2 # v2
-        with:
-          flutter-version: 3.41.7
-          channel: stable
+      - name: Install pinned Flutter SDK
+        shell: bash
+        run: |
+          git init "$RUNNER_TEMP/flutter"
+          git -C "$RUNNER_TEMP/flutter" remote add origin https://github.com/flutter/flutter.git
+          git -C "$RUNNER_TEMP/flutter" fetch --depth 1 origin cc0734ac716fbb8b90f3f9db8020958b1553afa7
+          git -C "$RUNNER_TEMP/flutter" checkout --detach FETCH_HEAD
+          echo "$RUNNER_TEMP/flutter/bin" >> "$GITHUB_PATH"
 
       - name: Install dependencies
         run: flutter pub get
