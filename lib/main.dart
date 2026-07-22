@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -13,6 +15,7 @@ import 'package:xulang/providers/app_providers.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await _registerBundledFontLicenses();
   final support = await getApplicationSupportDirectory();
   final repository = GalleryRepository(
     database: GalleryDatabase(),
@@ -30,6 +33,17 @@ Future<void> main() async {
       child: const XulangApp(),
     ),
   );
+}
+
+Future<void> _registerBundledFontLicenses() async {
+  final license = await rootBundle.loadString('assets/fonts/OFL.txt');
+  LicenseRegistry.addLicense(() async* {
+    yield LicenseEntryWithLineBreaks(const [
+      'ZCOOL XiaoWei',
+      'Ma Shan Zheng',
+      'Long Cang',
+    ], license);
+  });
 }
 
 Future<void> _seedSampleGalleryOnce(

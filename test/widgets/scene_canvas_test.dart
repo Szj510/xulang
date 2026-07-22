@@ -12,8 +12,8 @@ import 'package:xulang/widgets/scene_canvas.dart';
 void main() {
   const media = GalleryMedia(
     id: 'media',
-    originalPath: 'asset://assets/sample/coast-sunset.png',
-    thumbnailPath: 'asset://assets/sample/train-lake.png',
+    originalPath: 'asset://assets/sample/coast-sunset.jpg',
+    thumbnailPath: 'asset://assets/sample/train-lake.jpg',
     width: 1536,
     height: 1024,
     contentHash: 'hash',
@@ -208,7 +208,7 @@ void main() {
             chapter: chapter,
             media: [media],
             sceneTheme: GalleryTheme.moonlight,
-            canvasBackgroundPath: 'asset://assets/sample/coast-sunset.png',
+            canvasBackgroundPath: 'asset://assets/sample/coast-sunset.jpg',
             canvasBackgroundOpacity: 0.42,
           ),
         ),
@@ -225,7 +225,7 @@ void main() {
         matching: find.byType(GalleryImage),
       ),
     );
-    expect(image.path, 'asset://assets/sample/coast-sunset.png');
+    expect(image.path, 'asset://assets/sample/coast-sunset.jpg');
     expect(
       tester
           .widget<Opacity>(find.byKey(const Key('scene-custom-canvas-opacity')))

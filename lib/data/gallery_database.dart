@@ -808,8 +808,8 @@ T _enumByName<T extends Enum>(List<T> values, String name, T fallback) {
 }
 
 String _displayTitleForSummary(String id, String title) {
-  if (id == 'sample-exhibition' && !title.contains('官方示例')) {
-    return '$title（官方示例）';
+  if (id == 'sample-exhibition') {
+    return title.replaceAll('（官方示例）', '');
   }
   return title;
 }

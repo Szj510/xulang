@@ -11,7 +11,10 @@ const _obsoleteSampleMediaIds = {
 /// no longer bundled with the app. Only that known broken revision is reset.
 bool shouldRefreshBundledSample(GalleryBundle? bundle) {
   return bundle?.media.any(
-        (item) => _obsoleteSampleMediaIds.contains(item.id),
+        (item) =>
+            _obsoleteSampleMediaIds.contains(item.id) ||
+            (item.originalPath.startsWith('asset://assets/sample/') &&
+                item.originalPath.endsWith('.png')),
       ) ??
       false;
 }
@@ -20,48 +23,48 @@ GalleryBundle buildSampleGallery(DateTime now) {
   const media = [
     GalleryMedia(
       id: 'sample-coast',
-      originalPath: 'asset://assets/sample/coast-sunset.png',
-      thumbnailPath: 'asset://assets/sample/coast-sunset.png',
+      originalPath: 'asset://assets/sample/coast-sunset.jpg',
+      thumbnailPath: 'asset://assets/sample/coast-sunset.jpg',
       width: 1536,
       height: 1024,
       contentHash: 'sample-coast',
     ),
     GalleryMedia(
       id: 'sample-alley',
-      originalPath: 'asset://assets/sample/coastal-alley.png',
-      thumbnailPath: 'asset://assets/sample/coastal-alley.png',
+      originalPath: 'asset://assets/sample/coastal-alley.jpg',
+      thumbnailPath: 'asset://assets/sample/coastal-alley.jpg',
       width: 1023,
       height: 1537,
       contentHash: 'sample-alley',
     ),
     GalleryMedia(
       id: 'sample-walk',
-      originalPath: 'asset://assets/sample/summer-walk.png',
-      thumbnailPath: 'asset://assets/sample/summer-walk.png',
+      originalPath: 'asset://assets/sample/summer-walk.jpg',
+      thumbnailPath: 'asset://assets/sample/summer-walk.jpg',
       width: 1024,
       height: 1536,
       contentHash: 'sample-walk',
     ),
     GalleryMedia(
       id: 'sample-train',
-      originalPath: 'asset://assets/sample/train-lake.png',
-      thumbnailPath: 'asset://assets/sample/train-lake.png',
+      originalPath: 'asset://assets/sample/train-lake.jpg',
+      thumbnailPath: 'asset://assets/sample/train-lake.jpg',
       width: 1536,
       height: 1024,
       contentHash: 'sample-train',
     ),
     GalleryMedia(
       id: 'sample-window',
-      originalPath: 'asset://assets/sample/sunset-window.png',
-      thumbnailPath: 'asset://assets/sample/sunset-window.png',
+      originalPath: 'asset://assets/sample/sunset-window.jpg',
+      thumbnailPath: 'asset://assets/sample/sunset-window.jpg',
       width: 1536,
       height: 1024,
       contentHash: 'sample-window',
     ),
     GalleryMedia(
       id: 'sample-portrait',
-      originalPath: 'asset://assets/sample/portrait-golden-hour.png',
-      thumbnailPath: 'asset://assets/sample/portrait-golden-hour.png',
+      originalPath: 'asset://assets/sample/portrait-golden-hour.jpg',
+      thumbnailPath: 'asset://assets/sample/portrait-golden-hour.jpg',
       width: 1024,
       height: 1536,
       contentHash: 'sample-portrait',
@@ -70,7 +73,7 @@ GalleryBundle buildSampleGallery(DateTime now) {
   return GalleryBundle(
     document: GalleryDocument(
       id: 'sample-exhibition',
-      title: '山海之间（官方示例）',
+      title: '山海之间',
       coverMediaId: 'sample-coast',
       createdAt: now,
       updatedAt: now,

@@ -45,6 +45,11 @@ void main() {
     expect(strings.wavyFrame, 'Wavy outline');
     expect(strings.starfieldCanvas, 'Starfield canvas');
     expect(strings.quickAccess, 'Shortcuts');
+    expect(strings.libraryInfo, 'About');
+    expect(strings.aboutAndOpenSource, 'About & open source');
+    expect(strings.sourceCode, 'Source code');
+    expect(strings.securityReport, 'Report a security issue');
+    expect(strings.versionAndBuild('1.3.0', '14'), 'Version 1.3.0 (14)');
     expect(strings.libraryCategories, 'Categories');
     expect(strings.changeHomeHero, 'Change cover');
     expect(strings.homeAppearance, 'Home appearance');
@@ -53,5 +58,9 @@ void main() {
     expect(strings.close, 'Close');
     expect(strings.importImagesWithCapacity(6), 'Import 6/16');
     expect(strings.galleryCapacityMessage(2), contains('2 extra photos'));
+    expect(
+      strings.exhibitionDisplayTitle('sample-exhibition', 'legacy title'),
+      'Between Mountains and Sea',
+    );
   });
 }

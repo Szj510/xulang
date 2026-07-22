@@ -8,7 +8,7 @@ void main() {
     () {
       final sample = buildSampleGallery(DateTime.utc(2026, 6, 22));
 
-      expect(sample.document.title, '山海之间（官方示例）');
+      expect(sample.document.title, '山海之间');
       expect(sample.document.chapters, hasLength(2));
       expect(sample.document.chapters.first.layout, GalleryLayout.hero);
       expect(
@@ -64,5 +64,24 @@ void main() {
 
     expect(shouldRefreshBundledSample(sample), isFalse);
     expect(shouldRefreshBundledSample(staleSample), isTrue);
+  });
+
+  test('refreshes the legacy PNG sample after the bundled JPEG migration', () {
+    final sample = buildSampleGallery(DateTime.utc(2026, 7, 22));
+    final legacy = sample.copyWith(
+      media: [
+        GalleryMedia(
+          id: sample.media.first.id,
+          originalPath: 'asset://assets/sample/coast-sunset.png',
+          thumbnailPath: 'asset://assets/sample/coast-sunset.png',
+          width: sample.media.first.width,
+          height: sample.media.first.height,
+          contentHash: sample.media.first.contentHash,
+        ),
+        ...sample.media.skip(1),
+      ],
+    );
+
+    expect(shouldRefreshBundledSample(legacy), isTrue);
   });
 }

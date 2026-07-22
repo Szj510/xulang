@@ -46,6 +46,7 @@ android/build/
 # Local AI assistant configuration and working documents
 /.claude/
 /.codex/
+/.playwright-cli/
 /docs/superpowers/
 
 # Symbolication related

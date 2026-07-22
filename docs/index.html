@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="叙廊 Xulang：本地优先的照片叙事与微型展览创作应用。">
+  <meta property="og:title" content="叙廊 · Xulang">
+  <meta property="og:description" content="Local-first photo storytelling and miniature exhibitions for Android.">
+  <meta property="og:image" content="https://szj510.github.io/xulang/media/social-preview.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://szj510.github.io/xulang/">
+  <link rel="icon" type="image/jpeg" href="media/app-icon.jpg">
+  <title>叙廊 · Xulang</title>
+  <style>
+    :root { color-scheme: dark; --ink:#0a0b0c; --surface:#131415; --elevated:#1e1f20; --paper:#e8dfce; --muted:#8e867a; --accent:#c9a87c; --line:#2a2a2b; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif; color:var(--paper); background:radial-gradient(circle at 50% -10%,#29241e 0,var(--ink) 42%); line-height:1.65; }
+    a { color:inherit; }
+    .wrap { width:min(1120px,calc(100% - 36px)); margin:auto; }
+    header { padding:72px 0 42px; text-align:center; }
+    .icon { width:104px; height:104px; border-radius:24px; box-shadow:0 18px 54px #000b; }
+    h1 { margin:18px 0 6px; font-family:Georgia,"Noto Serif SC",serif; font-size:clamp(42px,7vw,76px); font-weight:400; letter-spacing:.08em; }
+    .lead { max-width:720px; margin:0 auto; color:var(--muted); font-size:18px; }
+    .actions { display:flex; justify-content:center; gap:12px; flex-wrap:wrap; margin-top:28px; }
+    .button { display:inline-flex; min-height:48px; align-items:center; padding:0 22px; border:1px solid var(--accent); border-radius:999px; text-decoration:none; font-weight:650; }
+    .button.primary { color:var(--ink); background:var(--paper); border-color:var(--paper); }
+    .showcase { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; padding:24px 0 62px; }
+    figure { margin:0; padding:10px; background:var(--surface); border:1px solid var(--line); }
+    figure img { display:block; width:100%; aspect-ratio:480/1066; object-fit:cover; object-position:top; background:#080808; }
+    figcaption { padding:12px 4px 3px; color:var(--muted); font-size:13px; letter-spacing:.04em; }
+    section { padding:52px 0; border-top:1px solid var(--line); }
+    h2 { margin:0 0 20px; font-family:Georgia,"Noto Serif SC",serif; font-weight:400; font-size:32px; }
+    .grid { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .card { padding:22px; background:var(--surface); border:1px solid var(--line); border-radius:14px; }
+    .card strong { display:block; margin-bottom:7px; color:var(--accent); }
+    .card p { margin:0; color:var(--muted); }
+    .privacy { display:grid; grid-template-columns:1fr auto; gap:24px; align-items:center; }
+    footer { padding:38px 0 54px; color:var(--muted); font-size:13px; text-align:center; }
+    @media (max-width:760px) { header{padding-top:48px}.showcase,.grid{grid-template-columns:1fr}.showcase{max-width:360px;margin:auto}.privacy{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+  <header class="wrap">
+    <img class="icon" src="media/app-icon.jpg" alt="叙廊应用图标">
+    <h1>叙廊 · Xulang</h1>
+    <p class="lead">将照片组织成可漫游的章节和展览，整个创作过程留在你的设备上。<br>Turn photos into chapters and immersive exhibitions—entirely on your device.</p>
+    <div class="actions">
+      <a class="button primary" href="https://github.com/Szj510/xulang/releases/latest">下载 Android APK · Download</a>
+      <a class="button" href="https://github.com/Szj510/xulang">查看源码 · Source</a>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <div class="showcase" aria-label="Library, editor, and immersive viewer">
+      <figure><img src="media/library.png" alt="叙廊图库"><figcaption>01 · 图库 / Library</figcaption></figure>
+      <figure><img src="media/editor.gif" alt="叙廊编辑器"><figcaption>02 · 编辑 / Editor</figcaption></figure>
+      <figure><img src="media/viewer.gif" alt="叙廊沉浸播放"><figcaption>03 · 沉浸播放 / Viewer</figcaption></figure>
+    </div>
+
+    <section>
+      <h2>本地创作，不是云相册。</h2>
+      <div class="grid">
+        <div class="card"><strong>章节与叙事路径</strong><p>用布局、远近关系和节奏让照片自然地连成故事。</p></div>
+        <div class="card"><strong>画框、题字与装饰</strong><p>手绘画框、留白题字、自由文字和内置中文字体可移动、旋转并持久保存。</p></div>
+        <div class="card"><strong>沉浸播放与录制</strong><p>在 Android 10+ 上播放展览，添加背景音乐，或在主动授权后录制 MP4。</p></div>
+      </div>
+    </section>
+
+    <section class="privacy">
+      <div><h2>没有账号，没有网络权限。</h2><p class="lead" style="margin:0">叙廊不上传照片、音乐、模板、视频或展览数据。<br>No account, cloud sync, analytics, or network permission.</p></div>
+      <a class="button" href="privacy.html">隐私政策 · Privacy</a>
+    </section>
+  </main>
+
+  <footer class="wrap">Android 10+ · GPL-3.0 · Copyright (C) 2026 ius</footer>
+</body>
+</html>

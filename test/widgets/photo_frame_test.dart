@@ -6,8 +6,8 @@ import 'package:xulang/widgets/photo_frame.dart';
 void main() {
   const media = GalleryMedia(
     id: 'media',
-    originalPath: 'asset://assets/sample/coast-sunset.png',
-    thumbnailPath: 'asset://assets/sample/train-lake.png',
+    originalPath: 'asset://assets/sample/coast-sunset.jpg',
+    thumbnailPath: 'asset://assets/sample/train-lake.jpg',
     width: 1536,
     height: 1024,
     contentHash: 'hash',

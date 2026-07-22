@@ -79,7 +79,7 @@ class AppStrings {
   String get importTemplate => isEnglish ? 'Import template' : '导入模板';
   String get newCategory => isEnglish ? 'New category' : '新建分类';
   String get quickAccess => isEnglish ? 'Shortcuts' : '快捷';
-  String get libraryInfo => isEnglish ? 'Info' : '信息';
+  String get libraryInfo => isEnglish ? 'About' : '关于';
   String get librarySettings => isEnglish ? 'Settings' : '设置';
   String get libraryRecordings => isEnglish ? 'Recordings' : '录制';
   String get libraryMusic => isEnglish ? 'Music' : '音乐';
@@ -144,6 +144,39 @@ class AppStrings {
   String get privacyLocalStorageSubtitle => isEnglish
       ? 'Photos are not uploaded. Uninstalling the app removes exhibitions stored in its private space.'
       : '图片不会上传，卸载应用会删除应用私有空间中的展览。';
+  String get aboutAndOpenSource => isEnglish ? 'About & open source' : '关于与开源';
+  String get aboutAndOpenSourceSubtitle => isEnglish
+      ? 'Version, source code, licenses, privacy, and security.'
+      : '版本、源码、许可证、隐私与安全说明。';
+  String get localOnlyTitle => isEnglish ? 'Made for this device' : '只属于这台设备';
+  String get localOnlyBody => isEnglish
+      ? 'Xulang does not upload photos and does not request network access. Imported media stays in app-private storage; uninstalling the app permanently removes those exhibitions.'
+      : '叙廊不上传图片，也不申请网络权限。导入内容保留在应用私有空间；卸载应用会永久删除这些展览。';
+  String get localFirstPromise => isEnglish
+      ? 'Your photos, stories, music, templates, and recordings stay local unless you explicitly share them.'
+      : '你的图片、故事、音乐、模板和录像默认只保留在本地，除非你主动分享。';
+  String versionAndBuild(String version, String build) =>
+      isEnglish ? 'Version $version ($build)' : '版本 $version（$build）';
+  String get sourceCode => isEnglish ? 'Source code' : '源代码';
+  String get sourceCodeSubtitle =>
+      isEnglish ? 'Browse Xulang on GitHub.' : '在 GitHub 查看叙廊源码。';
+  String get latestRelease => isEnglish ? 'Latest release' : '最新版本';
+  String get latestReleaseSubtitle =>
+      isEnglish ? 'Download the official Android APK.' : '下载官方 Android APK。';
+  String get privacyPolicy => isEnglish ? 'Privacy policy' : '隐私政策';
+  String get privacyPolicySubtitle => isEnglish
+      ? 'Read how local files and sharing are handled.'
+      : '了解本地文件、分享与卸载行为。';
+  String get securityReport => isEnglish ? 'Report a security issue' : '报告安全问题';
+  String get securityReportSubtitle => isEnglish
+      ? 'Use GitHub private vulnerability reporting.'
+      : '使用 GitHub 私密漏洞报告，请勿创建公开 Issue。';
+  String get openSourceLicenses => isEnglish ? 'Open-source licenses' : '开源许可证';
+  String get openSourceLicensesSubtitle => isEnglish
+      ? 'GPL-3.0 and bundled third-party notices.'
+      : 'GPL-3.0 与随应用分发的第三方许可证。';
+  String get unableToOpenLink =>
+      isEnglish ? 'Unable to open this link.' : '无法打开该链接。';
   String get importTemplateSubtitle => isEnglish
       ? 'Create a new exhibition from a local JSON template.'
       : '从本地 JSON 模板快速生成一个新展览。';
@@ -417,11 +450,7 @@ class AppStrings {
       : '录制已保存，请查看效果后再分享。';
   String exhibitionDisplayTitle(String id, String title) {
     if (id == 'sample-exhibition') {
-      return isEnglish
-          ? 'Between Mountains and Sea (Official sample)'
-          : title.contains('官方示例')
-          ? title
-          : '$title（官方示例）';
+      return isEnglish ? 'Between Mountains and Sea' : '山海之间';
     }
     return title;
   }

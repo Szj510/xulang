@@ -91,7 +91,7 @@ void main() {
   });
 
   test('duplicate keeps bundled sample asset media paths reusable', () async {
-    const assetPath = 'asset://assets/sample/coast-sunset.png';
+    const assetPath = 'asset://assets/sample/coast-sunset.jpg';
     final document = GalleryDocument(
       id: 'sample-source',
       title: '官方示例',

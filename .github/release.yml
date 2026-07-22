@@ -1,0 +1,19 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+  categories:
+    - title: Features / 新功能
+      labels:
+        - enhancement
+        - feature
+    - title: Fixes / 修复
+      labels:
+        - bug
+        - fix
+    - title: Dependencies / 依赖
+      labels:
+        - dependencies
+    - title: Other changes / 其他变更
+      labels:
+        - "*"

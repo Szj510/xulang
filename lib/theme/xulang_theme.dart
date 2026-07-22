@@ -5,11 +5,11 @@ abstract final class XulangColors {
   static const surface = Color(0xFF131415);
   static const elevated = Color(0xFF1E1F20);
   static const paper = Color(0xFFE8DFCE);
-  static const muted = Color(0xFF8C8478);
+  static const muted = Color(0xFF8E867A);
   static const accent = Color(0xFFC9A87C);
   static const line = Color(0xFF2A2A2B);
   static const highlight = Color(0xFFF2E9D8);
-  static const danger = Color(0xFFB85C5C);
+  static const danger = Color(0xFFC26767);
 }
 
 class XulangPalette extends ThemeExtension<XulangPalette> {
@@ -57,10 +57,10 @@ class XulangPalette extends ThemeExtension<XulangPalette> {
     elevated: Color(0xFFF0E6D5),
     paper: Color(0xFF1B1712),
     muted: Color(0xFF766B5E),
-    accent: Color(0xFF9D7444),
+    accent: Color(0xFF8F6738),
     line: Color(0xFFD8CDBB),
     highlight: Color(0xFF2A2117),
-    danger: Color(0xFFB85C5C),
+    danger: Color(0xFFA64E4E),
   );
 
   @override

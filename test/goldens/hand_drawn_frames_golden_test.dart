@@ -16,8 +16,8 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     const media = GalleryMedia(
       id: 'taped-media',
-      originalPath: 'asset://assets/sample/coast-sunset.png',
-      thumbnailPath: 'asset://assets/sample/summer-walk.png',
+      originalPath: 'asset://assets/sample/coast-sunset.jpg',
+      thumbnailPath: 'asset://assets/sample/summer-walk.jpg',
       width: 1536,
       height: 1024,
       contentHash: 'taped-paper-golden',
@@ -52,7 +52,7 @@ void main() {
     final context = tester.element(find.byType(PhotoFrame));
     await tester.runAsync(() async {
       await precacheImage(
-        const AssetImage('assets/sample/summer-walk.png'),
+        const AssetImage('assets/sample/summer-walk.jpg'),
         context,
       );
     });
@@ -71,8 +71,8 @@ void main() {
     addTearDown(() => tester.binding.setSurfaceSize(null));
     const media = GalleryMedia(
       id: 'media',
-      originalPath: 'asset://assets/sample/coast-sunset.png',
-      thumbnailPath: 'asset://assets/sample/summer-walk.png',
+      originalPath: 'asset://assets/sample/coast-sunset.jpg',
+      thumbnailPath: 'asset://assets/sample/summer-walk.jpg',
       width: 1536,
       height: 1024,
       contentHash: 'hand-drawn-golden',
@@ -116,7 +116,7 @@ void main() {
     final context = tester.element(find.byType(Wrap));
     await tester.runAsync(() async {
       await precacheImage(
-        const AssetImage('assets/sample/summer-walk.png'),
+        const AssetImage('assets/sample/summer-walk.jpg'),
         context,
       );
     });

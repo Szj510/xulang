@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 import 'package:xulang/data/document_access_service.dart';
 import 'package:xulang/data/gallery_database.dart';
 import 'package:xulang/data/gallery_repository.dart';
@@ -191,7 +193,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
                         : _LibraryHeader(
                             onCreate: () => _createExhibition(context),
                             onImportTemplate: () => _importTemplateV2(context),
-                            onInfo: () => _showLocalInfo(context),
+                            onInfo: () => _showAbout(context),
                             onSettings: () => _showAppSettings(
                               context,
                               settings: ref
@@ -479,7 +481,7 @@ class _LibraryScreenState extends ConsumerState<LibraryScreen> {
           ),
           FilledButton(
             style: FilledButton.styleFrom(
-              backgroundColor: XulangColors.danger,
+              backgroundColor: Theme.of(context).colorScheme.error,
               foregroundColor: XulangColors.paper,
             ),
             onPressed: () => Navigator.pop(context, true),
@@ -1284,7 +1286,7 @@ class _LibraryHeader extends ConsumerWidget {
 class _LibraryHeroImage extends StatelessWidget {
   const _LibraryHeroImage({this.customPath});
 
-  static const defaultPath = 'asset://assets/sample/coast-sunset.png';
+  static const defaultPath = 'asset://assets/sample/coast-sunset.jpg';
   final String? customPath;
 
   @override
@@ -1881,6 +1883,9 @@ class _ExhibitionCard extends ConsumerWidget {
               ? const _CoverFallback()
               : GalleryImage(path: cover.thumbnailPath, cacheWidth: 900),
           title: _displayExhibitionTitle(summary),
+          badge: summary.id == 'sample-exhibition'
+              ? AppStrings.of(context).officialSampleSuffix
+              : null,
           meta:
               '${AppStrings.of(context).photoCount(imageCount)} · ${_formatDate(context, summary.updatedAt)}',
           actions: [
@@ -1961,7 +1966,7 @@ class _ExhibitionCard extends ConsumerWidget {
               ),
               FilledButton(
                 style: FilledButton.styleFrom(
-                  backgroundColor: XulangColors.danger,
+                  backgroundColor: Theme.of(context).colorScheme.error,
                   foregroundColor: XulangColors.paper,
                 ),
                 onPressed: () => Navigator.pop(context, true),
@@ -1981,6 +1986,7 @@ class _MountedCard extends StatelessWidget {
     required this.onTap,
     required this.cover,
     required this.title,
+    this.badge,
     required this.meta,
     required this.actions,
   });
@@ -1988,6 +1994,7 @@ class _MountedCard extends StatelessWidget {
   final VoidCallback onTap;
   final Widget cover;
   final String title;
+  final String? badge;
   final String meta;
   final List<Widget> actions;
 
@@ -2019,23 +2026,58 @@ class _MountedCard extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontFamily: 'Noto Serif SC',
-                            fontFamilyFallback: [
-                              'Noto Sans SC',
-                              'PingFang SC',
-                              'Microsoft YaHei',
+                        Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontFamily: 'Noto Serif SC',
+                                  fontFamilyFallback: [
+                                    'Noto Sans SC',
+                                    'PingFang SC',
+                                    'Microsoft YaHei',
+                                  ],
+                                  color: XulangColors.paper,
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w400,
+                                  letterSpacing: 0.6,
+                                  height: 1.35,
+                                ),
+                              ),
+                            ),
+                            if (badge != null) ...[
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 3,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: XulangColors.accent.withValues(
+                                    alpha: .14,
+                                  ),
+                                  borderRadius: BorderRadius.circular(999),
+                                  border: Border.all(
+                                    color: XulangColors.accent.withValues(
+                                      alpha: .45,
+                                    ),
+                                  ),
+                                ),
+                                child: Text(
+                                  badge!,
+                                  style: const TextStyle(
+                                    color: XulangColors.accent,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w600,
+                                    height: 1.2,
+                                  ),
+                                ),
+                              ),
                             ],
-                            color: XulangColors.paper,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w400,
-                            letterSpacing: 0.6,
-                            height: 1.35,
-                          ),
+                          ],
                         ),
                         const SizedBox(height: 4),
                         Text(
@@ -2193,12 +2235,12 @@ class _CardMenuButton extends StatelessWidget {
                 Icon(
                   Icons.delete_outline,
                   size: 18,
-                  color: XulangColors.danger,
+                  color: Theme.of(context).colorScheme.error,
                 ),
                 SizedBox(width: 12),
                 Text(
                   l10n.delete,
-                  style: const TextStyle(color: XulangColors.danger),
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
               ],
             ),
@@ -2347,8 +2389,8 @@ Future<String?> _textDialog(
 }
 
 String _displayExhibitionTitle(ExhibitionSummary summary) {
-  if (summary.id == 'sample-exhibition' && !summary.title.contains('官方示例')) {
-    return '${summary.title}（官方示例）';
+  if (summary.id == 'sample-exhibition') {
+    return summary.title.replaceAll('（官方示例）', '');
   }
   return summary.title;
 }
@@ -2657,6 +2699,17 @@ void _showAppSettings(
                     },
                   ),
                   _SettingsTile(
+                    icon: Icons.info_outline,
+                    title: l10n.aboutAndOpenSource,
+                    subtitle: l10n.aboutAndOpenSourceSubtitle,
+                    onTap: () {
+                      Navigator.pop(sheetContext);
+                      WidgetsBinding.instance.addPostFrameCallback((_) {
+                        _showAbout(context);
+                      });
+                    },
+                  ),
+                  _SettingsTile(
                     icon: Icons.cleaning_services_outlined,
                     title: l10n.cleanupUnusedMedia,
                     subtitle: l10n.cleanupUnusedMediaSubtitle,
@@ -2684,10 +2737,10 @@ class _SettingsSectionTitle extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(
       text,
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 12,
         letterSpacing: 1,
-        color: XulangColors.accent,
+        color: XulangPalette.of(context).accent,
         fontWeight: FontWeight.w600,
       ),
     );
@@ -2764,18 +2817,19 @@ class _SettingsTile extends StatelessWidget {
 }
 
 void _showLocalInfo(BuildContext context) {
+  final l10n = AppStrings.of(context);
   showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
-    builder: (context) => const Padding(
-      padding: EdgeInsets.fromLTRB(24, 8, 24, 36),
+    builder: (context) => Padding(
+      padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '只属于这台设备',
-            style: TextStyle(
+            l10n.localOnlyTitle,
+            style: const TextStyle(
               fontFamily: 'Noto Serif SC',
               fontFamilyFallback: [
                 'Noto Sans SC',
@@ -2787,10 +2841,10 @@ void _showLocalInfo(BuildContext context) {
               color: XulangColors.paper,
             ),
           ),
-          SizedBox(height: 14),
+          const SizedBox(height: 14),
           Text(
-            '叙廊不上传图片，也不申请网络权限。导入内容会复制到应用私有空间；卸载应用会永久删除这些展览。',
-            style: TextStyle(
+            l10n.localOnlyBody,
+            style: const TextStyle(
               fontSize: 14,
               height: 1.7,
               color: XulangColors.muted,
@@ -2799,6 +2853,149 @@ void _showLocalInfo(BuildContext context) {
         ],
       ),
     ),
+  );
+}
+
+const _sourceCodeUrl = 'https://github.com/Szj510/xulang';
+const _latestReleaseUrl = 'https://github.com/Szj510/xulang/releases/latest';
+const _privacyPolicyUrl = 'https://szj510.github.io/xulang/privacy.html';
+const _securityReportUrl =
+    'https://github.com/Szj510/xulang/security/advisories/new';
+
+Future<void> _showAbout(BuildContext context) async {
+  final packageInfo = await PackageInfo.fromPlatform();
+  if (!context.mounted) return;
+  final l10n = AppStrings.of(context);
+  await showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    isScrollControlled: true,
+    builder: (sheetContext) => SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(24, 8, 24, 36),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: Image.asset(
+                    'assets/branding/app-icon-about.jpg',
+                    width: 64,
+                    height: 64,
+                    fit: BoxFit.cover,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        l10n.appTitle,
+                        style: const TextStyle(
+                          fontFamily: 'Noto Serif SC',
+                          fontFamilyFallback: [
+                            'Noto Sans SC',
+                            'PingFang SC',
+                            'Microsoft YaHei',
+                          ],
+                          fontSize: 24,
+                          letterSpacing: 1.5,
+                          color: XulangColors.paper,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        l10n.versionAndBuild(
+                          packageInfo.version,
+                          packageInfo.buildNumber,
+                        ),
+                        style: const TextStyle(
+                          color: XulangColors.muted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            Text(
+              l10n.localFirstPromise,
+              style: const TextStyle(
+                color: XulangColors.paper,
+                fontSize: 14,
+                height: 1.65,
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'GPL-3.0 · Copyright (C) 2026 ius',
+              style: TextStyle(color: XulangColors.muted, fontSize: 12),
+            ),
+            const SizedBox(height: 16),
+            _SettingsTile(
+              icon: Icons.code_outlined,
+              title: l10n.sourceCode,
+              subtitle: l10n.sourceCodeSubtitle,
+              onTap: () => _openExternalUrl(sheetContext, _sourceCodeUrl),
+            ),
+            _SettingsTile(
+              icon: Icons.system_update_alt_outlined,
+              title: l10n.latestRelease,
+              subtitle: l10n.latestReleaseSubtitle,
+              onTap: () => _openExternalUrl(sheetContext, _latestReleaseUrl),
+            ),
+            _SettingsTile(
+              icon: Icons.privacy_tip_outlined,
+              title: l10n.privacyPolicy,
+              subtitle: l10n.privacyPolicySubtitle,
+              onTap: () => _openExternalUrl(sheetContext, _privacyPolicyUrl),
+            ),
+            _SettingsTile(
+              icon: Icons.security_outlined,
+              title: l10n.securityReport,
+              subtitle: l10n.securityReportSubtitle,
+              onTap: () => _openExternalUrl(sheetContext, _securityReportUrl),
+            ),
+            _SettingsTile(
+              icon: Icons.balance_outlined,
+              title: l10n.openSourceLicenses,
+              subtitle: l10n.openSourceLicensesSubtitle,
+              onTap: () => showLicensePage(
+                context: sheetContext,
+                applicationName: l10n.appTitle,
+                applicationVersion: packageInfo.version,
+                applicationIcon: Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Image.asset(
+                    'assets/branding/app-icon-about.jpg',
+                    width: 56,
+                    height: 56,
+                  ),
+                ),
+                applicationLegalese: 'Copyright (C) 2026 ius · GPL-3.0',
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+Future<void> _openExternalUrl(BuildContext context, String value) async {
+  final opened = await launchUrl(
+    Uri.parse(value),
+    mode: LaunchMode.externalApplication,
+  );
+  if (opened || !context.mounted) return;
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(content: Text(AppStrings.of(context).unableToOpenLink)),
   );
 }
 

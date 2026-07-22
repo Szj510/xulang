@@ -4,6 +4,27 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [1.3.0] - 2026-07-22
+
+### Added
+
+- Added an in-app About & Open Source panel with the exact app version, source, official downloads, privacy policy, private security reporting, GPL-3.0, and third-party license entries.
+- Added a bilingual GitHub Pages project home and a dedicated social preview image.
+- Added ARM64 and universal Android release artifacts, build provenance attestations, a consolidated checksum file, and a manual release dry run.
+
+### Changed
+
+- Shortened the official sample title and moved its identity into a separate badge so editor and viewer titles remain readable.
+- Converted the six bundled sample photos from PNG to visually reviewed quality-88 JPEGs and stopped bundling the large launcher-icon source as a runtime asset.
+- Improved small-text contrast while preserving the existing ink, paper, and warm-gold visual language.
+- Reorganized the README around the real Library → Editor → Immersive viewer flow and clarified APK selection and verification.
+
+### Security
+
+- Added Android signing-certificate verification and GitHub artifact provenance to the release workflow.
+- Enabled dependency vulnerability alerts and automated security updates, and tightened GitHub Actions and protected-branch settings.
+- Made GitHub private vulnerability reporting the only security disclosure channel.
+
 ## [1.2.0] - 2026-07-20
 
 ### Added
@@ -51,7 +72,8 @@ All notable changes to this project will be documented in this file. The format 
 
 - Prepared the first public open-source release under GPL-3.0.
 
-[Unreleased]: https://github.com/Szj510/xulang/compare/v1.2.0...HEAD
+[Unreleased]: https://github.com/Szj510/xulang/compare/v1.3.0...HEAD
+[1.3.0]: https://github.com/Szj510/xulang/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Szj510/xulang/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/Szj510/xulang/compare/v1.1.0...v1.1.1
 [1.1.0]: https://github.com/Szj510/xulang/releases/tag/v1.1.0
