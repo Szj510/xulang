@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+### Changed
+
+- Moved the official project website and privacy policy to `https://xulang.dpdns.org/`.
+
 ## [1.3.0] - 2026-07-22
 
 ### Added

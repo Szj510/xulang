@@ -19,7 +19,7 @@
 <p align="center">
   <a href="https://github.com/Szj510/xulang/releases/latest"><strong>下载最新版 / Download latest</strong></a>
   ·
-  <a href="https://szj510.github.io/xulang/">项目主页 / Website</a>
+  <a href="https://xulang.dpdns.org/">项目主页 / Website</a>
 </p>
 
 <p align="center">
@@ -82,7 +82,7 @@ Release 构建需要维护者自己的 Android 签名配置；不要将 `key.pro
 
 ### 隐私、贡献与路线图
 
-叙廊不申请网络权限，也不会上传照片、音乐、模板或视频。完整说明见[隐私政策](https://szj510.github.io/xulang/privacy.html)。
+叙廊不申请网络权限，也不会上传照片、音乐、模板或视频。完整说明见[隐私政策](https://xulang.dpdns.org/privacy.html)。
 
 欢迎 Bug 报告、功能建议和 Pull Request。请先阅读[贡献指南](CONTRIBUTING.md)与[行为准则](CODE_OF_CONDUCT.md)。安全问题不要创建公开 Issue，请按[安全政策](SECURITY.md)使用 GitHub 私密漏洞报告。
 
@@ -110,7 +110,7 @@ Official builds are available only from [GitHub Releases](https://github.com/Szj
 
 Use Flutter 3.41.7, Dart 3.11.5, JDK 17, and the Android SDK. The build and verification commands are shown in the Chinese section above and in [CONTRIBUTING.md](CONTRIBUTING.md).
 
-Xulang does not request network access or upload user media. Read the [privacy policy](https://szj510.github.io/xulang/privacy.html), [security policy](SECURITY.md), [contribution guide](CONTRIBUTING.md), and [Code of Conduct](CODE_OF_CONDUCT.md). Vulnerabilities must use GitHub private vulnerability reporting rather than a public issue.
+Xulang does not request network access or upload user media. Read the [privacy policy](https://xulang.dpdns.org/privacy.html), [security policy](SECURITY.md), [contribution guide](CONTRIBUTING.md), and [Code of Conduct](CODE_OF_CONDUCT.md). Vulnerabilities must use GitHub private vulnerability reporting rather than a public issue.
 
 Android 10+ is the supported release platform. Community contributors are welcome to help [design and implement iOS support](https://github.com/Szj510/xulang/issues/3); no iOS binary is currently distributed.
 
