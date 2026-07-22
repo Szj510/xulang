@@ -2858,7 +2858,7 @@ void _showLocalInfo(BuildContext context) {
 
 const _sourceCodeUrl = 'https://github.com/Szj510/xulang';
 const _latestReleaseUrl = 'https://github.com/Szj510/xulang/releases/latest';
-const _privacyPolicyUrl = 'https://szj510.github.io/xulang/privacy.html';
+const _privacyPolicyUrl = 'https://xulang.dpdns.org/privacy.html';
 const _securityReportUrl =
     'https://github.com/Szj510/xulang/security/advisories/new';
 
