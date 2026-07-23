@@ -319,6 +319,53 @@ void main() {
     expect(persisted!.document.chapters, hasLength(1));
     expect(persisted.media.single.id, 'media');
   });
+
+  test('layout switching keeps editor changes independent', () async {
+    await session.updatePlacement(
+      'placement',
+      size: GallerySize.large,
+      rotation: 15,
+      frame: GalleryFrame.captionMat,
+      frameCaption: 'Hero',
+    );
+    final heroStickerId = await session.addTextSticker(
+      text: 'Hero decoration',
+      font: GalleryTextFont.handwriting,
+      color: 0xFF2C241B,
+    );
+
+    await session.updateChapter(layout: GalleryLayout.orbit);
+
+    expect(session.selectedChapter!.placements.single.size, GallerySize.medium);
+    expect(session.selectedChapter!.placements.single.rotation, 0);
+    expect(session.selectedChapter!.placements.single.frame, GalleryFrame.none);
+    expect(session.selectedChapter!.stickers, isEmpty);
+
+    await session.updatePlacement(
+      'placement',
+      size: GallerySize.small,
+      rotation: -5,
+    );
+    await session.addSticker(GalleryStickerKind.star, x: .8, y: .2);
+
+    await session.updateChapter(layout: GalleryLayout.hero);
+
+    expect(session.selectedChapter!.placements.single.size, GallerySize.large);
+    expect(session.selectedChapter!.placements.single.rotation, 15);
+    expect(
+      session.selectedChapter!.placements.single.frame,
+      GalleryFrame.captionMat,
+    );
+    expect(session.selectedChapter!.stickers.single.id, heroStickerId);
+
+    final persisted = await repository.load('exhibition');
+    final persistedOrbit = persisted!.document.chapters.single.switchLayout(
+      GalleryLayout.orbit,
+    );
+    expect(persistedOrbit.placements.single.size, GallerySize.small);
+    expect(persistedOrbit.placements.single.rotation, -5);
+    expect(persistedOrbit.stickers.single.kind, GalleryStickerKind.star);
+  });
 }
 
 class _TrackingImages implements ImageSelectionService {

@@ -387,6 +387,7 @@ class GalleryDatabase extends _$GalleryDatabase {
                   anchors: chapter.customPathAnchors,
                   connections: chapter.customPathConnections,
                   stickers: chapter.stickers,
+                  layoutStates: chapter.recordCurrentLayoutState().layoutStates,
                 ),
               ),
             ),
@@ -472,6 +473,7 @@ class GalleryDatabase extends _$GalleryDatabase {
           customPathAnchors: customPath.anchors,
           customPathConnections: customPath.connections,
           stickers: customPath.stickers,
+          layoutStates: customPath.layoutStates,
           placements: [
             for (final item in placementRows)
               GalleryPlacement(
@@ -542,8 +544,8 @@ class GalleryDatabase extends _$GalleryDatabase {
   Stream<List<GalleryCategoryInfo>> watchCategories() {
     final query = select(exhibitionCategories)
       ..orderBy([
-        (row) => OrderingTerm.asc(row.sortOrder),
-        (row) => OrderingTerm.asc(row.title),
+        (row) => OrderingTerm.asc(row.createdAt),
+        (row) => OrderingTerm.asc(row.id),
       ]);
     return query.watch().map(
       (rows) => rows
@@ -721,16 +723,26 @@ String? _encodeCustomPath({
   List<CustomPathAnchor>? anchors,
   List<CustomPathConnection> connections = const [],
   List<GallerySticker> stickers = const [],
+  Map<GalleryLayout, GalleryLayoutState> layoutStates = const {},
 }) {
-  if (anchors == null && connections.isEmpty && stickers.isEmpty) return null;
+  if (anchors == null &&
+      connections.isEmpty &&
+      stickers.isEmpty &&
+      layoutStates.isEmpty) {
+    return null;
+  }
   return jsonEncode({
-    'version': 2,
+    'version': 3,
     'anchors': [
       for (final anchor in anchors ?? const <CustomPathAnchor>[])
         anchor.toJson(),
     ],
     'connections': [for (final connection in connections) connection.toJson()],
     'stickers': [for (final sticker in stickers) sticker.toJson()],
+    'layoutStates': {
+      for (final entry in layoutStates.entries)
+        entry.key.name: entry.value.toJson(),
+    },
   });
 }
 
@@ -751,6 +763,7 @@ _DecodedCustomPath _decodeCustomPath(String? data) {
           json['connections'] as List? ?? const [],
         ),
         stickers: _decodeStickers(json['stickers'] as List? ?? const []),
+        layoutStates: _decodeLayoutStates(json['layoutStates']),
       );
     }
     return const _DecodedCustomPath();
@@ -783,16 +796,35 @@ List<GallerySticker> _decodeStickers(List data) {
   ];
 }
 
+Map<GalleryLayout, GalleryLayoutState> _decodeLayoutStates(Object? data) {
+  if (data is! Map) return const {};
+  final states = <GalleryLayout, GalleryLayoutState>{};
+  for (final entry in data.entries) {
+    final layout = _enumByName(
+      GalleryLayout.values,
+      entry.key.toString(),
+      GalleryLayout.hero,
+    );
+    if (entry.value is! Map) continue;
+    states[layout] = GalleryLayoutState.fromJson(
+      Map<String, dynamic>.from(entry.value as Map),
+    );
+  }
+  return states;
+}
+
 class _DecodedCustomPath {
   const _DecodedCustomPath({
     this.anchors,
     this.connections = const [],
     this.stickers = const [],
+    this.layoutStates = const {},
   });
 
   final List<CustomPathAnchor>? anchors;
   final List<CustomPathConnection> connections;
   final List<GallerySticker> stickers;
+  final Map<GalleryLayout, GalleryLayoutState> layoutStates;
 }
 
 GalleryLayout _decodeLayout(String name) {
