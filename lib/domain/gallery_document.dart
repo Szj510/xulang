@@ -582,6 +582,7 @@ class GalleryChapter {
     this.customPathAnchors,
     this.customPathConnections = const [],
     this.stickers = const [],
+    this.layoutStates = const {},
   });
 
   final String id;
@@ -596,6 +597,8 @@ class GalleryChapter {
   final List<CustomPathConnection> customPathConnections; // 旧路径连接数据，仅用于兼容历史作品
   final List<GallerySticker> stickers; // 画布贴画
 
+  final Map<GalleryLayout, GalleryLayoutState> layoutStates;
+
   GalleryChapter copyWith({
     String? title,
     String? caption,
@@ -607,6 +610,7 @@ class GalleryChapter {
     Object? customPathAnchors = _unchanged,
     List<CustomPathConnection>? customPathConnections,
     List<GallerySticker>? stickers,
+    Map<GalleryLayout, GalleryLayoutState>? layoutStates,
   }) {
     return GalleryChapter(
       id: id,
@@ -623,6 +627,38 @@ class GalleryChapter {
       customPathConnections:
           customPathConnections ?? this.customPathConnections,
       stickers: stickers ?? this.stickers,
+      layoutStates: layoutStates ?? this.layoutStates,
+    );
+  }
+
+  GalleryChapter recordCurrentLayoutState() {
+    return copyWith(
+      layoutStates: {
+        ...layoutStates,
+        layout: GalleryLayoutState(
+          placements: placements,
+          pathStyle: pathStyle,
+          customPathAnchors: customPathAnchors,
+          customPathConnections: customPathConnections,
+          stickers: stickers,
+        ),
+      },
+    );
+  }
+
+  GalleryChapter switchLayout(GalleryLayout nextLayout) {
+    final recorded = recordCurrentLayoutState();
+    if (nextLayout == layout) return recorded;
+    final target =
+        recorded.layoutStates[nextLayout]?.reconcileWith(placements) ??
+        GalleryLayoutState.defaultsFor(placements);
+    return recorded.copyWith(
+      layout: nextLayout,
+      pathStyle: target.pathStyle,
+      placements: target.placements,
+      customPathAnchors: target.customPathAnchors,
+      customPathConnections: target.customPathConnections,
+      stickers: target.stickers,
     );
   }
 
@@ -706,6 +742,182 @@ class GalleryPlacement {
       rotation: rotation ?? this.rotation,
       caption: caption ?? this.caption,
       frameCaption: frameCaption ?? this.frameCaption,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'mediaId': mediaId,
+    'order': order,
+    'size': size.name,
+    'frame': frame.name,
+    'focalX': focalX,
+    'focalY': focalY,
+    'zoom': zoom,
+    'scale': scale,
+    'offsetX': offsetX,
+    'offsetY': offsetY,
+    'rotation': rotation,
+    'caption': caption,
+    'frameCaption': frameCaption,
+  };
+
+  factory GalleryPlacement.fromJson(Map<String, dynamic> json) {
+    return GalleryPlacement(
+      id: json['id'] as String,
+      mediaId: json['mediaId'] as String,
+      order: (json['order'] as num?)?.toInt() ?? 0,
+      size: _enumByName(
+        GallerySize.values,
+        json['size'] as String? ?? GallerySize.medium.name,
+        GallerySize.medium,
+      ),
+      frame: _enumByName(
+        GalleryFrame.values,
+        json['frame'] as String? ?? GalleryFrame.none.name,
+        GalleryFrame.none,
+      ),
+      focalX: (json['focalX'] as num?)?.toDouble() ?? .5,
+      focalY: (json['focalY'] as num?)?.toDouble() ?? .5,
+      zoom: (json['zoom'] as num?)?.toDouble() ?? 1,
+      scale: (json['scale'] as num?)?.toDouble() ?? 1,
+      offsetX: (json['offsetX'] as num?)?.toDouble() ?? 0,
+      offsetY: (json['offsetY'] as num?)?.toDouble() ?? 0,
+      rotation: (json['rotation'] as num?)?.toDouble() ?? 0,
+      caption: json['caption'] as String? ?? '',
+      frameCaption: json['frameCaption'] as String? ?? '',
+    );
+  }
+}
+
+class GalleryLayoutState {
+  const GalleryLayoutState({
+    required this.placements,
+    this.pathStyle = StoryPathStyle.solid,
+    this.customPathAnchors,
+    this.customPathConnections = const [],
+    this.stickers = const [],
+  });
+
+  final List<GalleryPlacement> placements;
+  final StoryPathStyle pathStyle;
+  final List<CustomPathAnchor>? customPathAnchors;
+  final List<CustomPathConnection> customPathConnections;
+  final List<GallerySticker> stickers;
+
+  factory GalleryLayoutState.defaultsFor(
+    List<GalleryPlacement> sourcePlacements,
+  ) {
+    return GalleryLayoutState(
+      placements: [
+        for (var index = 0; index < sourcePlacements.length; index++)
+          GalleryPlacement(
+            id: sourcePlacements[index].id,
+            mediaId: sourcePlacements[index].mediaId,
+            order: index,
+          ),
+      ],
+    );
+  }
+
+  GalleryLayoutState reconcileWith(List<GalleryPlacement> currentPlacements) {
+    final currentById = {
+      for (final placement in currentPlacements) placement.id: placement,
+    };
+    final savedPlacements = [...placements]
+      ..sort((a, b) => a.order.compareTo(b.order));
+    final reconciled = <GalleryPlacement>[];
+    final included = <String>{};
+    for (final saved in savedPlacements) {
+      final current = currentById[saved.id];
+      if (current == null || !included.add(saved.id)) continue;
+      reconciled.add(
+        GalleryPlacement(
+          id: current.id,
+          mediaId: current.mediaId,
+          order: reconciled.length,
+          size: saved.size,
+          frame: saved.frame,
+          focalX: saved.focalX,
+          focalY: saved.focalY,
+          zoom: saved.zoom,
+          scale: saved.scale,
+          offsetX: saved.offsetX,
+          offsetY: saved.offsetY,
+          rotation: saved.rotation,
+          caption: saved.caption,
+          frameCaption: saved.frameCaption,
+        ),
+      );
+    }
+    for (final current in currentPlacements) {
+      if (!included.add(current.id)) continue;
+      reconciled.add(
+        GalleryPlacement(
+          id: current.id,
+          mediaId: current.mediaId,
+          order: reconciled.length,
+        ),
+      );
+    }
+    final validPlacementIds = reconciled
+        .map((placement) => placement.id)
+        .toSet();
+    return GalleryLayoutState(
+      placements: reconciled,
+      pathStyle: pathStyle,
+      customPathAnchors: customPathAnchors,
+      customPathConnections: [
+        for (final connection in customPathConnections)
+          if (validPlacementIds.contains(connection.fromPlacementId) &&
+              validPlacementIds.contains(connection.toPlacementId))
+            connection,
+      ],
+      stickers: stickers,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'placements': [for (final placement in placements) placement.toJson()],
+    'pathStyle': pathStyle.name,
+    'customPathAnchors': [
+      for (final anchor in customPathAnchors ?? const <CustomPathAnchor>[])
+        anchor.toJson(),
+    ],
+    'customPathConnections': [
+      for (final connection in customPathConnections) connection.toJson(),
+    ],
+    'stickers': [for (final sticker in stickers) sticker.toJson()],
+  };
+
+  factory GalleryLayoutState.fromJson(Map<String, dynamic> json) {
+    final anchors = [
+      for (final item in json['customPathAnchors'] as List? ?? const [])
+        if (item is Map)
+          CustomPathAnchor.fromJson(Map<String, dynamic>.from(item)),
+    ];
+    return GalleryLayoutState(
+      placements: [
+        for (final item in json['placements'] as List? ?? const [])
+          if (item is Map)
+            GalleryPlacement.fromJson(Map<String, dynamic>.from(item)),
+      ],
+      pathStyle: _enumByName(
+        StoryPathStyle.values,
+        json['pathStyle'] as String? ?? StoryPathStyle.solid.name,
+        StoryPathStyle.solid,
+      ),
+      customPathAnchors: anchors.isEmpty ? null : anchors,
+      customPathConnections: [
+        for (final item in json['customPathConnections'] as List? ?? const [])
+          if (item is Map)
+            CustomPathConnection.fromJson(Map<String, dynamic>.from(item)),
+      ],
+      stickers: [
+        for (final item in json['stickers'] as List? ?? const [])
+          if (item is Map)
+            GallerySticker.fromJson(Map<String, dynamic>.from(item)),
+      ],
     );
   }
 }

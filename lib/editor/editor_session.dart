@@ -389,18 +389,20 @@ class EditorSession extends ChangeNotifier {
     if (current == null) return;
     final chapters = List<GalleryChapter>.of(current.document.chapters);
     final chapter = chapters[selectedChapterIndex];
-    chapters[selectedChapterIndex] = chapter.copyWith(
+    final layoutChapter = layout == null || layout == chapter.layout
+        ? chapter
+        : chapter.switchLayout(layout);
+    chapters[selectedChapterIndex] = layoutChapter.copyWith(
       title: title,
       caption: caption,
-      layout: layout,
       motion: motion,
       pathStyle: pathStyle,
       customPathAnchors: identical(customPathAnchors, _editorUnchanged)
-          ? chapter.customPathAnchors
+          ? layoutChapter.customPathAnchors
           : customPathAnchors as List<CustomPathAnchor>?,
       customPathConnections:
-          customPathConnections ?? chapter.customPathConnections,
-      stickers: stickers ?? chapter.stickers,
+          customPathConnections ?? layoutChapter.customPathConnections,
+      stickers: stickers ?? layoutChapter.stickers,
     );
     await _commit(
       current.copyWith(
@@ -703,10 +705,18 @@ class EditorSession extends ChangeNotifier {
   }
 
   Future<void> _commit(GalleryBundle next) async {
-    _history?.push(next);
-    bundle = next;
+    final recorded = next.copyWith(
+      document: next.document.copyWith(
+        chapters: [
+          for (final chapter in next.document.chapters)
+            chapter.recordCurrentLayoutState(),
+        ],
+      ),
+    );
+    _history?.push(recorded);
+    bundle = recorded;
     _notify();
-    await repository.save(next);
+    await repository.save(recorded);
   }
 
   void _notify() {

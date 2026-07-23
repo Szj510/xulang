@@ -354,9 +354,12 @@ class LayoutResolver {
     final satelliteDensity = (1 - crowding * .014).clamp(.80, 1.0);
 
     final heroScale = _sizeScale(items.first.size);
-    final heroSize = Size(
-      size.width * (portrait ? .44 : .30) * heroScale * heroDensity,
-      size.height * (portrait ? .18 : .44) * heroScale * heroDensity,
+    final heroSize = _orbitFrameSize(
+      Size(
+        size.width * (portrait ? .44 : .30) * heroScale * heroDensity,
+        size.height * (portrait ? .18 : .44) * heroScale * heroDensity,
+      ),
+      items.first,
     );
     nodes.add(
       _applyManualTransform(
@@ -401,9 +404,12 @@ class LayoutResolver {
       final radiusY = radii.height;
       final scale =
           _sizeScale(item.size) * satelliteDensity * (outerRing ? .72 : 1);
-      var nodeSize = Size(
-        size.width * (portrait ? .25 : .17) * scale,
-        size.height * (portrait ? .15 : .28) * scale,
+      var nodeSize = _orbitFrameSize(
+        Size(
+          size.width * (portrait ? .25 : .17) * scale,
+          size.height * (portrait ? .15 : .28) * scale,
+        ),
+        item,
       );
       var angle = seededAngle;
       if (outerRing) {
@@ -522,6 +528,11 @@ class LayoutResolver {
     GallerySize.medium => .88,
     GallerySize.large => 1,
   };
+
+  static Size _orbitFrameSize(Size imageArea, GalleryPlacement placement) {
+    if (placement.frame != GalleryFrame.captionMat) return imageArea;
+    return Size(imageArea.width, imageArea.height / .74);
+  }
 
   static double _stableUnit(String value) {
     var hash = 0x811C9DC5;

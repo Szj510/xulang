@@ -120,6 +120,41 @@ void main() {
     );
     expect(crowded.nodes[1].rect.width, lessThan(sparse.nodes[1].rect.width));
   });
+
+  test('orbit reserves caption space without shrinking the photo area', () {
+    const viewport = Size(390, 844);
+    final plain = LayoutResolver.resolve(
+      chapter: orbitChapter().copyWith(
+        placements: [
+          placements.first,
+          placements[1].copyWith(frame: GalleryFrame.none),
+        ],
+      ),
+      viewport: viewport,
+    );
+    final captioned = LayoutResolver.resolve(
+      chapter: orbitChapter().copyWith(
+        placements: [
+          placements.first,
+          placements[1].copyWith(
+            frame: GalleryFrame.captionMat,
+            frameCaption: 'A caption that should not crush the photo',
+          ),
+        ],
+      ),
+      viewport: viewport,
+    );
+
+    expect(captioned.nodes[1].rect.width, plain.nodes[1].rect.width);
+    expect(
+      captioned.nodes[1].rect.height,
+      greaterThan(plain.nodes[1].rect.height * 1.3),
+    );
+    expect(
+      captioned.nodes[1].rect.height * .74,
+      closeTo(plain.nodes[1].rect.height, .001),
+    );
+  });
 }
 
 double _overlapRatio(Rect first, Rect second) {

@@ -150,34 +150,82 @@ class GalleryRepository {
       final copiedChapters = <GalleryChapter>[];
       for (final chapter in source.document.chapters) {
         final newChapterId = createId();
+        final recordedChapter = chapter.recordCurrentLayoutState();
+        final placementIdMap = <String, String>{};
+        for (final placement in recordedChapter.placements) {
+          placementIdMap[placement.id] = createId();
+        }
+        for (final state in recordedChapter.layoutStates.values) {
+          for (final placement in state.placements) {
+            placementIdMap.putIfAbsent(placement.id, createId);
+          }
+        }
+
+        GalleryPlacement remapPlacement(GalleryPlacement placement) {
+          return GalleryPlacement(
+            id: placementIdMap[placement.id]!,
+            mediaId: mediaIdMap[placement.mediaId]!,
+            order: placement.order,
+            size: placement.size,
+            frame: placement.frame,
+            focalX: placement.focalX,
+            focalY: placement.focalY,
+            zoom: placement.zoom,
+            scale: placement.scale,
+            offsetX: placement.offsetX,
+            offsetY: placement.offsetY,
+            rotation: placement.rotation,
+            caption: placement.caption,
+            frameCaption: placement.frameCaption,
+          );
+        }
+
+        CustomPathConnection remapConnection(CustomPathConnection connection) {
+          return connection.copyWith(
+            fromPlacementId:
+                placementIdMap[connection.fromPlacementId] ??
+                connection.fromPlacementId,
+            toPlacementId:
+                placementIdMap[connection.toPlacementId] ??
+                connection.toPlacementId,
+          );
+        }
+
         copiedChapters.add(
           GalleryChapter(
             id: newChapterId,
-            title: chapter.title,
-            caption: chapter.caption,
-            order: chapter.order,
-            layout: chapter.layout,
-            motion: chapter.motion,
-            pathStyle: chapter.pathStyle,
+            title: recordedChapter.title,
+            caption: recordedChapter.caption,
+            order: recordedChapter.order,
+            layout: recordedChapter.layout,
+            motion: recordedChapter.motion,
+            pathStyle: recordedChapter.pathStyle,
             placements: [
-              for (final placement in chapter.placements)
-                GalleryPlacement(
-                  id: createId(),
-                  mediaId: mediaIdMap[placement.mediaId]!,
-                  order: placement.order,
-                  size: placement.size,
-                  frame: placement.frame,
-                  focalX: placement.focalX,
-                  focalY: placement.focalY,
-                  zoom: placement.zoom,
-                  scale: placement.scale,
-                  offsetX: placement.offsetX,
-                  offsetY: placement.offsetY,
-                  rotation: placement.rotation,
-                  caption: placement.caption,
-                  frameCaption: placement.frameCaption,
-                ),
+              for (final placement in recordedChapter.placements)
+                remapPlacement(placement),
             ],
+            customPathAnchors: recordedChapter.customPathAnchors,
+            customPathConnections: [
+              for (final connection in recordedChapter.customPathConnections)
+                remapConnection(connection),
+            ],
+            stickers: recordedChapter.stickers,
+            layoutStates: {
+              for (final entry in recordedChapter.layoutStates.entries)
+                entry.key: GalleryLayoutState(
+                  placements: [
+                    for (final placement in entry.value.placements)
+                      remapPlacement(placement),
+                  ],
+                  pathStyle: entry.value.pathStyle,
+                  customPathAnchors: entry.value.customPathAnchors,
+                  customPathConnections: [
+                    for (final connection in entry.value.customPathConnections)
+                      remapConnection(connection),
+                  ],
+                  stickers: entry.value.stickers,
+                ),
+            },
           ),
         );
       }

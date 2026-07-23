@@ -12,51 +12,14 @@ class ExhibitionTemplateCodec {
   String encode(GalleryDocument document) {
     return const JsonEncoder.withIndent('  ').convert({
       'kind': 'xulang-template',
-      'version': 2,
+      'version': 3,
       'title': document.title,
       'theme': document.theme.name,
       'showChapterTitleInPlayback': document.showChapterTitleInPlayback,
       'playbackDelaySeconds': document.playbackDelaySeconds,
       'chapters': [
         for (final chapter in document.chapters)
-          {
-            'title': chapter.title,
-            'caption': chapter.caption,
-            'order': chapter.order,
-            'layout': chapter.layout.name,
-            'motion': chapter.motion.name,
-            'pathStyle': chapter.pathStyle.name,
-            'customPathAnchors': [
-              for (final anchor
-                  in chapter.customPathAnchors ?? const <CustomPathAnchor>[])
-                anchor.toJson(),
-            ],
-            'customPathConnections': [
-              for (final connection in chapter.customPathConnections)
-                connection.toJson(),
-            ],
-            'stickers': [
-              for (final sticker in chapter.stickers) sticker.toJson(),
-            ],
-            'placements': [
-              for (final placement in chapter.placements)
-                {
-                  'id': placement.id,
-                  'order': placement.order,
-                  'size': placement.size.name,
-                  'frame': placement.frame.name,
-                  'focalX': placement.focalX,
-                  'focalY': placement.focalY,
-                  'zoom': placement.zoom,
-                  'scale': placement.scale,
-                  'offsetX': placement.offsetX,
-                  'offsetY': placement.offsetY,
-                  'rotation': placement.rotation,
-                  'caption': placement.caption,
-                  'frameCaption': placement.frameCaption,
-                },
-            ],
-          },
+          _chapterToTemplateJson(chapter),
       ],
     });
   }
@@ -210,6 +173,73 @@ class ExhibitionTemplateCodec {
   }
 }
 
+Map<String, Object?> _chapterToTemplateJson(GalleryChapter chapter) {
+  final recorded = chapter.recordCurrentLayoutState();
+  return {
+    'title': recorded.title,
+    'caption': recorded.caption,
+    'order': recorded.order,
+    'layout': recorded.layout.name,
+    'motion': recorded.motion.name,
+    'pathStyle': recorded.pathStyle.name,
+    'customPathAnchors': [
+      for (final anchor
+          in recorded.customPathAnchors ?? const <CustomPathAnchor>[])
+        anchor.toJson(),
+    ],
+    'customPathConnections': [
+      for (final connection in recorded.customPathConnections)
+        connection.toJson(),
+    ],
+    'stickers': [for (final sticker in recorded.stickers) sticker.toJson()],
+    'placements': [
+      for (final placement in recorded.placements)
+        _placementToTemplateJson(placement),
+    ],
+    'layoutStates': {
+      for (final entry in recorded.layoutStates.entries)
+        entry.key.name: _layoutStateToTemplateJson(entry.value),
+    },
+  };
+}
+
+Map<String, Object?> _layoutStateToTemplateJson(GalleryLayoutState state) {
+  return {
+    'placements': [
+      for (final placement in state.placements)
+        _placementToTemplateJson(placement),
+    ],
+    'pathStyle': state.pathStyle.name,
+    'customPathAnchors': [
+      for (final anchor
+          in state.customPathAnchors ?? const <CustomPathAnchor>[])
+        anchor.toJson(),
+    ],
+    'customPathConnections': [
+      for (final connection in state.customPathConnections) connection.toJson(),
+    ],
+    'stickers': [for (final sticker in state.stickers) sticker.toJson()],
+  };
+}
+
+Map<String, Object?> _placementToTemplateJson(GalleryPlacement placement) {
+  return {
+    'id': placement.id,
+    'order': placement.order,
+    'size': placement.size.name,
+    'frame': placement.frame.name,
+    'focalX': placement.focalX,
+    'focalY': placement.focalY,
+    'zoom': placement.zoom,
+    'scale': placement.scale,
+    'offsetX': placement.offsetX,
+    'offsetY': placement.offsetY,
+    'rotation': placement.rotation,
+    'caption': placement.caption,
+    'frameCaption': placement.frameCaption,
+  };
+}
+
 class TemplateSummary {
   const TemplateSummary({
     required this.title,
@@ -343,7 +373,72 @@ GalleryChapter _buildChapter({
       placementIds,
     ),
     stickers: _decodeStickers(chapterJson['stickers']),
+    layoutStates: _decodeTemplateLayoutStates(
+      chapterJson['layoutStates'],
+      templatePlacementIds: templatePlacementIds,
+      placements: placements,
+    ),
   );
+}
+
+Map<GalleryLayout, GalleryLayoutState> _decodeTemplateLayoutStates(
+  Object? data, {
+  required Map<String, String> templatePlacementIds,
+  required List<GalleryPlacement> placements,
+}) {
+  if (data is! Map) return const {};
+  final placementsById = {
+    for (final placement in placements) placement.id: placement,
+  };
+  final placementIds = placementsById.keys.toList(growable: false);
+  final states = <GalleryLayout, GalleryLayoutState>{};
+  for (final entry in data.entries) {
+    if (entry.value is! Map) continue;
+    final stateJson = Map<String, Object?>.from(entry.value as Map);
+    final statePlacements = <GalleryPlacement>[];
+    for (final item in stateJson['placements'] as List<Object?>? ?? const []) {
+      if (item is! Map) continue;
+      final slot = Map<String, Object?>.from(item);
+      final placementId = _remapPlacementId(
+        slot['id'] as String?,
+        templatePlacementIds,
+        placementIds,
+      );
+      final activePlacement = placementsById[placementId];
+      if (placementId == null || activePlacement == null) continue;
+      statePlacements.add(
+        _placementFromSlot(
+          id: placementId,
+          mediaId: activePlacement.mediaId,
+          order: (slot['order'] as num?)?.toInt() ?? statePlacements.length,
+          slot: slot,
+        ),
+      );
+    }
+    statePlacements.sort((a, b) => a.order.compareTo(b.order));
+    final normalizedPlacements = [
+      for (var index = 0; index < statePlacements.length; index++)
+        statePlacements[index].copyWith(order: index),
+    ];
+    states[_decodeLayout(entry.key)] = GalleryLayoutState(
+      placements: normalizedPlacements,
+      pathStyle: _byName(
+        StoryPathStyle.values,
+        stateJson['pathStyle'],
+        StoryPathStyle.solid,
+      ),
+      customPathAnchors: _decodeCustomPathAnchors(
+        stateJson['customPathAnchors'],
+      ),
+      customPathConnections: _decodeCustomPathConnections(
+        stateJson['customPathConnections'],
+        templatePlacementIds,
+        placementIds,
+      ),
+      stickers: _decodeStickers(stateJson['stickers']),
+    );
+  }
+  return states;
 }
 
 GalleryPlacement _placementFromSlot({
