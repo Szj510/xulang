@@ -860,7 +860,9 @@ class GalleryLayoutState {
         ),
       );
     }
-    final validPlacementIds = reconciled.map((placement) => placement.id).toSet();
+    final validPlacementIds = reconciled
+        .map((placement) => placement.id)
+        .toSet();
     return GalleryLayoutState(
       placements: reconciled,
       pathStyle: pathStyle,
