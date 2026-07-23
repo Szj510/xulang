@@ -4,9 +4,22 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [1.4.0] - 2026-07-23
+
+### Added
+
+- Added independent per-layout editing state for photo order, size, position, rotation, crop, frames, captions, story paths, and decorations. / 为每种照片布局分别保存图片顺序、大小、位置、旋转、裁切、相框、题注、故事路径和装饰状态。
+- Upgraded shared exhibition templates to preserve every layout state while remaining compatible with earlier templates. / 分享模板现可保留各布局状态，并继续兼容旧版模板。
+
 ### Changed
 
-- Moved the official project website and privacy policy to `https://xulang.dpdns.org/`.
+- Categories are now shown in creation order instead of alphabetical order. / 分类改为按创建时间排列，不再按名称排序。
+- Moved the official project website and privacy policy to `https://xulang.dpdns.org/`. / 官方项目主页与隐私政策已迁移至 `https://xulang.dpdns.org/`。
+
+### Fixed
+
+- Caption-mat frames in the Orbit layout now reserve inscription space without shrinking the visible photo area. / 修复星轨布局中留白题字画框过度压缩照片的问题。
+- Existing `v1.2` and `v1.3` exhibitions retain their media, captions, transforms, and decorations when opened and saved by this release. / 旧版展览升级后会保留媒体、题注、变换与装饰数据。
 
 ## [1.3.0] - 2026-07-22
 
@@ -76,7 +89,8 @@ All notable changes to this project will be documented in this file. The format 
 
 - Prepared the first public open-source release under GPL-3.0.
 
-[Unreleased]: https://github.com/Szj510/xulang/compare/v1.3.0...HEAD
+[Unreleased]: https://github.com/Szj510/xulang/compare/v1.4.0...HEAD
+[1.4.0]: https://github.com/Szj510/xulang/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Szj510/xulang/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Szj510/xulang/compare/v1.1.1...v1.2.0
 [1.1.1]: https://github.com/Szj510/xulang/compare/v1.1.0...v1.1.1
