@@ -13,6 +13,7 @@ class PhotoFrame extends StatelessWidget {
     required this.depth,
     required this.useOriginals,
     required this.sceneTheme,
+    this.compact = false,
   });
 
   final GalleryPlacement placement;
@@ -20,6 +21,7 @@ class PhotoFrame extends StatelessWidget {
   final double depth;
   final bool useOriginals;
   final GalleryTheme sceneTheme;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
@@ -27,9 +29,11 @@ class PhotoFrame extends StatelessWidget {
       return _OrbFrame(
         depth: depth,
         sceneTheme: sceneTheme,
+        compact: compact,
         child: _image(context),
       );
     }
+    final frameWeight = compact ? .72 : 1.0;
     final frame = DecoratedBox(
       decoration: BoxDecoration(
         boxShadow: [
@@ -54,24 +58,29 @@ class PhotoFrame extends StatelessWidget {
           borderColor: sceneTheme == GalleryTheme.paper
               ? XulangColors.ink.withValues(alpha: .72)
               : XulangColors.paper.withValues(alpha: .88),
-          padding: const EdgeInsets.all(2),
+          padding: EdgeInsets.all(compact ? 1.5 : 2),
           child: _image(context),
         ),
         GalleryFrame.mat => _SimpleFrame(
           key: const Key('frame-mat'),
-          borderWidth: .8,
+          borderWidth: compact ? .68 : .8,
           borderColor: XulangColors.ink.withValues(alpha: .16),
           color: const Color(0xFFF0E8D9),
-          padding: const EdgeInsets.fromLTRB(11, 11, 11, 24),
+          padding: compact
+              ? const EdgeInsets.fromLTRB(3.5, 3.5, 3.5, 6)
+              : const EdgeInsets.fromLTRB(11, 11, 11, 24),
           child: _image(context),
         ),
         GalleryFrame.stamp => KeyedSubtree(
           key: const Key('frame-stamp'),
           child: CustomPaint(
             key: const Key('stamp-edge-painter'),
-            painter: _StampEdgePainter(color: const Color(0xFFECE2CF)),
+            painter: _StampEdgePainter(
+              color: const Color(0xFFECE2CF),
+              weight: frameWeight,
+            ),
             child: Padding(
-              padding: const EdgeInsets.all(11),
+              padding: EdgeInsets.all(compact ? 4 : 11),
               child: _image(context),
             ),
           ),
@@ -79,46 +88,53 @@ class PhotoFrame extends StatelessWidget {
         GalleryFrame.wood => _TexturedFrame(
           key: const Key('frame-wood'),
           painterKey: const Key('wood-grain-painter'),
-          painter: const _WoodGrainPainter(
-            base: Color(0xFF9B6538),
-            vein: Color(0xFF5C351D),
-            highlight: Color(0xFFC08A54),
+          painter: _WoodGrainPainter(
+            base: const Color(0xFF9B6538),
+            vein: const Color(0xFF5C351D),
+            highlight: const Color(0xFFC08A54),
+            weight: frameWeight,
           ),
-          padding: const EdgeInsets.all(8),
+          padding: EdgeInsets.all(compact ? 3.5 : 8),
           child: _image(context),
         ),
         GalleryFrame.darkWood => _TexturedFrame(
           key: const Key('frame-darkWood'),
           painterKey: const Key('dark-wood-grain-painter'),
-          painter: const _WoodGrainPainter(
-            base: Color(0xFF3B2518),
-            vein: Color(0xFF120906),
-            highlight: Color(0xFF6C4228),
+          painter: _WoodGrainPainter(
+            base: const Color(0xFF3B2518),
+            vein: const Color(0xFF120906),
+            highlight: const Color(0xFF6C4228),
+            weight: frameWeight,
           ),
-          padding: const EdgeInsets.all(7),
+          padding: EdgeInsets.all(compact ? 3.5 : 7),
           child: _image(context),
         ),
         GalleryFrame.metal => _TexturedFrame(
           key: const Key('frame-metal'),
           painterKey: const Key('metal-texture-painter'),
-          painter: const _MetalTexturePainter(),
-          padding: const EdgeInsets.all(5),
+          painter: _MetalTexturePainter(weight: frameWeight),
+          padding: EdgeInsets.all(compact ? 2.5 : 5),
           child: _image(context),
         ),
         GalleryFrame.vintage => _TexturedFrame(
           key: const Key('frame-vintage'),
           painterKey: const Key('vintage-paper-painter'),
-          painter: const _VintagePaperPainter(),
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 28),
+          painter: _VintagePaperPainter(weight: frameWeight),
+          padding: compact
+              ? const EdgeInsets.fromLTRB(4, 4, 4, 7)
+              : const EdgeInsets.fromLTRB(14, 14, 14, 28),
           child: _image(context),
         ),
         GalleryFrame.film => KeyedSubtree(
           key: const Key('frame-film'),
           child: CustomPaint(
             key: const Key('film-edge-painter'),
-            painter: const _FilmEdgePainter(),
+            painter: _FilmEdgePainter(weight: frameWeight),
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 18),
+              padding: EdgeInsets.symmetric(
+                horizontal: compact ? 4 : 10,
+                vertical: compact ? 5 : 18,
+              ),
               child: _image(context),
             ),
           ),
@@ -126,55 +142,71 @@ class PhotoFrame extends StatelessWidget {
         GalleryFrame.captionMat => _CaptionMatFrame(
           key: const Key('frame-captionMat'),
           caption: placement.frameCaption,
+          compact: compact,
           child: _image(context),
         ),
         GalleryFrame.tapedPaper => _TexturedFrame(
           key: const Key('frame-tapedPaper'),
           painterKey: const Key('taped-paper-frame-painter'),
-          painter: const _TapedPaperFramePainter(),
-          padding: const EdgeInsets.fromLTRB(14, 15, 14, 22),
+          painter: _TapedPaperFramePainter(weight: frameWeight),
+          foregroundPainter: _TapedPaperTapePainter(
+            weight: frameWeight,
+            compact: compact,
+          ),
+          padding: compact
+              ? const EdgeInsets.fromLTRB(5, 5, 5, 7)
+              : const EdgeInsets.fromLTRB(14, 15, 14, 22),
           child: _image(context),
         ),
         GalleryFrame.crayon => _TexturedFrame(
           key: const Key('frame-crayon'),
           painterKey: const Key('crayon-frame-painter'),
-          painter: const _CrayonFramePainter(),
-          padding: const EdgeInsets.all(14),
+          painter: _CrayonFramePainter(weight: frameWeight),
+          padding: EdgeInsets.all(compact ? 5.5 : 14),
           child: _image(context),
         ),
         GalleryFrame.watercolor => _TexturedFrame(
           key: const Key('frame-watercolor'),
           painterKey: const Key('watercolor-frame-painter'),
-          painter: const _WatercolorFramePainter(),
-          padding: const EdgeInsets.all(16),
+          painter: _WatercolorFramePainter(weight: frameWeight),
+          padding: EdgeInsets.all(compact ? 6 : 16),
           child: _image(context),
         ),
         GalleryFrame.doodleTape => _TexturedFrame(
           key: const Key('frame-doodleTape'),
           painterKey: const Key('doodle-tape-frame-painter'),
-          painter: const _DoodleTapeFramePainter(),
-          padding: const EdgeInsets.all(17),
+          foregroundPainter: _DoodleTapeFramePainter(weight: frameWeight),
+          padding: EdgeInsets.all(compact ? 6 : 17),
           child: _image(context),
         ),
         GalleryFrame.scallop => _TexturedFrame(
           key: const Key('frame-scallop'),
           painterKey: const Key('scallop-frame-painter'),
-          painter: _ScallopFramePainter(color: _handDrawnInk),
-          padding: const EdgeInsets.all(14),
+          foregroundPainter: _ScallopFramePainter(
+            color: _handDrawnInk,
+            weight: compact ? .82 : 1,
+          ),
+          padding: EdgeInsets.all(compact ? 6 : 14),
           child: _image(context),
         ),
         GalleryFrame.cornerSketch => _TexturedFrame(
           key: const Key('frame-cornerSketch'),
           painterKey: const Key('corner-sketch-frame-painter'),
-          painter: _CornerSketchFramePainter(color: _handDrawnInk),
-          padding: const EdgeInsets.all(11),
+          foregroundPainter: _CornerSketchFramePainter(
+            color: _handDrawnInk,
+            weight: compact ? .95 : 1,
+          ),
+          padding: EdgeInsets.all(compact ? 5 : 11),
           child: _image(context),
         ),
         GalleryFrame.wavy => _TexturedFrame(
           key: const Key('frame-wavy'),
           painterKey: const Key('wavy-frame-painter'),
-          painter: _WavyFramePainter(color: _handDrawnInk),
-          padding: const EdgeInsets.all(12),
+          foregroundPainter: _WavyFramePainter(
+            color: _handDrawnInk,
+            weight: compact ? .82 : 1,
+          ),
+          padding: EdgeInsets.all(compact ? 5 : 12),
           child: _image(context),
         ),
         GalleryFrame.orb => throw StateError('Orb frame handled above'),
@@ -227,10 +259,12 @@ class _CaptionMatFrame extends StatelessWidget {
   const _CaptionMatFrame({
     super.key,
     required this.caption,
+    required this.compact,
     required this.child,
   });
 
   final String caption;
+  final bool compact;
   final Widget child;
 
   @override
@@ -238,21 +272,47 @@ class _CaptionMatFrame extends StatelessWidget {
     return CustomPaint(
       key: const Key('caption-mat-frame-painter'),
       painter: const _CaptionMatFramePainter(),
+      foregroundPainter: _CaptionMatTapePainter(compact: compact),
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final captionHeight = (constraints.maxHeight * .22).clamp(25.0, 58.0);
-          final fontSize = (captionHeight * .42).clamp(11.0, 21.0);
+          final width = constraints.maxWidth;
+          final height = constraints.maxHeight;
+          final useCompact = compact;
+          final horizontalPadding = useCompact
+              ? (width * .045).clamp(2.5, 6.0)
+              : 10.0;
+          final topPadding = useCompact
+              ? (height * .055).clamp(2.5, 6.0)
+              : 11.0;
+          final bottomPadding = useCompact
+              ? (height * .04).clamp(2.0, 5.0)
+              : 9.0;
+          final captionHeight = useCompact
+              ? (height * .18).clamp(10.0, 28.0)
+              : (height * .22).clamp(25.0, 58.0);
+          final fontSize = useCompact
+              ? (captionHeight * .48).clamp(7.5, 14.0)
+              : (captionHeight * .42).clamp(11.0, 21.0);
+          final innerBorderWidth = useCompact
+              ? (math.min(width, height) * .012).clamp(.4, .7)
+              : .8;
           return Padding(
-            padding: const EdgeInsets.fromLTRB(10, 11, 10, 9),
+            padding: EdgeInsets.fromLTRB(
+              horizontalPadding,
+              topPadding,
+              horizontalPadding,
+              bottomPadding,
+            ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Expanded(
                   child: DecoratedBox(
+                    key: const Key('caption-mat-photo-region'),
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: const Color(0xFF615746).withValues(alpha: .22),
-                        width: .8,
+                        width: innerBorderWidth,
                       ),
                     ),
                     child: child,
@@ -262,7 +322,9 @@ class _CaptionMatFrame extends StatelessWidget {
                   height: captionHeight,
                   child: Center(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 5),
+                      padding: EdgeInsets.symmetric(
+                        horizontal: useCompact ? 2 : 5,
+                      ),
                       child: Text(
                         caption.trim(),
                         maxLines: 2,
@@ -301,13 +363,17 @@ class _CaptionMatFramePainter extends CustomPainter {
     if (size.isEmpty) return;
     final rect = Offset.zero & size;
     final paper = RRect.fromRectAndRadius(rect, const Radius.circular(2.5));
+    final strokeWidth = (math.min(size.width, size.height) * .012).clamp(
+      .35,
+      .8,
+    );
     canvas.drawRRect(paper, Paint()..color = const Color(0xFFF3EBDD));
     canvas.drawRRect(
-      paper.deflate(.8),
+      paper.deflate(strokeWidth),
       Paint()
         ..color = const Color(0xFF776B5A).withValues(alpha: .30)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = .8,
+        ..strokeWidth = strokeWidth,
     );
     final fiber = Paint()
       ..color = const Color(0xFF9C8464).withValues(alpha: .10)
@@ -315,28 +381,45 @@ class _CaptionMatFramePainter extends CustomPainter {
     for (var y = 7.0; y < size.height; y += 11) {
       canvas.drawLine(Offset(4, y), Offset(size.width - 4, y + .7), fiber);
     }
-    _drawTape(
-      canvas,
-      Offset(math.min(size.width * .18, 31), 5),
-      math.min(48, size.width * .34),
-      13,
-      -.16,
-    );
   }
 
   @override
   bool shouldRepaint(covariant _CaptionMatFramePainter oldDelegate) => false;
 }
 
+class _CaptionMatTapePainter extends CustomPainter {
+  const _CaptionMatTapePainter({required this.compact});
+
+  final bool compact;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    _drawTape(
+      canvas,
+      Offset(math.min(size.width * .18, 31), compact ? 5 : 10),
+      math.min(48, size.width * .34),
+      (size.height * .08).clamp(4.0, 13.0),
+      -.16,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _CaptionMatTapePainter oldDelegate) =>
+      compact != oldDelegate.compact;
+}
+
 class _OrbFrame extends StatelessWidget {
   const _OrbFrame({
     required this.depth,
     required this.sceneTheme,
+    required this.compact,
     required this.child,
   });
 
   final double depth;
   final GalleryTheme sceneTheme;
+  final bool compact;
   final Widget child;
 
   @override
@@ -357,7 +440,7 @@ class _OrbFrame extends StatelessWidget {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: light ? const Color(0xFFE7DCC8) : const Color(0xFF171A19),
-            border: Border.all(color: edge, width: 1.5),
+            border: Border.all(color: edge, width: compact ? 1.1 : 1.5),
             boxShadow: [
               BoxShadow(
                 color: Colors.black.withValues(alpha: .28 + depth * .30),
@@ -373,7 +456,7 @@ class _OrbFrame extends StatelessWidget {
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.all(3),
+            padding: EdgeInsets.all(compact ? 2.2 : 3),
             child: ClipOval(child: child),
           ),
         ),
@@ -415,13 +498,15 @@ class _TexturedFrame extends StatelessWidget {
   const _TexturedFrame({
     super.key,
     required this.painterKey,
-    required this.painter,
+    this.painter,
+    this.foregroundPainter,
     required this.padding,
     required this.child,
-  });
+  }) : assert(painter != null || foregroundPainter != null);
 
   final Key painterKey;
-  final CustomPainter painter;
+  final CustomPainter? painter;
+  final CustomPainter? foregroundPainter;
   final EdgeInsets padding;
   final Widget child;
 
@@ -430,15 +515,17 @@ class _TexturedFrame extends StatelessWidget {
     return CustomPaint(
       key: painterKey,
       painter: painter,
+      foregroundPainter: foregroundPainter,
       child: Padding(padding: padding, child: child),
     );
   }
 }
 
 class _StampEdgePainter extends CustomPainter {
-  const _StampEdgePainter({required this.color});
+  const _StampEdgePainter({required this.color, this.weight = 1});
 
   final Color color;
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -446,8 +533,8 @@ class _StampEdgePainter extends CustomPainter {
     canvas.saveLayer(Offset.zero & size, Paint());
     canvas.drawRect(Offset.zero & size, Paint()..color = color);
     final holePaint = Paint()..blendMode = BlendMode.clear;
-    const radius = 2.3;
-    const spacing = 8.0;
+    final radius = 2.3 * weight;
+    final spacing = 8.0 * (.75 + weight * .25);
     for (var x = spacing / 2; x < size.width; x += spacing) {
       canvas.drawCircle(Offset(x, 0), radius, holePaint);
       canvas.drawCircle(Offset(x, size.height), radius, holePaint);
@@ -461,30 +548,39 @@ class _StampEdgePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _StampEdgePainter oldDelegate) =>
-      color != oldDelegate.color;
+      color != oldDelegate.color || weight != oldDelegate.weight;
 }
 
 class _FilmEdgePainter extends CustomPainter {
-  const _FilmEdgePainter();
+  const _FilmEdgePainter({this.weight = 1});
+
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
     if (size.isEmpty) return;
     canvas.drawRect(Offset.zero & size, Paint()..color = Colors.black);
     final holePaint = Paint()..color = const Color(0xFFECE2CF);
-    const hole = Size(6, 8);
-    for (var x = 8.0; x < size.width - 8; x += 16) {
+    final hole = Size(6 * weight, 8 * weight);
+    final edge = 5.0 * weight;
+    final spacing = 16.0 * (.7 + weight * .3);
+    for (var x = 8.0; x < size.width - 8; x += spacing) {
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, 5, hole.width, hole.height),
-          const Radius.circular(1.5),
+          Rect.fromLTWH(x, edge, hole.width, hole.height),
+          Radius.circular(1.5 * weight),
         ),
         holePaint,
       );
       canvas.drawRRect(
         RRect.fromRectAndRadius(
-          Rect.fromLTWH(x, size.height - 13, hole.width, hole.height),
-          const Radius.circular(1.5),
+          Rect.fromLTWH(
+            x,
+            size.height - edge - hole.height,
+            hole.width,
+            hole.height,
+          ),
+          Radius.circular(1.5 * weight),
         ),
         holePaint,
       );
@@ -492,11 +588,14 @@ class _FilmEdgePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _FilmEdgePainter oldDelegate) => false;
+  bool shouldRepaint(covariant _FilmEdgePainter oldDelegate) =>
+      weight != oldDelegate.weight;
 }
 
 class _TapedPaperFramePainter extends CustomPainter {
-  const _TapedPaperFramePainter();
+  const _TapedPaperFramePainter({this.weight = 1});
+
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -508,12 +607,12 @@ class _TapedPaperFramePainter extends CustomPainter {
       Paint()
         ..color = const Color(0xFF49443C).withValues(alpha: .64)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.1,
+        ..strokeWidth = 1.1 * weight,
     );
     final mark = Paint()
       ..color = const Color(0xFF5B554B).withValues(alpha: .38)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = .85
+      ..strokeWidth = .85 * weight
       ..strokeCap = StrokeCap.round;
     canvas.drawLine(const Offset(7, 28), const Offset(9, 38), mark);
     canvas.drawLine(
@@ -521,17 +620,56 @@ class _TapedPaperFramePainter extends CustomPainter {
       Offset(size.width - 10, size.height * .48),
       mark,
     );
-    _drawTape(canvas, Offset(size.width * .50, 3), 42, 11, -.03);
-    _drawTape(canvas, Offset(size.width * .18, size.height - 5), 46, 12, .16);
-    _drawTape(canvas, Offset(size.width * .82, size.height - 5), 46, 12, -.18);
   }
 
   @override
-  bool shouldRepaint(covariant _TapedPaperFramePainter oldDelegate) => false;
+  bool shouldRepaint(covariant _TapedPaperFramePainter oldDelegate) =>
+      weight != oldDelegate.weight;
+}
+
+class _TapedPaperTapePainter extends CustomPainter {
+  const _TapedPaperTapePainter({required this.weight, required this.compact});
+
+  final double weight;
+  final bool compact;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.isEmpty) return;
+    final top = compact ? 5.0 : 15.0;
+    final bottom = size.height - (compact ? 7.0 : 22.0);
+    _drawTape(
+      canvas,
+      Offset(size.width * .50, top),
+      42 * weight,
+      11 * weight,
+      -.03,
+    );
+    _drawTape(
+      canvas,
+      Offset(size.width * .18, bottom),
+      46 * weight,
+      12 * weight,
+      .16,
+    );
+    _drawTape(
+      canvas,
+      Offset(size.width * .82, bottom),
+      46 * weight,
+      12 * weight,
+      -.18,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _TapedPaperTapePainter oldDelegate) =>
+      weight != oldDelegate.weight || compact != oldDelegate.compact;
 }
 
 class _CrayonFramePainter extends CustomPainter {
-  const _CrayonFramePainter();
+  const _CrayonFramePainter({this.weight = 1});
+
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -563,7 +701,7 @@ class _CrayonFramePainter extends CustomPainter {
           Paint()
             ..color = color.withValues(alpha: .34 + pass * .08)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = 7.8 - pass * 1.25
+            ..strokeWidth = (7.8 - pass * 1.25) * weight
             ..strokeCap = StrokeCap.round,
         );
       }
@@ -571,11 +709,14 @@ class _CrayonFramePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _CrayonFramePainter oldDelegate) => false;
+  bool shouldRepaint(covariant _CrayonFramePainter oldDelegate) =>
+      weight != oldDelegate.weight;
 }
 
 class _WatercolorFramePainter extends CustomPainter {
-  const _WatercolorFramePainter();
+  const _WatercolorFramePainter({this.weight = 1});
+
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -591,7 +732,7 @@ class _WatercolorFramePainter extends CustomPainter {
         Paint()
           ..color = wash.$1.withValues(alpha: .25)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 10.5
+          ..strokeWidth = 10.5 * weight
           ..strokeCap = StrokeCap.round
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.4),
       );
@@ -606,7 +747,7 @@ class _WatercolorFramePainter extends CustomPainter {
     for (final bloom in blooms) {
       canvas.drawCircle(
         bloom.$1,
-        bloom.$3,
+        bloom.$3 * weight,
         Paint()
           ..color = bloom.$2.withValues(alpha: .22)
           ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2.8),
@@ -615,11 +756,14 @@ class _WatercolorFramePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _WatercolorFramePainter oldDelegate) => false;
+  bool shouldRepaint(covariant _WatercolorFramePainter oldDelegate) =>
+      weight != oldDelegate.weight;
 }
 
 class _DoodleTapeFramePainter extends CustomPainter {
-  const _DoodleTapeFramePainter();
+  const _DoodleTapeFramePainter({this.weight = 1});
+
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -645,14 +789,14 @@ class _DoodleTapeFramePainter extends CustomPainter {
         Paint()
           ..color = stroke.$3.withValues(alpha: .78)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.7
+          ..strokeWidth = 1.7 * weight
           ..strokeCap = StrokeCap.round,
       );
     }
     final doodle = Paint()
       ..color = const Color(0xFF3C3630).withValues(alpha: .7)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.15
+      ..strokeWidth = 1.15 * weight
       ..strokeCap = StrokeCap.round;
     for (var x = 20.0; x < size.width - 14; x += 25) {
       canvas.drawCircle(Offset(x, 7), 2.2 + (x.toInt() % 3), doodle);
@@ -671,19 +815,21 @@ class _DoodleTapeFramePainter extends CustomPainter {
       Paint()
         ..color = const Color(0xFFCA8650)
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1.5
+        ..strokeWidth = 1.5 * weight
         ..strokeCap = StrokeCap.round,
     );
   }
 
   @override
-  bool shouldRepaint(covariant _DoodleTapeFramePainter oldDelegate) => false;
+  bool shouldRepaint(covariant _DoodleTapeFramePainter oldDelegate) =>
+      weight != oldDelegate.weight;
 }
 
 class _ScallopFramePainter extends CustomPainter {
-  const _ScallopFramePainter({required this.color});
+  const _ScallopFramePainter({required this.color, this.weight = 1});
 
   final Color color;
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -691,7 +837,7 @@ class _ScallopFramePainter extends CustomPainter {
     final ink = Paint()
       ..color = color.withValues(alpha: .82)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.65
+      ..strokeWidth = 1.65 * weight
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(_scallopRectPath(size, inset: 8, lobe: 6.2), ink);
@@ -699,19 +845,20 @@ class _ScallopFramePainter extends CustomPainter {
       _scallopRectPath(size, inset: 9.6, lobe: 5.7),
       ink
         ..color = color.withValues(alpha: .30)
-        ..strokeWidth = .85,
+        ..strokeWidth = .85 * weight,
     );
   }
 
   @override
   bool shouldRepaint(covariant _ScallopFramePainter oldDelegate) =>
-      color != oldDelegate.color;
+      color != oldDelegate.color || weight != oldDelegate.weight;
 }
 
 class _CornerSketchFramePainter extends CustomPainter {
-  const _CornerSketchFramePainter({required this.color});
+  const _CornerSketchFramePainter({required this.color, this.weight = 1});
 
   final Color color;
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -748,17 +895,31 @@ class _CornerSketchFramePainter extends CustomPainter {
     ];
     for (var pass = 0; pass < 2; pass++) {
       for (var index = 0; index < segments.length; index++) {
+        final path = _roughLinePath(
+          segments[index].$1,
+          segments[index].$2,
+          amplitude: 1.1 + pass * .35,
+          phase: index * .73 + pass * 2.2,
+        );
+        if (pass == 0) {
+          final contrast = color.computeLuminance() > .5
+              ? Colors.black
+              : Colors.white;
+          canvas.drawPath(
+            path,
+            Paint()
+              ..color = contrast.withValues(alpha: .34)
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 3.2 * weight
+              ..strokeCap = StrokeCap.round,
+          );
+        }
         canvas.drawPath(
-          _roughLinePath(
-            segments[index].$1,
-            segments[index].$2,
-            amplitude: 1.1 + pass * .35,
-            phase: index * .73 + pass * 2.2,
-          ),
+          path,
           Paint()
             ..color = color.withValues(alpha: pass == 0 ? .80 : .32)
             ..style = PaintingStyle.stroke
-            ..strokeWidth = pass == 0 ? 1.8 : .85
+            ..strokeWidth = (pass == 0 ? 1.8 : .85) * weight
             ..strokeCap = StrokeCap.round,
         );
       }
@@ -767,13 +928,14 @@ class _CornerSketchFramePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _CornerSketchFramePainter oldDelegate) =>
-      color != oldDelegate.color;
+      color != oldDelegate.color || weight != oldDelegate.weight;
 }
 
 class _WavyFramePainter extends CustomPainter {
-  const _WavyFramePainter({required this.color});
+  const _WavyFramePainter({required this.color, this.weight = 1});
 
   final Color color;
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -781,7 +943,7 @@ class _WavyFramePainter extends CustomPainter {
     final ink = Paint()
       ..color = color.withValues(alpha: .84)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.8
+      ..strokeWidth = 1.8 * weight
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
     canvas.drawPath(
@@ -794,13 +956,13 @@ class _WavyFramePainter extends CustomPainter {
       Offset(size.width - 7, size.height - 7),
       Offset(7, size.height - 7),
     ]) {
-      canvas.drawCircle(corner, 2.7, Paint()..color = ink.color);
+      canvas.drawCircle(corner, 2.7 * weight, Paint()..color = ink.color);
     }
   }
 
   @override
   bool shouldRepaint(covariant _WavyFramePainter oldDelegate) =>
-      color != oldDelegate.color;
+      color != oldDelegate.color || weight != oldDelegate.weight;
 }
 
 Path _roughLinePath(
@@ -991,11 +1153,13 @@ class _WoodGrainPainter extends CustomPainter {
     required this.base,
     required this.vein,
     required this.highlight,
+    this.weight = 1,
   });
 
   final Color base;
   final Color vein;
   final Color highlight;
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1014,11 +1178,11 @@ class _WoodGrainPainter extends CustomPainter {
     final veinPaint = Paint()
       ..color = vein.withValues(alpha: .36)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 1.1;
+      ..strokeWidth = 1.1 * weight;
     final glowPaint = Paint()
       ..color = highlight.withValues(alpha: .32)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = .8;
+      ..strokeWidth = .8 * weight;
     for (var i = -2; i < 13; i++) {
       final y = size.height * (i / 11);
       final path = Path()
@@ -1035,14 +1199,14 @@ class _WoodGrainPainter extends CustomPainter {
     }
     final bevel = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 5
+      ..strokeWidth = 5 * weight
       ..color = Colors.black.withValues(alpha: .20);
     canvas.drawRect(rect.deflate(2.5), bevel);
     canvas.drawRect(
       rect.deflate(6),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
+        ..strokeWidth = 1 * weight
         ..color = Colors.white.withValues(alpha: .18),
     );
   }
@@ -1051,11 +1215,14 @@ class _WoodGrainPainter extends CustomPainter {
   bool shouldRepaint(covariant _WoodGrainPainter oldDelegate) =>
       base != oldDelegate.base ||
       vein != oldDelegate.vein ||
-      highlight != oldDelegate.highlight;
+      highlight != oldDelegate.highlight ||
+      weight != oldDelegate.weight;
 }
 
 class _MetalTexturePainter extends CustomPainter {
-  const _MetalTexturePainter();
+  const _MetalTexturePainter({this.weight = 1});
+
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1076,10 +1243,10 @@ class _MetalTexturePainter extends CustomPainter {
     );
     final scratch = Paint()
       ..color = Colors.white.withValues(alpha: .28)
-      ..strokeWidth = .7;
+      ..strokeWidth = .7 * weight;
     final darkScratch = Paint()
       ..color = Colors.black.withValues(alpha: .18)
-      ..strokeWidth = .6;
+      ..strokeWidth = .6 * weight;
     for (var i = 0; i < 32; i++) {
       final x = (i * 37) % (size.width + 30) - 15;
       final y = (i * 19) % (size.height + 20) - 10;
@@ -1093,17 +1260,20 @@ class _MetalTexturePainter extends CustomPainter {
       rect.deflate(2),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 3
+        ..strokeWidth = 3 * weight
         ..color = Colors.black.withValues(alpha: .24),
     );
   }
 
   @override
-  bool shouldRepaint(covariant _MetalTexturePainter oldDelegate) => false;
+  bool shouldRepaint(covariant _MetalTexturePainter oldDelegate) =>
+      weight != oldDelegate.weight;
 }
 
 class _VintagePaperPainter extends CustomPainter {
-  const _VintagePaperPainter();
+  const _VintagePaperPainter({this.weight = 1});
+
+  final double weight;
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1132,18 +1302,19 @@ class _VintagePaperPainter extends CustomPainter {
       rect.deflate(4),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 2
+        ..strokeWidth = 2 * weight
         ..color = const Color(0xFF6E522C).withValues(alpha: .42),
     );
     canvas.drawRect(
       rect.deflate(10),
       Paint()
         ..style = PaintingStyle.stroke
-        ..strokeWidth = 1
+        ..strokeWidth = 1 * weight
         ..color = Colors.white.withValues(alpha: .22),
     );
   }
 
   @override
-  bool shouldRepaint(covariant _VintagePaperPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _VintagePaperPainter oldDelegate) =>
+      weight != oldDelegate.weight;
 }

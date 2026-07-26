@@ -16,6 +16,7 @@ import 'package:xulang/domain/gallery_document.dart';
 import 'package:xulang/editor/editor_session.dart';
 import 'package:xulang/l10n/app_strings.dart';
 import 'package:xulang/layout/canvas_transform.dart';
+import 'package:xulang/layout/floating_panel_position.dart';
 import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/providers/app_providers.dart';
@@ -929,6 +930,7 @@ class _FloatingPanelState extends State<_FloatingPanel>
   late final AnimationController _animController;
   late final Animation<double> _slideAnimation;
   late final Animation<double> _fadeAnimation;
+  double? _landscapeLeft;
 
   @override
   void initState() {
@@ -955,16 +957,24 @@ class _FloatingPanelState extends State<_FloatingPanel>
 
   @override
   Widget build(BuildContext context) {
+    final viewportWidth = MediaQuery.sizeOf(context).width;
     final panelWidth = widget.landscape
-        ? (MediaQuery.sizeOf(context).width * 0.38).clamp(300.0, 380.0)
+        ? (viewportWidth * 0.38).clamp(300.0, 380.0)
         : double.infinity;
     final maxHeight = widget.landscape
         ? MediaQuery.sizeOf(context).height * 0.57
         : MediaQuery.sizeOf(context).height * 0.37;
+    final landscapeLeft = widget.landscape
+        ? clampFloatingPanelLeft(
+            viewportWidth: viewportWidth,
+            panelWidth: panelWidth,
+            desiredLeft: _landscapeLeft ?? viewportWidth - panelWidth - 8,
+          )
+        : 0.0;
 
     return Positioned(
-      right: widget.landscape ? 8 : 0,
-      left: widget.landscape ? null : 0,
+      right: widget.landscape ? null : 0,
+      left: landscapeLeft,
       bottom: widget.landscape ? 8 : 0,
       top: widget.landscape ? 56 : null,
       child: AnimatedBuilder(
@@ -1018,6 +1028,18 @@ class _FloatingPanelState extends State<_FloatingPanel>
                         onFocusSticker: widget.onFocusSticker,
                         onSelectStickerKind: widget.onSelectStickerKind,
                         onDismiss: widget.onDismiss,
+                        onPanelHorizontalDragUpdate: widget.landscape
+                            ? (details) {
+                                setState(() {
+                                  _landscapeLeft = clampFloatingPanelLeft(
+                                    viewportWidth: viewportWidth,
+                                    panelWidth: panelWidth,
+                                    desiredLeft:
+                                        landscapeLeft + details.delta.dx,
+                                  );
+                                });
+                              }
+                            : null,
                       ),
                     ),
                   ),
@@ -1207,7 +1229,7 @@ class _Preview extends StatefulWidget {
 }
 
 class _PreviewState extends State<_Preview> {
-  final Map<String, double> _cameraProgressByChapter = {};
+  final Map<String, double> _cameraProgressByLayout = {};
   final Map<String, GalleryPlacement> _placementDrafts = {};
   final NarrativeCameraController _cameraController =
       NarrativeCameraController();
@@ -1218,6 +1240,8 @@ class _PreviewState extends State<_Preview> {
   bool _cameraDragActive = false;
   bool _previewPointerMoved = false;
   bool _previewTapHandled = false;
+  String? _activeCanvasStateKey;
+  Size _viewport = Size.zero;
 
   double get _currentScale => _zoomController.value.getMaxScaleOnAxis();
 
@@ -1226,6 +1250,7 @@ class _PreviewState extends State<_Preview> {
   void _resetZoom() {
     _zoomController.value = Matrix4.identity();
     setState(() {});
+    _persistCanvasState();
   }
 
   void _setPreviewScale(double targetScale, Size viewport) {
@@ -1235,6 +1260,7 @@ class _PreviewState extends State<_Preview> {
       viewport: viewport,
     );
     setState(() {});
+    _persistCanvasState(viewport: viewport);
   }
 
   EditorSession get session => widget.session;
@@ -1245,7 +1271,11 @@ class _PreviewState extends State<_Preview> {
   bool get _isStickerMode =>
       widget.interactionMode == _EditorInteractionMode.sticker;
   String get _chapterId => session.selectedChapter!.id;
-  double get _cameraProgress => _cameraProgressByChapter[_chapterId] ?? 0;
+  String get _canvasStateKey =>
+      '$_chapterId:${session.selectedChapter!.layout.name}';
+  double get _cameraProgress =>
+      _cameraProgressByLayout[_canvasStateKey] ??
+      session.selectedChapter!.canvasState.cameraProgress;
 
   @override
   void dispose() {
@@ -1257,7 +1287,45 @@ class _PreviewState extends State<_Preview> {
   void _setProgress(double value) {
     final next = value.clamp(0.0, 1.0);
     _cameraController.setProgress(next);
-    setState(() => _cameraProgressByChapter[_chapterId] = next);
+    setState(() => _cameraProgressByLayout[_canvasStateKey] = next);
+    _persistCanvasState();
+  }
+
+  void _syncCanvasState(GalleryChapter chapter, Size viewport) {
+    final key = '${chapter.id}:${chapter.layout.name}';
+    if (_activeCanvasStateKey == key && _viewport == viewport) return;
+    _viewport = viewport;
+    _activeCanvasStateKey = key;
+    final state = chapter.canvasState;
+    _cameraProgressByLayout[key] = state.cameraProgress;
+    _cameraController.setProgress(state.cameraProgress);
+    final matrix = Matrix4.identity()
+      ..setEntry(0, 0, state.viewportScale)
+      ..setEntry(1, 1, state.viewportScale)
+      ..setTranslationRaw(
+        state.viewportOffsetX * viewport.width,
+        state.viewportOffsetY * viewport.height,
+        0,
+      );
+    _zoomController.value = clampCanvasTransform(matrix, viewport);
+  }
+
+  void _persistCanvasState({Size? viewport}) {
+    final currentViewport = viewport ?? _viewport;
+    final chapter = session.selectedChapter;
+    if (chapter == null ||
+        currentViewport.width <= 0 ||
+        currentViewport.height <= 0) {
+      return;
+    }
+    final matrix = _zoomController.value;
+    final next = chapter.canvasState.copyWith(
+      viewportScale: matrix.getMaxScaleOnAxis(),
+      viewportOffsetX: matrix.storage[12] / currentViewport.width,
+      viewportOffsetY: matrix.storage[13] / currentViewport.height,
+      cameraProgress: _cameraProgress,
+    );
+    unawaited(session.updateCanvasState(next));
   }
 
   void _beginCameraDragIfNeeded() {
@@ -1273,6 +1341,7 @@ class _PreviewState extends State<_Preview> {
     if (!_cameraDragActive) return;
     _cameraController.end();
     _cameraDragActive = false;
+    _persistCanvasState();
   }
 
   GalleryChapter _chapterWithDrafts(GalleryChapter chapter) {
@@ -1363,6 +1432,7 @@ class _PreviewState extends State<_Preview> {
         final viewportLandscape =
             NarrativeAxis.fromViewport(viewport) == NarrativeAxis.horizontal;
         final chapter = _chapterWithDrafts(session.selectedChapter!);
+        _syncCanvasState(chapter, viewport);
         final cameraAxis = editorCameraAxisForLayout(chapter.layout);
         final requestedPlacementId = widget.selectedPlacementId;
         if (requestedPlacementId != null &&
@@ -1418,6 +1488,7 @@ class _PreviewState extends State<_Preview> {
                     viewport,
                   );
                   setState(() {});
+                  _persistCanvasState(viewport: viewport);
                 },
                 child: SizedBox(
                   key: const Key('editor-infinite-world'),
@@ -1454,7 +1525,7 @@ class _PreviewState extends State<_Preview> {
                         axis: cameraAxis,
                       );
                       setState(() {
-                        _cameraProgressByChapter[_chapterId] =
+                        _cameraProgressByLayout[_canvasStateKey] =
                             _cameraController.progress;
                       });
                     },
@@ -1491,11 +1562,11 @@ class _PreviewState extends State<_Preview> {
                         chapter: chapter,
                         media: session.bundle!.media,
                         cameraProgress: progress,
-                        sceneTheme: session.bundle!.document.theme,
+                        sceneTheme: chapter.canvasState.theme,
                         canvasBackgroundPath:
-                            session.bundle!.document.canvasBackgroundPath,
+                            chapter.canvasState.backgroundPath,
                         canvasBackgroundOpacity:
-                            session.bundle!.document.canvasBackgroundOpacity,
+                            chapter.canvasState.backgroundOpacity,
                         placementEditingEnabled: placementEditingEnabled,
                         stickerEditingEnabled: _isStickerMode,
                         selectedStickerKind: widget.selectedStickerKind,
@@ -1703,6 +1774,7 @@ class _Inspector extends StatefulWidget {
     required this.onFocusSticker,
     required this.onSelectStickerKind,
     required this.onDismiss,
+    this.onPanelHorizontalDragUpdate,
   });
 
   final EditorSession session;
@@ -1718,6 +1790,7 @@ class _Inspector extends StatefulWidget {
   final ValueChanged<String?> onFocusSticker;
   final ValueChanged<GalleryStickerKind> onSelectStickerKind;
   final VoidCallback onDismiss;
+  final GestureDragUpdateCallback? onPanelHorizontalDragUpdate;
 
   @override
   State<_Inspector> createState() => _InspectorState();
@@ -1735,7 +1808,7 @@ class _InspectorState extends State<_Inspector> {
   @override
   void initState() {
     super.initState();
-    _newTextColor = switch (session.bundle!.document.theme) {
+    _newTextColor = switch (session.selectedChapter!.canvasState.theme) {
       GalleryTheme.paper ||
       GalleryTheme.warm ||
       GalleryTheme.botanical ||
@@ -1808,7 +1881,7 @@ class _InspectorState extends State<_Inspector> {
                     child: PopupMenuButton<GalleryTheme>(
                       key: const Key('editor-canvas-theme-button'),
                       tooltip: l10n.canvasTheme,
-                      initialValue: session.bundle!.document.theme,
+                      initialValue: chapter.canvasState.theme,
                       onSelected: session.updateTheme,
                       itemBuilder: (context) => [
                         for (final theme in GalleryTheme.values)
@@ -1822,7 +1895,7 @@ class _InspectorState extends State<_Inspector> {
                         label: l10n.canvasTheme,
                         value: _galleryThemeLabel(
                           l10n,
-                          session.bundle!.document.theme,
+                          chapter.canvasState.theme,
                         ),
                       ),
                     ),
@@ -1846,8 +1919,8 @@ class _InspectorState extends State<_Inspector> {
               ),
               const SizedBox(height: 12),
               _CanvasBackgroundControl(
-                path: session.bundle!.document.canvasBackgroundPath,
-                opacity: session.bundle!.document.canvasBackgroundOpacity,
+                path: chapter.canvasState.backgroundPath,
+                opacity: chapter.canvasState.backgroundOpacity,
                 onPick: () => _pickCanvasBackground(context),
                 onClear: session.clearCanvasBackground,
                 onOpacityChanged: session.updateCanvasBackgroundOpacity,
@@ -2316,13 +2389,34 @@ class _InspectorState extends State<_Inspector> {
                     Row(
                       children: [
                         Expanded(
-                          child: Text(
-                            AppStrings.of(context).operationPanel,
-                            style: const TextStyle(
-                              color: XulangColors.paper,
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: 0.5,
+                          child: GestureDetector(
+                            key: const Key(
+                              'editor-landscape-panel-drag-handle',
+                            ),
+                            behavior: HitTestBehavior.opaque,
+                            onHorizontalDragUpdate:
+                                widget.onPanelHorizontalDragUpdate,
+                            child: Row(
+                              children: [
+                                if (widget.onPanelHorizontalDragUpdate !=
+                                    null) ...[
+                                  const Icon(
+                                    Icons.drag_indicator,
+                                    size: 17,
+                                    color: XulangColors.muted,
+                                  ),
+                                  const SizedBox(width: 5),
+                                ],
+                                Text(
+                                  AppStrings.of(context).operationPanel,
+                                  style: const TextStyle(
+                                    color: XulangColors.paper,
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    letterSpacing: 0.5,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),

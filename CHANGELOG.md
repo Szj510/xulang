@@ -4,6 +4,23 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+## [1.4.1] - 2026-07-26
+
+### Added
+
+- Added independent per-layout canvas state for theme, background, zoom, pan, and playback position, including shared-template persistence. / 为每种照片布局分别保存画布主题、背景、缩放、平移和播放位置，并同步保留到分享模板。
+- Added a horizontally draggable editor panel in landscape mode so controls can be moved away from the active canvas area. / 横屏编辑时操作面板现在可左右拖动，避免遮挡正在编辑的画布区域。
+
+### Changed
+
+- Rebalanced every Orbit frame style with compact but visible margins and strokes while keeping photos visually dominant. / 重新协调星轨布局中全部画框的边距与线条，在保持照片主体清晰的同时避免画框过厚或过薄。
+
+### Fixed
+
+- Restored the scallop, hand-drawn corner, and wavy frame details in compact Orbit nodes, including adaptive contrast for corner marks. / 恢复星轨小节点中的环形花边、手绘角标和波浪线框，并为角标增加自适应明暗对比。
+- Moved caption-mat and taped-paper tape decorations above the photo layer and aligned them with the photo edge. / 将留白题字与胶带相纸画框的胶带移至照片上层，并与照片边缘正确衔接。
+- Preserved existing exhibition data while upgrading legacy documents to the new per-layout canvas state. / 旧版展览升级到各布局独立画布状态时继续完整保留用户数据。
+
 ## [1.4.0] - 2026-07-23
 
 ### Added
@@ -89,7 +106,8 @@ All notable changes to this project will be documented in this file. The format 
 
 - Prepared the first public open-source release under GPL-3.0.
 
-[Unreleased]: https://github.com/Szj510/xulang/compare/v1.4.0...HEAD
+[Unreleased]: https://github.com/Szj510/xulang/compare/v1.4.1...HEAD
+[1.4.1]: https://github.com/Szj510/xulang/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/Szj510/xulang/compare/v1.3.0...v1.4.0
 [1.3.0]: https://github.com/Szj510/xulang/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/Szj510/xulang/compare/v1.1.1...v1.2.0

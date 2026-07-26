@@ -145,13 +145,16 @@ void main() {
       viewport: viewport,
     );
 
-    expect(captioned.nodes[1].rect.width, plain.nodes[1].rect.width);
     expect(
-      captioned.nodes[1].rect.height,
-      greaterThan(plain.nodes[1].rect.height * 1.3),
+      captioned.nodes[1].rect.width,
+      closeTo(plain.nodes[1].rect.width * 1.04, .001),
     );
     expect(
-      captioned.nodes[1].rect.height * .74,
+      captioned.nodes[1].rect.height,
+      lessThan(plain.nodes[1].rect.height * 1.3),
+    );
+    expect(
+      captioned.nodes[1].rect.height * .78,
       closeTo(plain.nodes[1].rect.height, .001),
     );
   });

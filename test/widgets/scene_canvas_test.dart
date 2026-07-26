@@ -196,6 +196,41 @@ void main() {
     expect(find.byKey(const Key('orbit-track-front')), findsNothing);
   });
 
+  testWidgets('orbit caption frame keeps the photo dominant', (tester) async {
+    final orbitChapter = chapter.copyWith(
+      layout: GalleryLayout.orbit,
+      placements: [
+        ...chapter.placements,
+        const GalleryPlacement(
+          id: 'captioned-satellite',
+          mediaId: 'media',
+          order: 1,
+          frame: GalleryFrame.captionMat,
+          frameCaption: '山海之间',
+        ),
+      ],
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        home: SizedBox(
+          width: 390,
+          height: 844,
+          child: SceneCanvas(chapter: orbitChapter, media: const [media]),
+        ),
+      ),
+    );
+
+    final frameSize = tester.getSize(
+      find.byKey(const Key('caption-mat-frame-painter')),
+    );
+    final photoSize = tester.getSize(
+      find.byKey(const Key('caption-mat-photo-region')),
+    );
+
+    expect(photoSize.width / frameSize.width, greaterThan(.88));
+    expect(photoSize.height / frameSize.height, greaterThan(.62));
+  });
+
   testWidgets('custom canvas image is layered above the painted theme', (
     tester,
   ) async {

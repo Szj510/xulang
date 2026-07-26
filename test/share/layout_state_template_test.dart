@@ -29,6 +29,13 @@ void main() {
           y: .8,
         ),
       ],
+      canvasState: GalleryCanvasState(
+        theme: GalleryTheme.paper,
+        backgroundPath: 'asset://assets/sample/coast-sunset.jpg',
+        viewportScale: 1.8,
+        viewportOffsetX: -.3,
+        cameraProgress: .4,
+      ),
     ).recordCurrentLayoutState();
     final filmstrip = hero
         .switchLayout(GalleryLayout.filmstrip)
@@ -51,6 +58,13 @@ void main() {
               y: .3,
             ),
           ],
+          canvasState: const GalleryCanvasState(
+            theme: GalleryTheme.starfield,
+            backgroundPath: '/private/do-not-share.jpg',
+            viewportScale: 1.4,
+            viewportOffsetY: -.15,
+            cameraProgress: .75,
+          ),
         )
         .recordCurrentLayoutState();
     final source = GalleryDocument(
@@ -65,6 +79,7 @@ void main() {
     final encoded = codec.encode(source);
 
     expect(encoded, isNot(contains('secret-media-id')));
+    expect(encoded, isNot(contains('/private/do-not-share.jpg')));
     var nextId = 0;
     final applied = codec.applyToDocument(
       base: GalleryDocument(
@@ -100,6 +115,10 @@ void main() {
     expect(appliedFilmstrip.placements.single.size, GallerySize.small);
     expect(appliedFilmstrip.placements.single.rotation, -6);
     expect(appliedFilmstrip.stickers.single.id, 'film-decoration');
+    expect(appliedFilmstrip.canvasState.theme, GalleryTheme.starfield);
+    expect(appliedFilmstrip.canvasState.backgroundPath, isNull);
+    expect(appliedFilmstrip.canvasState.viewportScale, 1.4);
+    expect(appliedFilmstrip.canvasState.cameraProgress, .75);
 
     final appliedHero = appliedFilmstrip.switchLayout(GalleryLayout.hero);
     expect(appliedHero.placements.single.mediaId, 'target-media');
@@ -107,5 +126,12 @@ void main() {
     expect(appliedHero.placements.single.frame, GalleryFrame.wood);
     expect(appliedHero.placements.single.rotation, 9);
     expect(appliedHero.stickers.single.id, 'hero-decoration');
+    expect(appliedHero.canvasState.theme, GalleryTheme.paper);
+    expect(
+      appliedHero.canvasState.backgroundPath,
+      'asset://assets/sample/coast-sunset.jpg',
+    );
+    expect(appliedHero.canvasState.viewportScale, 1.8);
+    expect(appliedHero.canvasState.cameraProgress, .4);
   });
 }

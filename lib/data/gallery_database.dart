@@ -452,6 +452,18 @@ class GalleryDatabase extends _$GalleryDatabase {
     final restoredChapters = <GalleryChapter>[];
     for (final chapter in chapterRows) {
       final customPath = _decodeCustomPath(chapter.customPathData);
+      final layout = _decodeLayout(chapter.layout);
+      final canvasState =
+          customPath.layoutStates[layout]?.canvasState ??
+          GalleryCanvasState(
+            theme: _enumByName(
+              GalleryTheme.values,
+              exhibition.theme,
+              GalleryTheme.ink,
+            ),
+            backgroundPath: exhibition.canvasBackgroundPath,
+            backgroundOpacity: exhibition.canvasBackgroundOpacity,
+          );
       final placementRows =
           await (select(placements)
                 ..where((row) => row.chapterId.equals(chapter.id))
@@ -463,7 +475,7 @@ class GalleryDatabase extends _$GalleryDatabase {
           title: chapter.title,
           caption: chapter.caption,
           order: chapter.sortOrder,
-          layout: _decodeLayout(chapter.layout),
+          layout: layout,
           motion: GalleryMotion.values.byName(chapter.motion),
           pathStyle: _enumByName(
             StoryPathStyle.values,
@@ -473,6 +485,7 @@ class GalleryDatabase extends _$GalleryDatabase {
           customPathAnchors: customPath.anchors,
           customPathConnections: customPath.connections,
           stickers: customPath.stickers,
+          canvasState: canvasState,
           layoutStates: customPath.layoutStates,
           placements: [
             for (final item in placementRows)
@@ -732,7 +745,7 @@ String? _encodeCustomPath({
     return null;
   }
   return jsonEncode({
-    'version': 3,
+    'version': 4,
     'anchors': [
       for (final anchor in anchors ?? const <CustomPathAnchor>[])
         anchor.toJson(),
