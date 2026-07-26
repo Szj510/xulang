@@ -147,6 +147,58 @@ class GalleryRepository {
         );
       }
 
+      final canvasPathMap = <String, String?>{};
+      Future<String?> copyCanvasPath(String sourcePath) async {
+        if (canvasPathMap.containsKey(sourcePath)) {
+          return canvasPathMap[sourcePath];
+        }
+        if (sourcePath.startsWith('asset://')) {
+          canvasPathMap[sourcePath] = sourcePath;
+          return sourcePath;
+        }
+        final sourceFile = File(sourcePath);
+        if (!await sourceFile.exists()) {
+          canvasPathMap[sourcePath] = null;
+          return null;
+        }
+        final canvasDirectory = Directory(
+          p.join(destinationRoot.path, 'canvas'),
+        );
+        await canvasDirectory.create(recursive: true);
+        final copiedPath = (await sourceFile.copy(
+          p.join(
+            canvasDirectory.path,
+            '${createId()}${p.extension(sourcePath)}',
+          ),
+        )).path;
+        canvasPathMap[sourcePath] = copiedPath;
+        return copiedPath;
+      }
+
+      final canvasPaths = <String>{
+        ?source.document.canvasBackgroundPath,
+        for (final chapter in source.document.chapters)
+          ?chapter.canvasState.backgroundPath,
+        for (final chapter in source.document.chapters)
+          for (final state in chapter.layoutStates.values)
+            ?state.canvasState?.backgroundPath,
+      };
+      for (final canvasPath in canvasPaths) {
+        await copyCanvasPath(canvasPath);
+      }
+      copiedCanvasBackgroundPath = source.document.canvasBackgroundPath == null
+          ? null
+          : canvasPathMap[source.document.canvasBackgroundPath!];
+
+      GalleryCanvasState remapCanvasState(GalleryCanvasState state) {
+        final backgroundPath = state.backgroundPath;
+        return state.copyWith(
+          backgroundPath: backgroundPath == null
+              ? null
+              : canvasPathMap[backgroundPath],
+        );
+      }
+
       final copiedChapters = <GalleryChapter>[];
       for (final chapter in source.document.chapters) {
         final newChapterId = createId();
@@ -210,6 +262,7 @@ class GalleryRepository {
                 remapConnection(connection),
             ],
             stickers: recordedChapter.stickers,
+            canvasState: remapCanvasState(recordedChapter.canvasState),
             layoutStates: {
               for (final entry in recordedChapter.layoutStates.entries)
                 entry.key: GalleryLayoutState(
@@ -224,6 +277,9 @@ class GalleryRepository {
                       remapConnection(connection),
                   ],
                   stickers: entry.value.stickers,
+                  canvasState: entry.value.canvasState == null
+                      ? null
+                      : remapCanvasState(entry.value.canvasState!),
                 ),
             },
           ),
@@ -236,18 +292,6 @@ class GalleryRepository {
         copiedMusicPath = (await File(
           musicPath,
         ).copy(p.join(musicDirectory.path, p.basename(musicPath)))).path;
-      }
-      final canvasPath = source.document.canvasBackgroundPath;
-      if (canvasPath != null && canvasPath.startsWith('asset://')) {
-        copiedCanvasBackgroundPath = canvasPath;
-      } else if (canvasPath != null && await File(canvasPath).exists()) {
-        final canvasDirectory = Directory(
-          p.join(destinationRoot.path, 'canvas'),
-        );
-        await canvasDirectory.create(recursive: true);
-        copiedCanvasBackgroundPath = (await File(
-          canvasPath,
-        ).copy(p.join(canvasDirectory.path, p.basename(canvasPath)))).path;
       }
       final copiedDocument = GalleryDocument(
         id: newId,

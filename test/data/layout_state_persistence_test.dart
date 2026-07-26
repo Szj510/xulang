@@ -32,6 +32,13 @@ void main() {
           y: .3,
         ),
       ],
+      canvasState: GalleryCanvasState(
+        theme: GalleryTheme.paper,
+        backgroundPath: '/canvas/hero.jpg',
+        viewportScale: 2,
+        viewportOffsetX: -.35,
+        cameraProgress: .4,
+      ),
     ).recordCurrentLayoutState();
     final filmstrip = hero
         .switchLayout(GalleryLayout.filmstrip)
@@ -53,6 +60,12 @@ void main() {
               y: .7,
             ),
           ],
+          canvasState: const GalleryCanvasState(
+            theme: GalleryTheme.starfield,
+            viewportScale: 1.6,
+            viewportOffsetY: -.2,
+            cameraProgress: .75,
+          ),
         )
         .recordCurrentLayoutState();
     final document = GalleryDocument(
@@ -79,11 +92,18 @@ void main() {
     expect(restoredFilmstrip.layoutStates, hasLength(2));
     expect(restoredFilmstrip.placements.single.rotation, -4);
     expect(restoredFilmstrip.stickers.single.id, 'film-sticker');
+    expect(restoredFilmstrip.canvasState.theme, GalleryTheme.starfield);
+    expect(restoredFilmstrip.canvasState.viewportScale, 1.6);
+    expect(restoredFilmstrip.canvasState.cameraProgress, .75);
 
     final restoredHero = restoredFilmstrip.switchLayout(GalleryLayout.hero);
     expect(restoredHero.placements.single.size, GallerySize.large);
     expect(restoredHero.placements.single.rotation, 12);
     expect(restoredHero.stickers.single.id, 'hero-sticker');
+    expect(restoredHero.canvasState.theme, GalleryTheme.paper);
+    expect(restoredHero.canvasState.backgroundPath, '/canvas/hero.jpg');
+    expect(restoredHero.canvasState.viewportScale, 2);
+    expect(restoredHero.canvasState.cameraProgress, .4);
   });
 
   test('v1.2 data survives first layout switch and v1.3 save', () async {

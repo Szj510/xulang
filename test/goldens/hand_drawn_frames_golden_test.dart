@@ -127,4 +127,89 @@ void main() {
       matchesGoldenFile('hand_drawn_frame_family.png'),
     );
   });
+
+  testWidgets('compact orbit frame family keeps every photo prominent', (
+    tester,
+  ) async {
+    await tester.binding.setSurfaceSize(const Size(660, 900));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    const media = GalleryMedia(
+      id: 'orbit-media',
+      originalPath: 'asset://assets/sample/coast-sunset.jpg',
+      thumbnailPath: 'asset://assets/sample/summer-walk.jpg',
+      width: 1536,
+      height: 1024,
+      contentHash: 'orbit-frame-family-golden',
+    );
+
+    await tester.pumpWidget(
+      MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: ColoredBox(
+          color: XulangColors.ink,
+          child: Center(
+            child: Wrap(
+              key: const Key('orbit-frame-family'),
+              spacing: 14,
+              runSpacing: 14,
+              alignment: WrapAlignment.center,
+              children: [
+                for (final frame in GalleryFrame.values)
+                  SizedBox(
+                    width: 190,
+                    height: 130,
+                    child: Column(
+                      children: [
+                        SizedBox(
+                          width: 174,
+                          height: 104,
+                          child: PhotoFrame(
+                            placement: GalleryPlacement(
+                              id: 'orbit-placement-${frame.name}',
+                              mediaId: media.id,
+                              order: frame.index,
+                              frame: frame,
+                              frameCaption: frame == GalleryFrame.captionMat
+                                  ? '山海之间'
+                                  : '',
+                            ),
+                            media: media,
+                            depth: .5,
+                            useOriginals: false,
+                            sceneTheme: GalleryTheme.ink,
+                            compact: true,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          frame.name,
+                          style: const TextStyle(
+                            color: Color(0xFFB9B0A2),
+                            fontSize: 11,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final context = tester.element(find.byKey(const Key('orbit-frame-family')));
+    await tester.runAsync(() async {
+      await precacheImage(
+        const AssetImage('assets/sample/summer-walk.jpg'),
+        context,
+      );
+    });
+    await tester.pumpAndSettle();
+
+    await expectLater(
+      find.byKey(const Key('orbit-frame-family')),
+      matchesGoldenFile('orbit_compact_frame_family.png'),
+    );
+  });
 }

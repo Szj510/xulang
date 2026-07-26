@@ -12,7 +12,7 @@ class ExhibitionTemplateCodec {
   String encode(GalleryDocument document) {
     return const JsonEncoder.withIndent('  ').convert({
       'kind': 'xulang-template',
-      'version': 3,
+      'version': 4,
       'title': document.title,
       'theme': document.theme.name,
       'showChapterTitleInPlayback': document.showChapterTitleInPlayback,
@@ -113,6 +113,11 @@ class ExhibitionTemplateCodec {
           chapterTitleOverride: chapterTitleOverride,
           appendExtraMedia: false,
           forceDefaultSlots: effectiveSlots,
+          fallbackTheme: _byName(
+            GalleryTheme.values,
+            decoded['theme'],
+            base.theme,
+          ),
         ),
       );
     }
@@ -156,6 +161,11 @@ class ExhibitionTemplateCodec {
           createId: createId,
           chapterTitleOverride: chapterTitleOverride,
           appendExtraMedia: appendExtraMedia,
+          fallbackTheme: _byName(
+            GalleryTheme.values,
+            decoded['theme'],
+            base.theme,
+          ),
         ),
       );
     }
@@ -219,6 +229,23 @@ Map<String, Object?> _layoutStateToTemplateJson(GalleryLayoutState state) {
       for (final connection in state.customPathConnections) connection.toJson(),
     ],
     'stickers': [for (final sticker in state.stickers) sticker.toJson()],
+    'canvasState': state.canvasState == null
+        ? null
+        : _canvasStateToTemplateJson(state.canvasState!),
+  };
+}
+
+Map<String, Object?> _canvasStateToTemplateJson(GalleryCanvasState state) {
+  final backgroundPath = state.backgroundPath;
+  return {
+    'theme': state.theme.name,
+    if (backgroundPath != null && backgroundPath.startsWith('asset://'))
+      'backgroundPath': backgroundPath,
+    'backgroundOpacity': state.backgroundOpacity,
+    'viewportScale': state.viewportScale,
+    'viewportOffsetX': state.viewportOffsetX,
+    'viewportOffsetY': state.viewportOffsetY,
+    'cameraProgress': state.cameraProgress,
   };
 }
 
@@ -301,6 +328,7 @@ GalleryChapter _buildChapter({
   required String Function() createId,
   required String? chapterTitleOverride,
   required bool appendExtraMedia,
+  required GalleryTheme fallbackTheme,
   List<Object?>? forceDefaultSlots,
 }) {
   final slots =
@@ -342,6 +370,12 @@ GalleryChapter _buildChapter({
       );
     }
   }
+  final layout = _decodeLayout(chapterJson['layout']);
+  final layoutStates = _decodeTemplateLayoutStates(
+    chapterJson['layoutStates'],
+    templatePlacementIds: templatePlacementIds,
+    placements: placements,
+  );
   return GalleryChapter(
     id: createId(),
     title: _resolveChapterTitle(
@@ -352,7 +386,7 @@ GalleryChapter _buildChapter({
     ),
     caption: chapterJson['caption'] as String? ?? '',
     order: chapterIndex,
-    layout: _decodeLayout(chapterJson['layout']),
+    layout: layout,
     motion: _byName(
       GalleryMotion.values,
       chapterJson['motion'],
@@ -373,11 +407,10 @@ GalleryChapter _buildChapter({
       placementIds,
     ),
     stickers: _decodeStickers(chapterJson['stickers']),
-    layoutStates: _decodeTemplateLayoutStates(
-      chapterJson['layoutStates'],
-      templatePlacementIds: templatePlacementIds,
-      placements: placements,
-    ),
+    canvasState:
+        layoutStates[layout]?.canvasState ??
+        GalleryCanvasState(theme: fallbackTheme),
+    layoutStates: layoutStates,
   );
 }
 
@@ -436,6 +469,11 @@ Map<GalleryLayout, GalleryLayoutState> _decodeTemplateLayoutStates(
         placementIds,
       ),
       stickers: _decodeStickers(stateJson['stickers']),
+      canvasState: stateJson['canvasState'] is Map
+          ? GalleryCanvasState.fromJson(
+              Map<String, dynamic>.from(stateJson['canvasState'] as Map),
+            )
+          : null,
     );
   }
   return states;

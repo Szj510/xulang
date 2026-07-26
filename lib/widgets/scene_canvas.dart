@@ -759,6 +759,7 @@ class _SceneNodeWidget extends StatelessWidget {
       depth: node.depth,
       useOriginals: useOriginals,
       sceneTheme: sceneTheme,
+      compact: orbitLighting,
     );
     return Positioned.fromRect(
       rect: node.rect,
