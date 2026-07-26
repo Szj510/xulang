@@ -83,11 +83,20 @@ class EditorSession extends ChangeNotifier {
 
   Future<void> updateTheme(GalleryTheme theme) async {
     final current = bundle;
-    if (current == null || current.document.theme == theme) return;
+    final chapter = selectedChapter;
+    if (current == null || chapter == null) return;
+    if (current.document.theme == theme && chapter.canvasState.theme == theme) {
+      return;
+    }
+    final chapters = List<GalleryChapter>.of(current.document.chapters);
+    chapters[selectedChapterIndex] = chapter.copyWith(
+      canvasState: chapter.canvasState.copyWith(theme: theme),
+    );
     await _commit(
       current.copyWith(
         document: current.document.copyWith(
           theme: theme,
+          chapters: chapters,
           updatedAt: DateTime.now(),
         ),
       ),
@@ -106,10 +115,17 @@ class EditorSession extends ChangeNotifier {
     final extension = p.extension(sourcePath);
     final fileName = '${repository.createId()}$extension';
     final copied = await source.copy(p.join(directory.path, fileName));
+    final chapter = selectedChapter;
+    if (chapter == null) return;
+    final chapters = List<GalleryChapter>.of(current.document.chapters);
+    chapters[selectedChapterIndex] = chapter.copyWith(
+      canvasState: chapter.canvasState.copyWith(backgroundPath: copied.path),
+    );
     await _commit(
       current.copyWith(
         document: current.document.copyWith(
           canvasBackgroundPath: copied.path,
+          chapters: chapters,
           updatedAt: DateTime.now(),
         ),
       ),
@@ -118,11 +134,18 @@ class EditorSession extends ChangeNotifier {
 
   Future<void> updateCanvasBackgroundOpacity(double opacity) async {
     final current = bundle;
-    if (current == null) return;
+    final chapter = selectedChapter;
+    if (current == null || chapter == null) return;
+    final normalized = opacity.clamp(0, 1).toDouble();
+    final chapters = List<GalleryChapter>.of(current.document.chapters);
+    chapters[selectedChapterIndex] = chapter.copyWith(
+      canvasState: chapter.canvasState.copyWith(backgroundOpacity: normalized),
+    );
     await _commit(
       current.copyWith(
         document: current.document.copyWith(
-          canvasBackgroundOpacity: opacity.clamp(0, 1).toDouble(),
+          canvasBackgroundOpacity: normalized,
+          chapters: chapters,
           updatedAt: DateTime.now(),
         ),
       ),
@@ -131,11 +154,17 @@ class EditorSession extends ChangeNotifier {
 
   Future<void> clearCanvasBackground() async {
     final current = bundle;
-    if (current == null) return;
+    final chapter = selectedChapter;
+    if (current == null || chapter == null) return;
+    final chapters = List<GalleryChapter>.of(current.document.chapters);
+    chapters[selectedChapterIndex] = chapter.copyWith(
+      canvasState: chapter.canvasState.copyWith(backgroundPath: null),
+    );
     await _commit(
       current.copyWith(
         document: current.document.copyWith(
           canvasBackgroundPath: null,
+          chapters: chapters,
           updatedAt: DateTime.now(),
         ),
       ),
@@ -295,6 +324,11 @@ class EditorSession extends ChangeNotifier {
         layout: GalleryLayout.hero,
         motion: GalleryMotion.push,
         placements: const [],
+        canvasState: GalleryCanvasState(
+          theme: current.document.theme,
+          backgroundPath: current.document.canvasBackgroundPath,
+          backgroundOpacity: current.document.canvasBackgroundOpacity,
+        ),
       ),
     );
     selectedChapterIndex = chapters.length - 1;
@@ -407,6 +441,32 @@ class EditorSession extends ChangeNotifier {
     await _commit(
       current.copyWith(
         document: current.document.copyWith(
+          theme: layoutChapter.canvasState.theme,
+          canvasBackgroundPath: layoutChapter.canvasState.backgroundPath,
+          canvasBackgroundOpacity: layoutChapter.canvasState.backgroundOpacity,
+          chapters: chapters,
+          updatedAt: DateTime.now(),
+        ),
+      ),
+    );
+  }
+
+  Future<void> updateCanvasState(GalleryCanvasState canvasState) async {
+    final current = bundle;
+    final chapter = selectedChapter;
+    if (current == null ||
+        chapter == null ||
+        chapter.canvasState == canvasState) {
+      return;
+    }
+    final chapters = List<GalleryChapter>.of(current.document.chapters);
+    chapters[selectedChapterIndex] = chapter.copyWith(canvasState: canvasState);
+    await _commit(
+      current.copyWith(
+        document: current.document.copyWith(
+          theme: canvasState.theme,
+          canvasBackgroundPath: canvasState.backgroundPath,
+          canvasBackgroundOpacity: canvasState.backgroundOpacity,
           chapters: chapters,
           updatedAt: DateTime.now(),
         ),

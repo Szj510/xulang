@@ -531,7 +531,7 @@ class LayoutResolver {
 
   static Size _orbitFrameSize(Size imageArea, GalleryPlacement placement) {
     if (placement.frame != GalleryFrame.captionMat) return imageArea;
-    return Size(imageArea.width, imageArea.height / .74);
+    return Size(imageArea.width * 1.04, imageArea.height / .78);
   }
 
   static double _stableUnit(String value) {

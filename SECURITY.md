@@ -8,8 +8,8 @@ Security fixes are provided for the latest release only.
 
 | Version | Supported |
 | --- | --- |
-| 1.3.x | Yes |
-| 1.2.x and earlier | No |
+| 1.4.x | Yes |
+| 1.3.x and earlier | No |
 
 ## Reporting a vulnerability / 报告漏洞
 

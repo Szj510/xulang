@@ -29,6 +29,15 @@ void main() {
         ),
       ],
       stickers: [heroSticker],
+      canvasState: GalleryCanvasState(
+        theme: GalleryTheme.paper,
+        backgroundPath: '/canvas/hero.jpg',
+        backgroundOpacity: .62,
+        viewportScale: 2,
+        viewportOffsetX: -.4,
+        viewportOffsetY: -.2,
+        cameraProgress: .35,
+      ),
     ).recordCurrentLayoutState();
 
     final freshFilmstrip = hero.switchLayout(GalleryLayout.filmstrip);
@@ -38,6 +47,7 @@ void main() {
     expect(freshFilmstrip.placements.single.scale, 1);
     expect(freshFilmstrip.placements.single.rotation, 0);
     expect(freshFilmstrip.stickers, isEmpty);
+    expect(freshFilmstrip.canvasState, const GalleryCanvasState());
 
     final editedFilmstrip = freshFilmstrip
         .copyWith(
@@ -55,6 +65,12 @@ void main() {
               y: .2,
             ),
           ],
+          canvasState: const GalleryCanvasState(
+            theme: GalleryTheme.moonlight,
+            viewportScale: 1.5,
+            viewportOffsetX: -.2,
+            cameraProgress: .8,
+          ),
         )
         .recordCurrentLayoutState();
 
@@ -63,6 +79,10 @@ void main() {
     expect(restoredHero.placements.single.rotation, 18);
     expect(restoredHero.placements.single.frameCaption, 'Hero caption');
     expect(restoredHero.stickers.single.id, 'hero-text');
+    expect(restoredHero.canvasState.theme, GalleryTheme.paper);
+    expect(restoredHero.canvasState.backgroundPath, '/canvas/hero.jpg');
+    expect(restoredHero.canvasState.viewportScale, 2);
+    expect(restoredHero.canvasState.cameraProgress, .35);
 
     final restoredFilmstrip = restoredHero.switchLayout(
       GalleryLayout.filmstrip,
@@ -70,6 +90,9 @@ void main() {
     expect(restoredFilmstrip.placements.single.size, GallerySize.small);
     expect(restoredFilmstrip.placements.single.rotation, -7);
     expect(restoredFilmstrip.stickers.single.id, 'film-star');
+    expect(restoredFilmstrip.canvasState.theme, GalleryTheme.moonlight);
+    expect(restoredFilmstrip.canvasState.viewportScale, 1.5);
+    expect(restoredFilmstrip.canvasState.cameraProgress, .8);
   });
 
   test('saved layouts reconcile photos added and removed elsewhere', () {

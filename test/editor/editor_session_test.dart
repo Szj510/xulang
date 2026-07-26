@@ -321,6 +321,17 @@ void main() {
   });
 
   test('layout switching keeps editor changes independent', () async {
+    await session.updateCanvasState(
+      const GalleryCanvasState(
+        theme: GalleryTheme.paper,
+        backgroundPath: '/canvas/hero.jpg',
+        backgroundOpacity: .6,
+        viewportScale: 2,
+        viewportOffsetX: -.4,
+        viewportOffsetY: -.2,
+        cameraProgress: .3,
+      ),
+    );
     await session.updatePlacement(
       'placement',
       size: GallerySize.large,
@@ -340,6 +351,7 @@ void main() {
     expect(session.selectedChapter!.placements.single.rotation, 0);
     expect(session.selectedChapter!.placements.single.frame, GalleryFrame.none);
     expect(session.selectedChapter!.stickers, isEmpty);
+    expect(session.selectedChapter!.canvasState, const GalleryCanvasState());
 
     await session.updatePlacement(
       'placement',
@@ -347,6 +359,14 @@ void main() {
       rotation: -5,
     );
     await session.addSticker(GalleryStickerKind.star, x: .8, y: .2);
+    await session.updateCanvasState(
+      const GalleryCanvasState(
+        theme: GalleryTheme.starfield,
+        viewportScale: 1.5,
+        viewportOffsetY: -.25,
+        cameraProgress: .8,
+      ),
+    );
 
     await session.updateChapter(layout: GalleryLayout.hero);
 
@@ -357,6 +377,13 @@ void main() {
       GalleryFrame.captionMat,
     );
     expect(session.selectedChapter!.stickers.single.id, heroStickerId);
+    expect(session.selectedChapter!.canvasState.theme, GalleryTheme.paper);
+    expect(
+      session.selectedChapter!.canvasState.backgroundPath,
+      '/canvas/hero.jpg',
+    );
+    expect(session.selectedChapter!.canvasState.viewportScale, 2);
+    expect(session.selectedChapter!.canvasState.cameraProgress, .3);
 
     final persisted = await repository.load('exhibition');
     final persistedOrbit = persisted!.document.chapters.single.switchLayout(
@@ -365,6 +392,9 @@ void main() {
     expect(persistedOrbit.placements.single.size, GallerySize.small);
     expect(persistedOrbit.placements.single.rotation, -5);
     expect(persistedOrbit.stickers.single.kind, GalleryStickerKind.star);
+    expect(persistedOrbit.canvasState.theme, GalleryTheme.starfield);
+    expect(persistedOrbit.canvasState.viewportScale, 1.5);
+    expect(persistedOrbit.canvasState.cameraProgress, .8);
   });
 }
 

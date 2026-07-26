@@ -569,6 +569,102 @@ class GalleryDocument {
   }
 }
 
+class GalleryCanvasState {
+  const GalleryCanvasState({
+    this.theme = GalleryTheme.ink,
+    this.backgroundPath,
+    this.backgroundOpacity = 0.32,
+    this.viewportScale = 1,
+    this.viewportOffsetX = 0,
+    this.viewportOffsetY = 0,
+    this.cameraProgress = 0,
+  });
+
+  final GalleryTheme theme;
+  final String? backgroundPath;
+  final double backgroundOpacity;
+  final double viewportScale;
+  final double viewportOffsetX;
+  final double viewportOffsetY;
+  final double cameraProgress;
+
+  GalleryCanvasState copyWith({
+    GalleryTheme? theme,
+    Object? backgroundPath = _unchanged,
+    double? backgroundOpacity,
+    double? viewportScale,
+    double? viewportOffsetX,
+    double? viewportOffsetY,
+    double? cameraProgress,
+  }) {
+    return GalleryCanvasState(
+      theme: theme ?? this.theme,
+      backgroundPath: identical(backgroundPath, _unchanged)
+          ? this.backgroundPath
+          : backgroundPath as String?,
+      backgroundOpacity:
+          backgroundOpacity?.clamp(0, 1).toDouble() ?? this.backgroundOpacity,
+      viewportScale:
+          viewportScale?.clamp(1, 3).toDouble() ?? this.viewportScale,
+      viewportOffsetX: viewportOffsetX ?? this.viewportOffsetX,
+      viewportOffsetY: viewportOffsetY ?? this.viewportOffsetY,
+      cameraProgress:
+          cameraProgress?.clamp(0, 1).toDouble() ?? this.cameraProgress,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'theme': theme.name,
+    'backgroundPath': backgroundPath,
+    'backgroundOpacity': backgroundOpacity,
+    'viewportScale': viewportScale,
+    'viewportOffsetX': viewportOffsetX,
+    'viewportOffsetY': viewportOffsetY,
+    'cameraProgress': cameraProgress,
+  };
+
+  factory GalleryCanvasState.fromJson(Map<String, dynamic> json) {
+    return GalleryCanvasState(
+      theme: _enumByName(
+        GalleryTheme.values,
+        json['theme'] as String? ?? GalleryTheme.ink.name,
+        GalleryTheme.ink,
+      ),
+      backgroundPath: json['backgroundPath'] as String?,
+      backgroundOpacity:
+          (json['backgroundOpacity'] as num?)?.toDouble().clamp(0, 1) ?? .32,
+      viewportScale:
+          (json['viewportScale'] as num?)?.toDouble().clamp(1, 3) ?? 1,
+      viewportOffsetX: (json['viewportOffsetX'] as num?)?.toDouble() ?? 0,
+      viewportOffsetY: (json['viewportOffsetY'] as num?)?.toDouble() ?? 0,
+      cameraProgress:
+          (json['cameraProgress'] as num?)?.toDouble().clamp(0, 1) ?? 0,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) =>
+      other is GalleryCanvasState &&
+      other.theme == theme &&
+      other.backgroundPath == backgroundPath &&
+      other.backgroundOpacity == backgroundOpacity &&
+      other.viewportScale == viewportScale &&
+      other.viewportOffsetX == viewportOffsetX &&
+      other.viewportOffsetY == viewportOffsetY &&
+      other.cameraProgress == cameraProgress;
+
+  @override
+  int get hashCode => Object.hash(
+    theme,
+    backgroundPath,
+    backgroundOpacity,
+    viewportScale,
+    viewportOffsetX,
+    viewportOffsetY,
+    cameraProgress,
+  );
+}
+
 class GalleryChapter {
   const GalleryChapter({
     required this.id,
@@ -582,6 +678,7 @@ class GalleryChapter {
     this.customPathAnchors,
     this.customPathConnections = const [],
     this.stickers = const [],
+    this.canvasState = const GalleryCanvasState(),
     this.layoutStates = const {},
   });
 
@@ -596,6 +693,7 @@ class GalleryChapter {
   final List<CustomPathAnchor>? customPathAnchors; // 自定义路径锚点
   final List<CustomPathConnection> customPathConnections; // 旧路径连接数据，仅用于兼容历史作品
   final List<GallerySticker> stickers; // 画布贴画
+  final GalleryCanvasState canvasState;
 
   final Map<GalleryLayout, GalleryLayoutState> layoutStates;
 
@@ -610,6 +708,7 @@ class GalleryChapter {
     Object? customPathAnchors = _unchanged,
     List<CustomPathConnection>? customPathConnections,
     List<GallerySticker>? stickers,
+    GalleryCanvasState? canvasState,
     Map<GalleryLayout, GalleryLayoutState>? layoutStates,
   }) {
     return GalleryChapter(
@@ -627,6 +726,7 @@ class GalleryChapter {
       customPathConnections:
           customPathConnections ?? this.customPathConnections,
       stickers: stickers ?? this.stickers,
+      canvasState: canvasState ?? this.canvasState,
       layoutStates: layoutStates ?? this.layoutStates,
     );
   }
@@ -641,6 +741,7 @@ class GalleryChapter {
           customPathAnchors: customPathAnchors,
           customPathConnections: customPathConnections,
           stickers: stickers,
+          canvasState: canvasState,
         ),
       },
     );
@@ -659,6 +760,7 @@ class GalleryChapter {
       customPathAnchors: target.customPathAnchors,
       customPathConnections: target.customPathConnections,
       stickers: target.stickers,
+      canvasState: target.canvasState ?? const GalleryCanvasState(),
     );
   }
 
@@ -797,6 +899,7 @@ class GalleryLayoutState {
     this.customPathAnchors,
     this.customPathConnections = const [],
     this.stickers = const [],
+    this.canvasState,
   });
 
   final List<GalleryPlacement> placements;
@@ -804,6 +907,7 @@ class GalleryLayoutState {
   final List<CustomPathAnchor>? customPathAnchors;
   final List<CustomPathConnection> customPathConnections;
   final List<GallerySticker> stickers;
+  final GalleryCanvasState? canvasState;
 
   factory GalleryLayoutState.defaultsFor(
     List<GalleryPlacement> sourcePlacements,
@@ -874,6 +978,7 @@ class GalleryLayoutState {
             connection,
       ],
       stickers: stickers,
+      canvasState: canvasState,
     );
   }
 
@@ -888,6 +993,7 @@ class GalleryLayoutState {
       for (final connection in customPathConnections) connection.toJson(),
     ],
     'stickers': [for (final sticker in stickers) sticker.toJson()],
+    'canvasState': canvasState?.toJson(),
   };
 
   factory GalleryLayoutState.fromJson(Map<String, dynamic> json) {
@@ -918,6 +1024,11 @@ class GalleryLayoutState {
           if (item is Map)
             GallerySticker.fromJson(Map<String, dynamic>.from(item)),
       ],
+      canvasState: json['canvasState'] is Map
+          ? GalleryCanvasState.fromJson(
+              Map<String, dynamic>.from(json['canvasState'] as Map),
+            )
+          : null,
     );
   }
 }

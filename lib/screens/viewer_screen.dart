@@ -132,6 +132,15 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
           }
           final chapterIndex = _chapterIndex.clamp(0, chapters.length - 1);
           final chapter = chapters[chapterIndex];
+          final storedCanvasState =
+              chapter.layoutStates[chapter.layout]?.canvasState;
+          final canvasState =
+              storedCanvasState ??
+              GalleryCanvasState(
+                theme: bundle.document.theme,
+                backgroundPath: bundle.document.canvasBackgroundPath,
+                backgroundOpacity: bundle.document.canvasBackgroundOpacity,
+              );
           return GestureDetector(
             behavior: HitTestBehavior.translucent,
             onTap: _recordingMode || _previewPlaybackMode
@@ -194,11 +203,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                       key: ValueKey(chapter.id),
                       chapter: chapter,
                       media: bundle.media,
-                      sceneTheme: bundle.document.theme,
-                      canvasBackgroundPath:
-                          bundle.document.canvasBackgroundPath,
-                      canvasBackgroundOpacity:
-                          bundle.document.canvasBackgroundOpacity,
+                      sceneTheme: canvasState.theme,
+                      canvasBackgroundPath: canvasState.backgroundPath,
+                      canvasBackgroundOpacity: canvasState.backgroundOpacity,
                       reduceMotion: MediaQuery.disableAnimationsOf(context),
                       showControls:
                           _showChrome &&
