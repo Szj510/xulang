@@ -25,10 +25,13 @@ class MotionPhotoExporter(private val context: Context) {
             "The recorded MP4 file is missing or empty."
         }
 
-        val stillJpeg = extractMiddleFrame(videoFile)
+        val cover = extractMiddleFrame(videoFile)
         val videoLength = videoFile.length()
-        val xmp = MotionPhotoFormat.buildXmp(videoLength)
-        val jpegWithXmp = MotionPhotoFormat.insertXmp(stillJpeg, xmp)
+        val xmp = MotionPhotoFormat.buildXmp(
+            videoLength = videoLength,
+            presentationTimestampUs = cover.presentationTimestampUs,
+        )
+        val jpegWithXmp = MotionPhotoFormat.insertXmp(cover.jpeg, xmp)
         val displayName = MotionPhotoFormat.buildDisplayName(title)
         val values = ContentValues().apply {
             put(MediaStore.Images.Media.DISPLAY_NAME, displayName)
@@ -83,7 +86,7 @@ class MotionPhotoExporter(private val context: Context) {
         )
     }
 
-    private fun extractMiddleFrame(videoFile: File): ByteArray {
+    private fun extractMiddleFrame(videoFile: File): MotionPhotoCover {
         val retriever = MediaMetadataRetriever()
         try {
             retriever.setDataSource(videoFile.absolutePath)
@@ -95,7 +98,10 @@ class MotionPhotoExporter(private val context: Context) {
                 middleUs,
                 MediaMetadataRetriever.OPTION_CLOSEST,
             ) ?: throw IllegalStateException("Unable to extract the motion photo cover.")
-            return bitmap.useAsJpeg()
+            return MotionPhotoCover(
+                jpeg = bitmap.useAsJpeg(),
+                presentationTimestampUs = middleUs,
+            )
         } finally {
             retriever.release()
         }
@@ -115,8 +121,14 @@ class MotionPhotoExporter(private val context: Context) {
     }
 }
 
+private data class MotionPhotoCover(
+    val jpeg: ByteArray,
+    val presentationTimestampUs: Long,
+)
+
 /**
- * JPEG Motion Photo 1.0 container writer.
+ * JPEG Motion Photo 1.0 container writer with the legacy Micro Video V1
+ * compatibility attributes still accepted by Android Media3 and older readers.
  *
  * Specification:
  * https://developer.android.com/media/platform/motion-photo-format
@@ -124,37 +136,51 @@ class MotionPhotoExporter(private val context: Context) {
 object MotionPhotoFormat {
     private val xmpHeader = "http://ns.adobe.com/xap/1.0/\u0000"
         .toByteArray(StandardCharsets.US_ASCII)
+    private val exifHeader = "Exif\u0000\u0000"
+        .toByteArray(StandardCharsets.US_ASCII)
+    private const val xmpPacketBom = "\uFEFF"
 
-    fun buildXmp(videoLength: Long): String {
+    fun buildXmp(videoLength: Long, presentationTimestampUs: Long): String {
         require(videoLength > 0L) { "Motion photo video must not be empty." }
+        require(presentationTimestampUs >= 0L) {
+            "Motion photo presentation timestamp must not be negative."
+        }
         return """
+            <?xpacket begin="$xmpPacketBom" id="W5M0MpCehiHzreSzNTczkc9d"?>
             <x:xmpmeta xmlns:x="adobe:ns:meta/">
               <rdf:RDF xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
                 <rdf:Description
                     rdf:about=""
                     xmlns:Camera="http://ns.google.com/photos/1.0/camera/"
-                    xmlns:Container="http://ns.google.com/photos/1.0/container/"
-                    xmlns:Item="http://ns.google.com/photos/1.0/container/item/"
+                    xmlns:GCamera="http://ns.google.com/photos/1.0/camera/"
+                    xmlns:GContainer="http://ns.google.com/photos/1.0/container/"
+                    xmlns:GContainerItem="http://ns.google.com/photos/1.0/container/item/"
                     Camera:MotionPhoto="1"
-                    Camera:MotionPhotoVersion="1">
-                  <Container:Directory>
+                    Camera:MotionPhotoVersion="1"
+                    Camera:MotionPhotoPresentationTimestampUs="$presentationTimestampUs"
+                    GCamera:MicroVideo="1"
+                    GCamera:MicroVideoVersion="1"
+                    GCamera:MicroVideoOffset="$videoLength"
+                    GCamera:MicroVideoPresentationTimestampUs="$presentationTimestampUs">
+                  <GContainer:Directory>
                     <rdf:Seq>
                       <rdf:li rdf:parseType="Resource">
-                        <Container:Item
-                            Item:Mime="image/jpeg"
-                            Item:Semantic="Primary"/>
+                        <GContainer:Item
+                            GContainerItem:Mime="image/jpeg"
+                            GContainerItem:Semantic="Primary"/>
                       </rdf:li>
                       <rdf:li rdf:parseType="Resource">
-                        <Container:Item
-                            Item:Mime="video/mp4"
-                            Item:Semantic="MotionPhoto"
-                            Item:Length="$videoLength"/>
+                        <GContainer:Item
+                            GContainerItem:Mime="video/mp4"
+                            GContainerItem:Semantic="MotionPhoto"
+                            GContainerItem:Length="$videoLength"/>
                       </rdf:li>
                     </rdf:Seq>
-                  </Container:Directory>
+                  </GContainer:Directory>
                 </rdf:Description>
               </rdf:RDF>
             </x:xmpmeta>
+            <?xpacket end="w"?>
         """.trimIndent()
     }
 
@@ -165,16 +191,47 @@ object MotionPhotoFormat {
         val payload = xmpHeader + xmp.toByteArray(StandardCharsets.UTF_8)
         val segmentLength = payload.size + 2
         require(segmentLength <= 0xffff) { "Motion photo XMP packet is too large." }
+        val insertionOffset = findXmpInsertionOffset(jpeg)
         return ByteArrayOutputStream(jpeg.size + payload.size + 4).use { output ->
-            output.write(jpeg, 0, 2)
+            output.write(jpeg, 0, insertionOffset)
             output.write(0xff)
             output.write(0xe1)
             output.write((segmentLength ushr 8) and 0xff)
             output.write(segmentLength and 0xff)
             output.write(payload)
-            output.write(jpeg, 2, jpeg.size - 2)
+            output.write(jpeg, insertionOffset, jpeg.size - insertionOffset)
             output.toByteArray()
         }
+    }
+
+    /**
+     * Keeps JFIF APP0 and Exif APP1 ahead of XMP. Adobe's XMP JPEG storage
+     * guidance recommends Exif, XMP, then other marker segments for maximum
+     * reader compatibility, while JFIF expects its APP0 immediately after SOI.
+     */
+    private fun findXmpInsertionOffset(jpeg: ByteArray): Int {
+        var offset = 2
+        while (offset + 4 <= jpeg.size && jpeg[offset] == 0xff.toByte()) {
+            val marker = jpeg[offset + 1].toInt() and 0xff
+            if (marker == 0xda || marker == 0xd9) break
+            val segmentLength =
+                ((jpeg[offset + 2].toInt() and 0xff) shl 8) or
+                    (jpeg[offset + 3].toInt() and 0xff)
+            require(segmentLength >= 2 && offset + 2 + segmentLength <= jpeg.size) {
+                "Motion photo cover contains an invalid JPEG marker segment."
+            }
+            val isApp0 = marker == 0xe0
+            val isExif = marker == 0xe1 &&
+                jpeg.startsWith(exifHeader, offset + 4)
+            if (!isApp0 && !isExif) break
+            offset += 2 + segmentLength
+        }
+        return offset
+    }
+
+    private fun ByteArray.startsWith(prefix: ByteArray, offset: Int): Boolean {
+        if (offset < 0 || offset + prefix.size > size) return false
+        return prefix.indices.all { index -> this[offset + index] == prefix[index] }
     }
 
     fun buildDisplayName(title: String, nowMillis: Long = System.currentTimeMillis()): String {

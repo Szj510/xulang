@@ -7,6 +7,7 @@ All notable changes to this project will be documented in this file. The format 
 ### Added
 
 - Added silent Android Motion Photo 1.0 export from immersive playback, with chapter range, playback speed, quality, system-gallery saving, and sharing controls. / 新增从沉浸播放生成静音的 Android Motion Photo 1.0 实况照片，支持章节范围、播放速度、清晰度、系统相册保存与分享。
+- Improved Android gallery and social-app compatibility by adding the legacy Micro Video metadata profile, an explicit cover-frame timestamp, and standards-aligned JPEG XMP placement. / 通过追加旧版 Micro Video 兼容元数据、明确封面帧时间戳，并按规范调整 JPEG XMP 段位置，提升 Android 相册和社交应用的识别兼容性。
 
 ## [1.4.1] - 2026-07-26
 
