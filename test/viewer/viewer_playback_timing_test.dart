@@ -66,6 +66,93 @@ void main() {
     );
   });
 
+  test('motion photo duration follows chapter range and playback speed', () {
+    final now = DateTime(2026, 7, 30);
+    final document = GalleryDocument(
+      id: 'gallery',
+      title: 'Gallery',
+      createdAt: now,
+      updatedAt: now,
+      chapters: const [
+        GalleryChapter(
+          id: 'chapter-1',
+          title: 'One',
+          order: 0,
+          layout: GalleryLayout.hero,
+          motion: GalleryMotion.push,
+          placements: [
+            GalleryPlacement(id: 'p1', mediaId: 'm1', order: 0),
+            GalleryPlacement(id: 'p2', mediaId: 'm2', order: 1),
+          ],
+        ),
+        GalleryChapter(
+          id: 'chapter-2',
+          title: 'Two',
+          order: 1,
+          layout: GalleryLayout.hero,
+          motion: GalleryMotion.push,
+          placements: [GalleryPlacement(id: 'p3', mediaId: 'm3', order: 0)],
+        ),
+      ],
+    );
+
+    expect(
+      playbackDurationForRange(
+        document: document,
+        currentIndex: 1,
+        mode: RecordingChapterMode.current,
+        secondsPerPhoto: 1.5,
+      ),
+      const Duration(milliseconds: 1500),
+    );
+    expect(
+      playbackDurationForRange(
+        document: document,
+        currentIndex: 1,
+        mode: RecordingChapterMode.all,
+        secondsPerPhoto: 2,
+      ),
+      const Duration(seconds: 6),
+    );
+  });
+
+  test('estimated playback duration is localized', () {
+    final chinese = AppStrings.from(
+      const AppSettings(language: AppLanguage.chinese),
+    );
+    final english = AppStrings.from(
+      const AppSettings(language: AppLanguage.english),
+    );
+
+    expect(
+      chinese.estimatedPlaybackDuration(const Duration(seconds: 75)),
+      '预计播放时长：1 分 15 秒',
+    );
+    expect(
+      english.estimatedPlaybackDuration(const Duration(milliseconds: 2500)),
+      'Estimated playback: 2.5s',
+    );
+  });
+
+  test('short recordings wait before finalizing the Android encoder', () {
+    final startedAt = DateTime(2026, 7, 30, 12);
+
+    expect(
+      recordingFinalizationDelay(
+        startedAt: startedAt,
+        now: startedAt.add(const Duration(milliseconds: 400)),
+      ),
+      const Duration(milliseconds: 1200),
+    );
+    expect(
+      recordingFinalizationDelay(
+        startedAt: startedAt,
+        now: startedAt.add(const Duration(seconds: 2)),
+      ),
+      Duration.zero,
+    );
+  });
+
   test('viewer playback music is independent from the recording option', () {
     expect(
       shouldPlayViewerBackgroundMusic(

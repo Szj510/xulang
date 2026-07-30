@@ -49,6 +49,7 @@ class AppStrings {
       ? '$count empty slots will be skipped.'
       : '缺少的 $count 个槽位会跳过，不生成图片卡片。';
   String get recordingFileName => isEnglish ? 'Video file name' : '视频文件名';
+  String get motionPhotoFileName => isEnglish ? 'Motion photo name' : '实况照片名称';
   String get renameVideo => isEnglish ? 'Rename video' : '重命名视频';
   String get playbackSpeedTitle => isEnglish ? 'Playback speed' : '播放速度';
   String get fastSpeed => isEnglish ? 'Fast' : '快';
@@ -193,6 +194,8 @@ class AppStrings {
   String get fromCurrentToEnd => isEnglish ? 'Current to end' : '从当前到结尾';
   String get allChapters => isEnglish ? 'All chapters' : '全部章节';
   String get recordingAndShare => isEnglish ? 'Record & Share' : '录制与分享';
+  String get videoOutput => isEnglish ? 'Video' : '视频';
+  String get motionPhotoOutput => isEnglish ? 'Motion photo' : '实况照片';
   String get playbackPreview => isEnglish ? 'Playback preview' : '播放预览';
   String get generatedVideos => isEnglish ? 'Generated videos' : '生成的视频';
   String get scanningMusic => isEnglish ? 'Scanning music files…' : '正在查找音乐文件…';
@@ -213,6 +216,27 @@ class AppStrings {
   String get recordingSheetDescription => isEnglish
       ? 'After confirmation, Xulang enters immersive playback, records the screen, then opens the result page when the MP4 file is ready.'
       : '确认后会进入沉浸播放，完成录制并检测到 MP4 文件后，再打开结果页。';
+  String get motionPhotoSheetDescription => isEnglish
+      ? 'The selected chapters play at the speed below. When playback ends, Xulang saves the entire result as an Android motion photo in Pictures/Xulang.'
+      : '所选章节会按下方速度播放；播放结束后，叙廊会将完整过程生成 Android 实况照片并保存到 Pictures/Xulang。';
+  String estimatedPlaybackDuration(Duration duration) {
+    final seconds = duration.inMilliseconds / 1000;
+    final value = seconds < 60
+        ? isEnglish
+              ? '${seconds.toStringAsFixed(1)}s'
+              : '${seconds.toStringAsFixed(1)} 秒'
+        : isEnglish
+        ? '${duration.inMinutes}m ${duration.inSeconds.remainder(60).toString().padLeft(2, '0')}s'
+        : '${duration.inMinutes} 分 ${duration.inSeconds.remainder(60).toString().padLeft(2, '0')} 秒';
+    return isEnglish ? 'Estimated playback: $value' : '预计播放时长：$value';
+  }
+
+  String get motionPhotoCompatibilityHint => isEnglish
+      ? 'Long motion photos create larger files. Gallery and social-app recognition varies by phone model and app version; the MP4 video option remains the most compatible.'
+      : '实况越长文件越大；不同手机相册及微信版本的识别能力可能不同，普通 MP4 视频仍是兼容性最高的选择。';
+  String get motionPhotoSilentHint => isEnglish
+      ? 'Motion photos are generated silently. Background music remains available for immersive viewing and MP4 recording.'
+      : '实况照片当前以静音方式生成；背景音乐仍可用于沉浸播放和 MP4 录制。';
   String get chapterRange => isEnglish ? 'Chapter range' : '章节范围';
   String playbackSpeed(double value) => isEnglish
       ? 'Playback speed ${value.toStringAsFixed(1)}s / photo'
@@ -223,6 +247,7 @@ class AppStrings {
       isEnglish ? 'No background music' : '当前展览没有背景音乐';
   String get cancel => isEnglish ? 'Cancel' : '取消';
   String get startRecordingPlayback => isEnglish ? 'Start recording' : '开始录制播放';
+  String get startMotionPhoto => isEnglish ? 'Create motion photo' : '生成实况照片';
   String get play => isEnglish ? 'Play' : '播放';
   String get edit => isEnglish ? 'Edit' : '编辑';
   String get delete => isEnglish ? 'Delete' : '删除';
@@ -241,7 +266,7 @@ class AppStrings {
   String get exportAndShare => isEnglish ? 'Export & share' : '导出与分享';
   String get shareTemplate => isEnglish ? 'Share template' : '分享模板';
   String get recordAndShareVideo =>
-      isEnglish ? 'Record & share video' : '录制并分享视频';
+      isEnglish ? 'Record or create motion photo' : '录制或生成实况照片';
   String get chapters => isEnglish ? 'Chapters' : '章节';
   String get addChapter => isEnglish ? 'Add chapter' : '添加章节';
   String get renameExhibition => isEnglish ? 'Rename exhibition' : '重命名展览';
@@ -274,10 +299,20 @@ class AppStrings {
       isEnglish ? 'Could not finish recording' : '录屏结束失败';
   String get preparingShare =>
       isEnglish ? 'Preparing video for sharing…' : '正在准备分享视频…';
+  String get preparingMotionPhoto =>
+      isEnglish ? 'Creating and saving the motion photo…' : '正在生成并保存实况照片…';
   String get recordingVideoSuffix => isEnglish ? 'recording video' : '录制视频';
   String get recordingResult => isEnglish ? 'Recording result' : '录制结果';
   String get share => isEnglish ? 'Share' : '分享';
   String get recordingSaved => isEnglish ? 'Recording saved' : '录制已保存';
+  String get motionPhotoSaved => isEnglish ? 'Motion photo saved' : '实况照片已保存';
+  String motionPhotoSavedBody(String name) => isEnglish
+      ? '$name was saved to the system gallery in Pictures/Xulang.'
+      : '$name 已保存到系统相册的 Pictures/Xulang。';
+  String get motionPhotoShareFailed =>
+      isEnglish ? 'Unable to share the motion photo' : '无法分享实况照片';
+  String get motionPhotoCreateFailed =>
+      isEnglish ? 'Unable to create the motion photo' : '无法生成实况照片';
   String recordingSavedWithSize(String size) =>
       isEnglish ? 'Recording saved · $size' : '录制已保存 · $size';
   String get videoPreviewFailed => isEnglish

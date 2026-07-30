@@ -67,6 +67,9 @@ jobs:
       - name: Build Android debug APK
         run: flutter build apk --debug
 
+      - name: Test Android motion photo container
+        run: ./android/gradlew -p android :app:testDebugUnitTest
+
   goldens:
     name: Golden image tests (Windows)
     runs-on: windows-latest

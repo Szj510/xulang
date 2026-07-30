@@ -17,6 +17,7 @@ import 'package:xulang/layout/narrative_axis.dart';
 import 'package:xulang/layout/narrative_camera_controller.dart';
 import 'package:xulang/layout/narrative_navigation_coordinator.dart';
 import 'package:xulang/providers/app_providers.dart';
+import 'package:xulang/recording/native_motion_photo.dart';
 import 'package:xulang/recording/native_screen_recorder.dart';
 import 'package:xulang/recording/recorded_video_library.dart';
 import 'package:xulang/screens/music_library_screen.dart';
@@ -58,6 +59,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   String? _activeRecordingPath;
   String? _recordingShareTitle;
   DateTime? _recordingStartedAt;
+  _RecordingOutput _activeRecordingOutput = _RecordingOutput.video;
   RecordingChapterMode _activePlaybackChapterMode =
       RecordingChapterMode.current;
   final AudioPlayer _audioPlayer = AudioPlayer();
@@ -352,7 +354,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
             appSettings.copyWith(
               recordingChapterMode: options.chapterMode,
               recordingSpeed: options.speed,
-              recordingUseMusic: options.useMusic,
+              recordingUseMusic: options.output == _RecordingOutput.video
+                  ? options.useMusic
+                  : appSettings.recordingUseMusic,
               recordingQuality: options.quality,
             ),
           );
@@ -380,14 +384,15 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
         _playbackFinished = false;
         _showChrome = false;
         _activePlaybackChapterMode = options.chapterMode;
+        _activeRecordingOutput = options.output;
         _chapterIndex = startIndex;
       });
       await SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       await Future<void>.delayed(const Duration(milliseconds: 360));
       if (!mounted) return;
       final recordingPath = await _startNativeRecording(
-        document,
         options.quality,
+        output: options.output,
         outputTitle: options.fileTitle,
       );
       if (recordingPath == null) {
@@ -502,8 +507,8 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
   }
 
   Future<String?> _startNativeRecording(
-    GalleryDocument document,
     RecordingQuality quality, {
+    required _RecordingOutput output,
     required String outputTitle,
   }) async {
     final l10n = AppStrings.of(context);
@@ -514,9 +519,14 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     try {
       final physicalSize = View.of(context).physicalSize;
       final profile = _recordingEncoderProfile(physicalSize, quality);
-      final outputPath = await RecordedVideoLibrary.createOutputPathForTitle(
-        title: outputTitle,
-      );
+      final outputPath = switch (output) {
+        _RecordingOutput.video =>
+          await RecordedVideoLibrary.createOutputPathForTitle(
+            title: outputTitle,
+          ),
+        _RecordingOutput.motionPhoto =>
+          await NativeMotionPhoto.createTemporaryVideoPath(),
+      };
       return NativeScreenRecorder.start(
         outputPath: outputPath,
         width: profile.width,
@@ -567,40 +577,69 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     if (path == null || _recordingShareBusy) return;
     _recordingShareBusy = true;
     String? resultPath;
+    MotionPhotoResult? motionPhoto;
     final l10n = AppStrings.of(context);
     final resultTitle = _recordingShareTitle ?? l10n.appTitle;
+    final output = _activeRecordingOutput;
     try {
+      final startedAt = _recordingStartedAt;
+      if (startedAt != null) {
+        final remaining = recordingFinalizationDelay(
+          startedAt: startedAt,
+          now: DateTime.now(),
+        );
+        if (remaining > Duration.zero) {
+          await Future<void>.delayed(remaining);
+        }
+      }
       final stoppedPath = await NativeScreenRecorder.stop();
       final videoPath = stoppedPath ?? path;
       if (share) {
-        _showRecorderMessage(l10n.preparingShare);
-        final startedAt = _recordingStartedAt;
-        if (startedAt != null) {
-          final remaining =
-              const Duration(milliseconds: 1600) -
-              DateTime.now().difference(startedAt);
-          if (remaining > Duration.zero) {
-            await Future<void>.delayed(remaining);
-          }
-        }
+        _showRecorderMessage(
+          output == _RecordingOutput.motionPhoto
+              ? l10n.preparingMotionPhoto
+              : l10n.preparingShare,
+        );
         if (await _waitForReadableMp4(videoPath)) {
-          resultPath = videoPath;
+          if (output == _RecordingOutput.motionPhoto) {
+            motionPhoto = await NativeMotionPhoto.createFromVideo(
+              videoPath: videoPath,
+              title: resultTitle,
+            );
+            try {
+              await File(videoPath).delete();
+            } on FileSystemException {
+              // The motion photo is already saved; cache cleanup can be retried
+              // by the operating system if the temporary MP4 is still busy.
+            }
+          } else {
+            resultPath = videoPath;
+          }
         } else {
           _showRecorderMessage(l10n.recordingFileMissing);
         }
       }
     } on PlatformException catch (error) {
       if (share) {
-        _showRecorderMessage(error.message ?? l10n.recordingStopFailed);
+        _showRecorderMessage(
+          error.message ??
+              (output == _RecordingOutput.motionPhoto
+                  ? l10n.motionPhotoCreateFailed
+                  : l10n.recordingStopFailed),
+        );
       }
     } catch (error) {
       if (share) {
-        _showRecorderMessage('${l10n.recordingStopFailed}：$error');
+        final message = output == _RecordingOutput.motionPhoto
+            ? l10n.motionPhotoCreateFailed
+            : l10n.recordingStopFailed;
+        _showRecorderMessage('$message：$error');
       }
     } finally {
       _activeRecordingPath = null;
       _recordingStartedAt = null;
       _recordingShareBusy = false;
+      _activeRecordingOutput = _RecordingOutput.video;
       if (mounted) {
         setState(() {
           _recordingMode = false;
@@ -619,6 +658,43 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
               RecordingResultScreen(videoPath: resultPath!, title: resultTitle),
         ),
       );
+    }
+    if (share && motionPhoto != null && mounted) {
+      await _showMotionPhotoResult(motionPhoto, resultTitle);
+    }
+  }
+
+  Future<void> _showMotionPhotoResult(
+    MotionPhotoResult result,
+    String title,
+  ) async {
+    final l10n = AppStrings.of(context);
+    final shouldShare = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.motionPhotoSaved),
+        content: Text(
+          '${l10n.motionPhotoSavedBody(result.displayName)}\n'
+          '${l10n.motionPhotoCompatibilityHint}',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l10n.ok),
+          ),
+          FilledButton.icon(
+            onPressed: () => Navigator.pop(context, true),
+            icon: const Icon(Icons.ios_share_outlined),
+            label: Text(l10n.share),
+          ),
+        ],
+      ),
+    );
+    if (shouldShare != true) return;
+    try {
+      await NativeMotionPhoto.share(uri: result.uri, title: title);
+    } on PlatformException catch (error) {
+      _showRecorderMessage(error.message ?? l10n.motionPhotoShareFailed);
     }
   }
 
@@ -677,6 +753,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
     AppSettings settings,
   ) {
     var document = bundle.document;
+    var output = _RecordingOutput.video;
     var chapterMode = settings.recordingChapterMode;
     var speed = settings.recordingSpeed;
     var quality = settings.recordingQuality;
@@ -690,7 +767,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
       isScrollControlled: true,
       builder: (sheetContext) => StatefulBuilder(
         builder: (context, setSheetState) => SafeArea(
-          child: Padding(
+          child: SingleChildScrollView(
             padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -707,7 +784,9 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                 ),
                 const SizedBox(height: 12),
                 Text(
-                  AppStrings.of(context).recordingSheetDescription,
+                  output == _RecordingOutput.motionPhoto
+                      ? AppStrings.of(context).motionPhotoSheetDescription
+                      : AppStrings.of(context).recordingSheetDescription,
                   style: const TextStyle(
                     color: XulangColors.muted,
                     fontSize: 12,
@@ -715,11 +794,33 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   ),
                 ),
                 const SizedBox(height: 18),
+                SegmentedButton<_RecordingOutput>(
+                  segments: [
+                    ButtonSegment(
+                      value: _RecordingOutput.video,
+                      icon: const Icon(Icons.videocam_outlined),
+                      label: Text(AppStrings.of(context).videoOutput),
+                    ),
+                    ButtonSegment(
+                      value: _RecordingOutput.motionPhoto,
+                      icon: const Icon(Icons.motion_photos_on_outlined),
+                      label: Text(AppStrings.of(context).motionPhotoOutput),
+                    ),
+                  ],
+                  selected: {output},
+                  onSelectionChanged: (value) =>
+                      setSheetState(() => output = value.single),
+                ),
+                const SizedBox(height: 18),
                 TextFormField(
                   initialValue: fileTitle,
                   decoration: InputDecoration(
-                    labelText: AppStrings.of(context).recordingFileName,
-                    helperText: 'xulang-[name]-yyyyMMdd-HHmmss.mp4',
+                    labelText: output == _RecordingOutput.motionPhoto
+                        ? AppStrings.of(context).motionPhotoFileName
+                        : AppStrings.of(context).recordingFileName,
+                    helperText: output == _RecordingOutput.motionPhoto
+                        ? 'xulang-[name]-yyyyMMdd-HHmmss_MP.jpg'
+                        : 'xulang-[name]-yyyyMMdd-HHmmss.mp4',
                   ),
                   onChanged: (value) => fileTitle = value,
                 ),
@@ -753,6 +854,31 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                   label: AppStrings.of(context).speedLabel(speed),
                   onChanged: (value) => setSheetState(() => speed = value),
                 ),
+                Text(
+                  AppStrings.of(context).estimatedPlaybackDuration(
+                    playbackDurationForRange(
+                      document: document,
+                      currentIndex: _chapterIndex,
+                      mode: chapterMode,
+                      secondsPerPhoto: speed,
+                    ),
+                  ),
+                  style: const TextStyle(
+                    color: XulangColors.muted,
+                    fontSize: 12,
+                  ),
+                ),
+                if (output == _RecordingOutput.motionPhoto) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    AppStrings.of(context).motionPhotoCompatibilityHint,
+                    style: const TextStyle(
+                      color: XulangColors.muted,
+                      fontSize: 12,
+                      height: 1.45,
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 12),
                 Text(AppStrings.of(context).recordingQuality),
                 const SizedBox(height: 8),
@@ -778,64 +904,35 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                     height: 1.45,
                   ),
                 ),
-                SwitchListTile(
-                  contentPadding: EdgeInsets.zero,
-                  value: useMusic,
-                  onChanged: document.musicPath == null
-                      ? null
-                      : (value) => setSheetState(() => useMusic = value),
-                  title: Text(AppStrings.of(context).useBackgroundMusic),
-                  subtitle: Text(
-                    document.musicTitle ??
-                        AppStrings.of(context).noBackgroundMusic,
-                  ),
-                ),
-                Row(
-                  children: [
-                    TextButton.icon(
-                      onPressed: () async {
-                        final item = await Navigator.of(context)
-                            .push<MusicLibraryItem>(
-                              MaterialPageRoute<MusicLibraryItem>(
-                                builder: (_) => const MusicLibraryScreen(
-                                  selectionMode: true,
-                                ),
-                              ),
-                            );
-                        if (item == null) return;
-                        final nextDocument = document.copyWith(
-                          musicPath: item.path,
-                          musicTitle: item.displayName,
-                          updatedAt: DateTime.now(),
-                        );
-                        await ref
-                            .read(galleryRepositoryProvider)
-                            .save(
-                              GalleryBundle(
-                                document: nextDocument,
-                                media: bundle.media,
-                              ),
-                            );
-                        if (!mounted) return;
-                        setSheetState(() {
-                          document = nextDocument;
-                          useMusic = true;
-                        });
-                        setState(() {
-                          _bundle = ref
-                              .read(galleryRepositoryProvider)
-                              .load(widget.exhibitionId);
-                        });
-                      },
-                      icon: const Icon(Icons.library_music_outlined, size: 18),
-                      label: Text(AppStrings.of(context).choose),
+                if (output == _RecordingOutput.video) ...[
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    value: useMusic,
+                    onChanged: document.musicPath == null
+                        ? null
+                        : (value) => setSheetState(() => useMusic = value),
+                    title: Text(AppStrings.of(context).useBackgroundMusic),
+                    subtitle: Text(
+                      document.musicTitle ??
+                          AppStrings.of(context).noBackgroundMusic,
                     ),
-                    if (document.musicPath != null)
-                      TextButton(
+                  ),
+                  Row(
+                    children: [
+                      TextButton.icon(
                         onPressed: () async {
+                          final item = await Navigator.of(context)
+                              .push<MusicLibraryItem>(
+                                MaterialPageRoute<MusicLibraryItem>(
+                                  builder: (_) => const MusicLibraryScreen(
+                                    selectionMode: true,
+                                  ),
+                                ),
+                              );
+                          if (item == null) return;
                           final nextDocument = document.copyWith(
-                            musicPath: null,
-                            musicTitle: null,
+                            musicPath: item.path,
+                            musicTitle: item.displayName,
                             updatedAt: DateTime.now(),
                           );
                           await ref
@@ -849,7 +946,7 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                           if (!mounted) return;
                           setSheetState(() {
                             document = nextDocument;
-                            useMusic = false;
+                            useMusic = true;
                           });
                           setState(() {
                             _bundle = ref
@@ -857,10 +954,55 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                                 .load(widget.exhibitionId);
                           });
                         },
-                        child: Text(AppStrings.of(context).clear),
+                        icon: const Icon(
+                          Icons.library_music_outlined,
+                          size: 18,
+                        ),
+                        label: Text(AppStrings.of(context).choose),
                       ),
-                  ],
-                ),
+                      if (document.musicPath != null)
+                        TextButton(
+                          onPressed: () async {
+                            final nextDocument = document.copyWith(
+                              musicPath: null,
+                              musicTitle: null,
+                              updatedAt: DateTime.now(),
+                            );
+                            await ref
+                                .read(galleryRepositoryProvider)
+                                .save(
+                                  GalleryBundle(
+                                    document: nextDocument,
+                                    media: bundle.media,
+                                  ),
+                                );
+                            if (!mounted) return;
+                            setSheetState(() {
+                              document = nextDocument;
+                              useMusic = false;
+                            });
+                            setState(() {
+                              _bundle = ref
+                                  .read(galleryRepositoryProvider)
+                                  .load(widget.exhibitionId);
+                            });
+                          },
+                          child: Text(AppStrings.of(context).clear),
+                        ),
+                    ],
+                  ),
+                ] else
+                  Padding(
+                    padding: const EdgeInsets.only(top: 14),
+                    child: Text(
+                      AppStrings.of(context).motionPhotoSilentHint,
+                      style: const TextStyle(
+                        color: XulangColors.muted,
+                        fontSize: 12,
+                        height: 1.45,
+                      ),
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 Row(
                   children: [
@@ -874,16 +1016,25 @@ class _ViewerScreenState extends ConsumerState<ViewerScreen> {
                         sheetContext,
                         _RecordingOptions(
                           document: document,
+                          output: output,
                           chapterMode: chapterMode,
                           speed: speed,
                           quality: quality,
-                          useMusic: useMusic,
+                          useMusic:
+                              output == _RecordingOutput.video && useMusic,
                           fileTitle: fileTitle,
                         ),
                       ),
-                      icon: const Icon(Icons.videocam_outlined, size: 18),
+                      icon: Icon(
+                        output == _RecordingOutput.motionPhoto
+                            ? Icons.motion_photos_on_outlined
+                            : Icons.videocam_outlined,
+                        size: 18,
+                      ),
                       label: Text(
-                        AppStrings.of(context).startRecordingPlayback,
+                        output == _RecordingOutput.motionPhoto
+                            ? AppStrings.of(context).startMotionPhoto
+                            : AppStrings.of(context).startRecordingPlayback,
                       ),
                     ),
                   ],
@@ -946,6 +1097,7 @@ bool shouldPlayViewerBackgroundMusic({
 class _RecordingOptions {
   const _RecordingOptions({
     required this.document,
+    required this.output,
     required this.chapterMode,
     required this.speed,
     required this.quality,
@@ -954,12 +1106,15 @@ class _RecordingOptions {
   });
 
   final GalleryDocument document;
+  final _RecordingOutput output;
   final RecordingChapterMode chapterMode;
   final double speed;
   final RecordingQuality quality;
   final bool useMusic;
   final String fileTitle;
 }
+
+enum _RecordingOutput { video, motionPhoto }
 
 class _RecordingEncoderProfile {
   const _RecordingEncoderProfile({
@@ -985,6 +1140,38 @@ Duration playbackDurationForChapter({
     120000,
   );
   return Duration(milliseconds: durationMs);
+}
+
+Duration playbackDurationForRange({
+  required GalleryDocument document,
+  required int currentIndex,
+  required RecordingChapterMode mode,
+  required double secondsPerPhoto,
+}) {
+  if (document.chapters.isEmpty) return Duration.zero;
+  final safeIndex = currentIndex.clamp(0, document.chapters.length - 1);
+  final startIndex = mode == RecordingChapterMode.all ? 0 : safeIndex;
+  final endIndex = mode == RecordingChapterMode.current
+      ? safeIndex
+      : document.chapters.length - 1;
+  return document.chapters
+      .sublist(startIndex, endIndex + 1)
+      .map(
+        (chapter) => playbackDurationForChapter(
+          chapter: chapter,
+          secondsPerPhoto: secondsPerPhoto,
+        ),
+      )
+      .fold(Duration.zero, (total, duration) => total + duration);
+}
+
+Duration recordingFinalizationDelay({
+  required DateTime startedAt,
+  required DateTime now,
+}) {
+  final remaining =
+      const Duration(milliseconds: 1600) - now.difference(startedAt);
+  return remaining > Duration.zero ? remaining : Duration.zero;
 }
 
 String _recordingChapterModeLabel(AppStrings l10n, RecordingChapterMode mode) =>

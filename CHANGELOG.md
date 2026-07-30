@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+### Added
+
+- Added silent Android Motion Photo 1.0 export from immersive playback, with chapter range, playback speed, quality, system-gallery saving, and sharing controls. / 新增从沉浸播放生成静音的 Android Motion Photo 1.0 实况照片，支持章节范围、播放速度、清晰度、系统相册保存与分享。
+
 ## [1.4.1] - 2026-07-26
 
 ### Added

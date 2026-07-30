@@ -34,17 +34,17 @@
 
 ## 简体中文
 
-叙廊将照片组织成章节和叙事路径。你可以为每个章节选择画布、布局、画框、装饰、文字、背景音乐和播放节奏，再通过沉浸播放或 Android 录屏生成可分享的作品。
+叙廊将照片组织成章节和叙事路径。你可以为每个章节选择画布、布局、画框、装饰、文字、背景音乐和播放节奏，再通过沉浸播放、Android 录屏或实况照片生成可分享的作品。
 
 ### 核心特性
 
-- **本地优先**：无需账号或云同步，不申请网络权限；照片、模板、音乐和录屏保存在设备本地。
+- **本地优先**：无需账号或云同步，不申请网络权限；照片、模板、音乐、录屏和实况照片保存在设备本地。
 - **章节化叙事**：使用多章节、叙事路径、远近关系和播放节奏组织照片。
 - **画框与题字**：包含经典、手绘和留白题字画框，题字与照片作为一个整体移动、旋转和保存。
 - **自由文字装饰**：文字可在画布上独立移动、缩放、旋转和删除，支持系统字体与三款 OFL 中文展示字体。
 - **沉浸播放**：支持横竖屏浏览、章节切换、自动播放和背景音乐。
 - **模板与分享**：导入、导出不含照片的 `.xulang-template.json` 模板，并生成离线 HTML 展览。
-- **Android 录屏**：用户主动授权后生成 MP4；录屏功能目前仅支持 Android。
+- **Android 录屏与实况照片**：用户主动授权后生成 MP4，或按所选章节和播放速度生成静音的 Motion Photo 1.0 实况照片并保存到系统相册；目前仅支持 Android。
 
 ### 下载与安装
 
@@ -82,7 +82,7 @@ Release 构建需要维护者自己的 Android 签名配置；不要将 `key.pro
 
 ### 隐私、贡献与路线图
 
-叙廊不申请网络权限，也不会上传照片、音乐、模板或视频。完整说明见[隐私政策](https://xulang.dpdns.org/privacy.html)。
+叙廊不申请网络权限，也不会上传照片、音乐、模板、视频或实况照片。完整说明见[隐私政策](https://xulang.dpdns.org/privacy.html)。
 
 欢迎 Bug 报告、功能建议和 Pull Request。请先阅读[贡献指南](CONTRIBUTING.md)与[行为准则](CODE_OF_CONDUCT.md)。安全问题不要创建公开 Issue，请按[安全政策](SECURITY.md)使用 GitHub 私密漏洞报告。
 
@@ -90,17 +90,17 @@ Release 构建需要维护者自己的 Android 签名配置；不要将 `key.pro
 
 ## English
 
-Xulang turns photos into chapters and narrative paths. Each chapter can use its own canvas, layout, frame, decorations, text, music, and playback timing, then become an immersive exhibition or an Android screen recording.
+Xulang turns photos into chapters and narrative paths. Each chapter can use its own canvas, layout, frame, decorations, text, music, and playback timing, then become an immersive exhibition, Android screen recording, or Android motion photo.
 
 ### Highlights
 
-- **Local first:** no account, cloud sync, or network permission; photos, templates, music, and recordings stay on the device.
+- **Local first:** no account, cloud sync, or network permission; photos, templates, music, recordings, and motion photos stay on the device.
 - **Chapter-based storytelling:** arrange photos with chapters, narrative tracks, depth, and playback timing.
 - **Frames and inscriptions:** classic, hand-drawn, and caption-mat frames; the photo, paper, inscription, and rotation remain one object.
 - **Free-text decorations:** move, resize, rotate, edit, and delete text directly on the canvas, using the system face or three bundled OFL Chinese display fonts.
 - **Immersive viewing:** portrait and landscape navigation, chapter switching, autoplay, and background music.
 - **Templates and sharing:** import or export photo-free `.xulang-template.json` templates and generate offline HTML exhibitions.
-- **Android recording:** create MP4 recordings after explicit system consent; built-in recording is Android-only.
+- **Android recording and motion photos:** after explicit system consent, create MP4 recordings or silent Motion Photo 1.0 files whose duration follows the selected chapters and playback speed; motion photos are saved to the system gallery. These features are Android-only.
 
 ### Download
 

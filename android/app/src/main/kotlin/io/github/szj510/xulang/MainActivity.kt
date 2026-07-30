@@ -26,6 +26,7 @@ import kotlin.math.max
 
 class MainActivity : FlutterActivity() {
     private val recorderChannel = "xulang/native_screen_recorder"
+    private val motionPhotoChannel = "xulang/native_motion_photo"
     private val documentAccessChannel = "xulang/document_access"
     private val mediaProjectionRequestCode = 4207
     private val documentTreeRequestCode = 4208
@@ -50,6 +51,14 @@ class MainActivity : FlutterActivity() {
                     "isSupported" -> result.success(true)
                     "start" -> startRecording(call, result)
                     "stop" -> stopRecording(result)
+                    else -> result.notImplemented()
+                }
+            }
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, motionPhotoChannel)
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "create" -> createMotionPhoto(call, result)
+                    "share" -> shareMotionPhoto(call, result)
                     else -> result.notImplemented()
                 }
             }
@@ -264,6 +273,48 @@ class MainActivity : FlutterActivity() {
             output.write(buffer, 0, read)
         }
         return output.toString(Charsets.UTF_8.name())
+    }
+
+    private fun createMotionPhoto(call: MethodCall, result: MethodChannel.Result) {
+        val path = call.argument<String>("videoPath")
+        val title = call.argument<String>("title") ?: "motion"
+        if (path.isNullOrBlank()) {
+            result.error("missing_video", "A recorded MP4 path is required.", null)
+            return
+        }
+        Thread {
+            try {
+                val saved = MotionPhotoExporter(applicationContext).create(File(path), title)
+                postMethodResult {
+                    result.success(
+                        mapOf(
+                            "uri" to saved.uri.toString(),
+                            "displayName" to saved.displayName,
+                            "sizeBytes" to saved.sizeBytes,
+                        ),
+                    )
+                }
+            } catch (error: Throwable) {
+                postMethodResult {
+                    result.error("motion_photo_create_failed", error.message, null)
+                }
+            }
+        }.start()
+    }
+
+    private fun shareMotionPhoto(call: MethodCall, result: MethodChannel.Result) {
+        val uriText = call.argument<String>("uri")
+        val title = call.argument<String>("title") ?: "Xulang motion photo"
+        if (uriText.isNullOrBlank()) {
+            result.error("missing_uri", "A saved motion photo URI is required.", null)
+            return
+        }
+        try {
+            MotionPhotoExporter(applicationContext).share(Uri.parse(uriText), title)
+            result.success(null)
+        } catch (error: Throwable) {
+            result.error("motion_photo_share_failed", error.message, null)
+        }
     }
 
     private fun startRecording(call: MethodCall, result: MethodChannel.Result) {
