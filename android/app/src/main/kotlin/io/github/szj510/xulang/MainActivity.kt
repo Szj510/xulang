@@ -288,7 +288,10 @@ class MainActivity : FlutterActivity() {
     private fun createCaptureIntent(manager: MediaProjectionManager): Intent {
         return if (Build.VERSION.SDK_INT >= 34) {
             manager.createScreenCaptureIntent(
-                MediaProjectionConfig.createConfigForDefaultDisplay(),
+                // Let Android offer app-window capture in the consent dialog. When
+                // the user selects Xulang, system and other-app overlays (such as
+                // floating assistive controls) stay outside the recorded content.
+                MediaProjectionConfig.createConfigForUserChoice(),
             )
         } else {
             manager.createScreenCaptureIntent()

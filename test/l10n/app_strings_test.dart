@@ -51,6 +51,8 @@ void main() {
     expect(strings.securityReport, 'Report a security issue');
     expect(strings.versionAndBuild('1.3.0', '14'), 'Version 1.3.0 (14)');
     expect(strings.libraryCategories, 'Categories');
+    expect(strings.recordingSheetDescription, contains('Android 14 QPR2'));
+    expect(strings.recordingSheetDescription, contains('floating controls'));
     expect(strings.changeHomeHero, 'Change cover');
     expect(strings.homeAppearance, 'Home appearance');
     expect(strings.homeCover, 'Home cover');

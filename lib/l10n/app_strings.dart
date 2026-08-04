@@ -211,8 +211,8 @@ class AppStrings {
       ? 'This only deletes the generated MP4 file. Your exhibition is kept.'
       : '只会删除生成的 MP4 文件，展览内容不会受影响。';
   String get recordingSheetDescription => isEnglish
-      ? 'After confirmation, Xulang enters immersive playback, records the screen, then opens the result page when the MP4 file is ready.'
-      : '确认后会进入沉浸播放，完成录制并检测到 MP4 文件后，再打开结果页。';
+      ? 'After confirmation, Xulang enters immersive playback, records it, then opens the result page when the MP4 file is ready. On Android 14 QPR2 or later, choose Xulang in the system prompt to record only this app and keep floating controls out of the video.'
+      : '确认后会进入沉浸播放，完成录制并检测到 MP4 文件后，再打开结果页。Android 14 QPR2 及更高版本请在系统授权页选择“叙廊”，即可只录制本应用并排除悬浮球等外部控件。';
   String get chapterRange => isEnglish ? 'Chapter range' : '章节范围';
   String playbackSpeed(double value) => isEnglish
       ? 'Playback speed ${value.toStringAsFixed(1)}s / photo'

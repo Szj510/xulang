@@ -44,7 +44,7 @@
 - **自由文字装饰**：文字可在画布上独立移动、缩放、旋转和删除，支持系统字体与三款 OFL 中文展示字体。
 - **沉浸播放**：支持横竖屏浏览、章节切换、自动播放和背景音乐。
 - **模板与分享**：导入、导出不含照片的 `.xulang-template.json` 模板，并生成离线 HTML 展览。
-- **Android 录屏**：用户主动授权后生成 MP4；录屏功能目前仅支持 Android。
+- **Android 录屏**：用户主动授权后生成 MP4；Android 14 QPR2 及更高版本可在系统授权页选择“叙廊”，仅录制应用窗口并排除悬浮球等外部控件；录屏功能目前仅支持 Android。
 
 ### 下载与安装
 
@@ -100,7 +100,7 @@ Xulang turns photos into chapters and narrative paths. Each chapter can use its 
 - **Free-text decorations:** move, resize, rotate, edit, and delete text directly on the canvas, using the system face or three bundled OFL Chinese display fonts.
 - **Immersive viewing:** portrait and landscape navigation, chapter switching, autoplay, and background music.
 - **Templates and sharing:** import or export photo-free `.xulang-template.json` templates and generate offline HTML exhibitions.
-- **Android recording:** create MP4 recordings after explicit system consent; built-in recording is Android-only.
+- **Android recording:** create MP4 recordings after explicit system consent. On Android 14 QPR2 or later, select Xulang in the system prompt to record only the app window and exclude floating controls outside it; built-in recording is Android-only.
 
 ### Download
 
