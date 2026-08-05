@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file. The format 
 
 ## [Unreleased]
 
+
+## [1.4.2] - 2026-08-05
+
+### Fixed
+
+- Android screen recordings now try to include in-app background music, and recording video deletion releases the preview controller before removing the file so the delete action completes immediately. / Android 录屏现在会尽量包含应用内背景音乐；删除录制视频时会先释放预览播放器再删文件，避免必须退出页面后才能立即删除的问题。
+
 ## [1.4.1] - 2026-07-26
 
 ### Added

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -25,8 +26,9 @@ class RecordingResultScreen extends StatefulWidget {
 }
 
 class _RecordingResultScreenState extends State<RecordingResultScreen> {
-  late final VideoPlayerController _controller;
+  VideoPlayerController? _controller;
   bool _initializing = true;
+  bool _deleting = false;
   Object? _error;
 
   @override
@@ -38,8 +40,10 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
 
   Future<void> _initialize() async {
     try {
-      await _controller.initialize();
-      await _controller.setLooping(true);
+      final controller = _controller;
+      if (controller == null) return;
+      await controller.initialize();
+      await controller.setLooping(true);
     } catch (error) {
       _error = error;
     }
@@ -48,8 +52,15 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    unawaited(_releaseController());
     super.dispose();
+  }
+
+  Future<void> _releaseController() async {
+    final controller = _controller;
+    if (controller == null) return;
+    _controller = null;
+    await controller.dispose();
   }
 
   Future<void> _share() async {
@@ -69,6 +80,7 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
   }
 
   Future<void> _delete() async {
+    if (_deleting) return;
     final l10n = AppStrings.of(context);
     final confirmed = await showDialog<bool>(
       context: context,
@@ -88,7 +100,8 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
       ),
     );
     if (confirmed != true) return;
-    await _controller.pause();
+    setState(() => _deleting = true);
+    await _releaseController();
     await RecordedVideoLibrary.delete(widget.videoPath);
     widget.onDeleted?.call();
     if (mounted) Navigator.pop(context);
@@ -198,7 +211,11 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
 
   Widget _buildPreview(AppStrings l10n) {
     if (_initializing) return const CircularProgressIndicator();
-    if (_error != null || !_controller.value.isInitialized) {
+    if (_deleting) return const CircularProgressIndicator();
+    final controller = _controller;
+    if (_error != null ||
+        controller == null ||
+        !controller.value.isInitialized) {
       return Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
@@ -211,19 +228,17 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
     return GestureDetector(
       onTap: () {
         setState(() {
-          _controller.value.isPlaying
-              ? _controller.pause()
-              : _controller.play();
+          controller.value.isPlaying ? controller.pause() : controller.play();
         });
       },
       child: Stack(
         alignment: Alignment.center,
         children: [
           AspectRatio(
-            aspectRatio: _controller.value.aspectRatio,
-            child: VideoPlayer(_controller),
+            aspectRatio: controller.value.aspectRatio,
+            child: VideoPlayer(controller),
           ),
-          if (!_controller.value.isPlaying)
+          if (!controller.value.isPlaying)
             DecoratedBox(
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
