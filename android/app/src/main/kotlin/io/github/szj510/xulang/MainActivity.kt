@@ -3,10 +3,6 @@ package io.github.szj510.xulang
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.hardware.display.DisplayManager
-import android.hardware.display.VirtualDisplay
-import android.media.MediaRecorder
-import android.media.projection.MediaProjection
 import android.media.projection.MediaProjectionConfig
 import android.media.projection.MediaProjectionManager
 import android.net.Uri
@@ -22,7 +18,6 @@ import io.flutter.plugin.common.MethodChannel
 import java.io.File
 import java.io.ByteArrayOutputStream
 import java.io.FileOutputStream
-import kotlin.math.max
 
 class MainActivity : FlutterActivity() {
     private val recorderChannel = "xulang/native_screen_recorder"
@@ -34,13 +29,9 @@ class MainActivity : FlutterActivity() {
     private val documentTextReadLimitBytes = 2 * 1024 * 1024
 
     private var pendingResult: MethodChannel.Result? = null
-    private var pendingArgs: RecorderArgs? = null
+    private var pendingArgs: RecordingOptions? = null
     private var pendingDocumentTreeResult: MethodChannel.Result? = null
-    private var mediaProjection: MediaProjection? = null
-    private var mediaProjectionCallback: MediaProjection.Callback? = null
-    private var virtualDisplay: VirtualDisplay? = null
-    private var mediaRecorder: MediaRecorder? = null
-    private var outputPath: String? = null
+    private var recordingSession: ScreenRecordingSession? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -91,7 +82,8 @@ class MainActivity : FlutterActivity() {
                 startProjectionRecording(resultCode, data, args)
                 result.success(args.outputPath)
             } catch (error: Throwable) {
-                cleanupRecording(deleteOutput = true)
+                recordingSession = null
+                stopMediaProjectionForegroundService()
                 result.error("recording_start_failed", error.message, null)
             }
         }, 300)
@@ -267,7 +259,7 @@ class MainActivity : FlutterActivity() {
     }
 
     private fun startRecording(call: MethodCall, result: MethodChannel.Result) {
-        if (mediaRecorder != null || pendingResult != null) {
+        if (recordingSession != null || pendingResult != null) {
             result.error("already_recording", "A screen recording is already in progress.", null)
             return
         }
@@ -275,8 +267,8 @@ class MainActivity : FlutterActivity() {
         val width = sanitizeDimension(call.argument<Int>("width") ?: resources.displayMetrics.widthPixels)
         val height = sanitizeDimension(call.argument<Int>("height") ?: resources.displayMetrics.heightPixels)
         val frameRate = (call.argument<Int>("frameRate") ?: 30).coerceIn(15, 60)
-        val bitRate = max(call.argument<Int>("bitRate") ?: 8_000_000, 1_000_000)
-        val args = RecorderArgs(outputPath, width, height, frameRate, bitRate)
+        val bitRate = (call.argument<Int>("bitRate") ?: 8_000_000).coerceAtLeast(1_000_000)
+        val args = RecordingOptions(outputPath, width, height, frameRate, bitRate)
         File(outputPath).parentFile?.mkdirs()
 
         pendingResult = result
@@ -295,89 +287,35 @@ class MainActivity : FlutterActivity() {
         }
     }
 
-    private fun startProjectionRecording(resultCode: Int, data: Intent, args: RecorderArgs) {
+    private fun startProjectionRecording(resultCode: Int, data: Intent, args: RecordingOptions) {
         val manager = getSystemService(Context.MEDIA_PROJECTION_SERVICE) as MediaProjectionManager
         val projection = manager.getMediaProjection(resultCode, data)
             ?: throw IllegalStateException("Unable to create media projection.")
-        mediaProjection = projection
-        val callback = object : MediaProjection.Callback() {
-            override fun onStop() {
-                cleanupRecording(deleteOutput = false)
-            }
-        }
-        mediaProjectionCallback = callback
-        projection.registerCallback(callback, Handler(Looper.getMainLooper()))
-
-        val recorder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            MediaRecorder(this)
-        } else {
-            @Suppress("DEPRECATION")
-            MediaRecorder()
-        }
-        recorder.setVideoSource(MediaRecorder.VideoSource.SURFACE)
-        recorder.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
-        recorder.setVideoEncoder(MediaRecorder.VideoEncoder.H264)
-        recorder.setVideoSize(args.width, args.height)
-        recorder.setVideoFrameRate(args.frameRate)
-        recorder.setVideoEncodingBitRate(args.bitRate)
-        recorder.setOutputFile(args.outputPath)
-        recorder.prepare()
-        mediaRecorder = recorder
-        outputPath = args.outputPath
-        virtualDisplay = projection.createVirtualDisplay(
-            "xulang-screen-recording",
-            args.width,
-            args.height,
-            resources.displayMetrics.densityDpi,
-            DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR,
-            recorder.surface,
-            null,
-            null,
+        val session = ScreenRecordingSession(
+            context = this,
+            projection = projection,
+            options = args,
+            onProjectionStopped = {
+                recordingSession = null
+                stopMediaProjectionForegroundService()
+            },
         )
-        recorder.start()
+        session.start()
+        recordingSession = session
     }
 
     private fun stopRecording(result: MethodChannel.Result) {
-        val path = outputPath
         try {
-            mediaRecorder?.apply {
-                try {
-                    stop()
-                } catch (_: RuntimeException) {
-                    if (path != null) File(path).delete()
-                    throw IllegalStateException("Recording was too short to finalize.")
-                }
-            }
-            cleanupRecording(deleteOutput = false)
+            val session = recordingSession ?: throw IllegalStateException("No recording is active.")
+            val path = session.stop()
+            recordingSession = null
+            stopMediaProjectionForegroundService()
             result.success(path)
         } catch (error: Throwable) {
-            cleanupRecording(deleteOutput = true)
+            recordingSession = null
+            stopMediaProjectionForegroundService()
             result.error("recording_stop_failed", error.message, null)
         }
-    }
-
-    private fun cleanupRecording(deleteOutput: Boolean) {
-        val path = outputPath
-        virtualDisplay?.release()
-        virtualDisplay = null
-        mediaRecorder?.reset()
-        mediaRecorder?.release()
-        mediaRecorder = null
-        mediaProjectionCallback?.let { callback ->
-            try {
-                mediaProjection?.unregisterCallback(callback)
-            } catch (_: Throwable) {
-                // Projection may already be stopped by the system.
-            }
-        }
-        mediaProjectionCallback = null
-        mediaProjection?.stop()
-        mediaProjection = null
-        outputPath = null
-        pendingResult = null
-        pendingArgs = null
-        if (deleteOutput && path != null) File(path).delete()
-        stopMediaProjectionForegroundService()
     }
 
     private fun startMediaProjectionForegroundService() {
@@ -409,11 +347,4 @@ class MainActivity : FlutterActivity() {
         return File(directory, "xulang-recording-${System.currentTimeMillis()}.mp4").absolutePath
     }
 
-    private data class RecorderArgs(
-        val outputPath: String,
-        val width: Int,
-        val height: Int,
-        val frameRate: Int,
-        val bitRate: Int,
-    )
 }
