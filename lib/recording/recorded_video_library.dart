@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/services.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
@@ -19,6 +20,22 @@ class RecordedVideoInfo {
 
 class RecordedVideoLibrary {
   const RecordedVideoLibrary._();
+
+  static const MethodChannel _channel = MethodChannel('xulang/document_access');
+
+  /// Save a recorded video file into the device gallery (returns content URI on success).
+  static Future<String?> saveToGallery(String path) async {
+    try {
+      final uri = await _channel.invokeMethod<String>('saveToGallery', {
+        'path': path,
+      });
+      return uri;
+    } on MissingPluginException {
+      throw UnsupportedError(
+        'Platform saveToGallery is not available on this host',
+      );
+    }
+  }
 
   static Future<Directory> recordingsDirectory() async {
     final root = await getApplicationDocumentsDirectory();

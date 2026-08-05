@@ -204,6 +204,10 @@ class AppStrings {
       ? 'Sharing sends the original MP4 file. Some apps, including WeChat, may still compress video after receiving it.'
       : '分享会发送原始 MP4 文件。微信等应用接收后仍可能二次压缩画质。';
   String get manageVideos => isEnglish ? 'Manage videos' : '管理生成的视频';
+  String get recordingSavedToGallery =>
+      isEnglish ? 'Saved to gallery' : '已保存到相册';
+  String get recordingSaveFailed =>
+      isEnglish ? 'Save to gallery failed' : '保存到相册失败';
   String get noGeneratedVideos =>
       isEnglish ? 'No generated videos yet' : '还没有生成的视频';
   String get deleteVideoTitle => isEnglish ? 'Delete video?' : '删除视频？';
