@@ -213,7 +213,9 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
     if (_initializing) return const CircularProgressIndicator();
     if (_deleting) return const CircularProgressIndicator();
     final controller = _controller;
-    if (_error != null || controller == null || !controller.value.isInitialized) {
+    if (_error != null ||
+        controller == null ||
+        !controller.value.isInitialized) {
       return Padding(
         padding: const EdgeInsets.all(24),
         child: Text(
