@@ -15,7 +15,11 @@ import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
+import android.content.ContentValues
+import android.os.Environment
+import android.provider.MediaStore
 import java.io.File
+import java.io.FileInputStream
 import java.io.ByteArrayOutputStream
 import java.io.FileOutputStream
 
@@ -50,8 +54,9 @@ class MainActivity : FlutterActivity() {
                     "openTree" -> openDocumentTree(result)
                     "listFiles" -> listDocumentFiles(call, result)
                     "readText" -> readDocumentText(call, result)
-                    "materializeAudio" -> materializeAudio(call, result)
-                    else -> result.notImplemented()
+                   "materializeAudio" -> materializeAudio(call, result)
+                   "saveToGallery" -> saveToGallery(call, result)
+                   else -> result.notImplemented()
                 }
             }
     }
@@ -234,6 +239,47 @@ class MainActivity : FlutterActivity() {
                 postMethodResult { result.success(target.absolutePath) }
             } catch (error: Throwable) {
                 postMethodResult { result.error("audio_materialize_failed", error.message, null) }
+            }
+        }.start()
+    }
+
+    private fun saveToGallery(call: MethodCall, result: MethodChannel.Result) {
+        val path = call.argument<String>("path")
+        if (path.isNullOrBlank()) {
+            result.error("missing_path", "Path is required.", null)
+            return
+        }
+        Thread {
+            try {
+                val file = File(path)
+                if (!file.exists()) throw IllegalStateException("File does not exist")
+                val resolver = contentResolver
+                val values = ContentValues().apply {
+                    put(MediaStore.MediaColumns.DISPLAY_NAME, file.name)
+                    put(MediaStore.MediaColumns.MIME_TYPE, "video/mp4")
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                        put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_MOVIES + "/Xulang")
+                        put(MediaStore.Video.Media.IS_PENDING, 1)
+                    }
+                }
+                val collection = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    MediaStore.Video.Media.getContentUri(MediaStore.VOLUME_EXTERNAL_PRIMARY)
+                } else {
+                    MediaStore.Video.Media.EXTERNAL_CONTENT_URI
+                }
+                val uri = resolver.insert(collection, values) ?: throw IllegalStateException("Unable to create media store entry")
+                resolver.openOutputStream(uri).use { out ->
+                    FileInputStream(file).use { input ->
+                        input.copyTo(out!!)
+                    }
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    val update = ContentValues().apply { put(MediaStore.Video.Media.IS_PENDING, 0) }
+                    resolver.update(uri, update, null, null)
+                }
+                postMethodResult { result.success(uri.toString()) }
+            } catch (error: Throwable) {
+                postMethodResult { result.error("save_failed", error.message, null) }
             }
         }.start()
     }
