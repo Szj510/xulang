@@ -29,6 +29,7 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
   VideoPlayerController? _controller;
   bool _initializing = true;
   bool _deleting = false;
+  bool _saving = false;
   Object? _error;
 
   @override
@@ -107,6 +108,34 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
     if (mounted) Navigator.pop(context);
   }
 
+  Future<void> _saveToGallery() async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    final l10n = AppStrings.of(context);
+    try {
+      final uri = await RecordedVideoLibrary.saveToGallery(widget.videoPath);
+      if (uri != null && mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.recordingSavedToGallery)));
+      } else if (mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(l10n.recordingSaveFailed)));
+      }
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${l10n.recordingSaveFailed}: ${error.toString()}'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l10n = AppStrings.of(context);
@@ -118,6 +147,11 @@ class _RecordingResultScreenState extends State<RecordingResultScreen> {
             tooltip: l10n.share,
             onPressed: _share,
             icon: const Icon(Icons.ios_share_outlined),
+          ),
+          IconButton(
+            tooltip: l10n.save,
+            onPressed: _saveToGallery,
+            icon: const Icon(Icons.download_outlined),
           ),
           IconButton(
             tooltip: l10n.delete,
