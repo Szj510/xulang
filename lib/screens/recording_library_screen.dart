@@ -23,7 +23,10 @@ class _RecordingLibraryScreenState extends State<RecordingLibraryScreen> {
   }
 
   void _reload() {
-    setState(() => _videos = RecordedVideoLibrary.list());
+    final future = RecordedVideoLibrary.list();
+    setState(() {
+      _videos = future;
+    });
   }
 
   Future<void> _share(RecordedVideoInfo video) async {
